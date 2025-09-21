@@ -29,13 +29,15 @@ export const HeroSection = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <OrionButton variant="action" size="lg" className="group">
-                Conheça o Programa Fundadores
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              <OrionButton variant="action" size="lg" className="group" asChild>
+                <a href="/admin" target="_blank" rel="noopener noreferrer">
+                  Acesse o Sistema
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                </a>
               </OrionButton>
               
               <OrionButton variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-orion-primary">
-                Agendar Demonstração
+                Conheça o Programa Fundadores
               </OrionButton>
             </div>
 
