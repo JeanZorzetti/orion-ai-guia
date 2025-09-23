@@ -67,7 +67,7 @@ ChartContainer.displayName = "Chart"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
-    ([, configItem]) => configItem.theme || configItem.color
+    ([_, config]) => config.theme || config.color
   )
 
   if (!colorConfig.length) {
@@ -109,8 +109,7 @@ const ChartTooltipContent = React.forwardRef<
       indicator?: "line" | "dot" | "dashed"
       nameKey?: string
       labelKey?: string
-      payload?: any[]
-      active?: boolean
+      payload?: Array<{ dataKey?: string; name?: string; value?: unknown }>
     }
 >(
   (

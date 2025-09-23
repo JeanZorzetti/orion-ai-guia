@@ -1,0 +1,19 @@
+{
+  "name": "orion-erp",
+  "version": "1.0.0",
+  "description": "Orion ERP - Complete Next.js Application",
+  "main": "index.js",
+  "scripts": {
+    "dev": "cd admin && npm run dev",
+    "build": "cd admin && npm run build",
+    "start": "cd admin && npm run start",
+    "lint": "cd admin && npm run lint"
+  },
+  "keywords": ["nextjs", "typescript", "erp", "fastapi"],
+  "author": "Orion Team",
+  "license": "MIT",
+  "workspaces": [
+    "admin",
+    "backend"
+  ]
+}
