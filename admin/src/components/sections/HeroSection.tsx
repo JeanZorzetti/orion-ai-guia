@@ -1,3 +1,5 @@
+"use client";
+
 import { OrionButton } from "@/components/OrionButton";
 import { ArrowRight, Sparkles } from "lucide-react";
 
