@@ -12,11 +12,10 @@ import {
   TableHeader,
   TableRow,
 } from '../../src/components/ui/table';
-import { 
+import {
   Package,
   TrendingUp,
   Calendar,
-  DollarSign,
   BarChart3
 } from 'lucide-react';
 

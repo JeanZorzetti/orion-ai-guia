@@ -12,7 +12,7 @@ import {
   FileText,
   Package
 } from 'lucide-react';
-import { cn } from '../../../src/lib/utils';
+import { cn } from '@/lib/utils';
 
 const navigation = [
   {
@@ -63,10 +63,10 @@ const AdminSidebar: React.FC = () => {
   const pathname = usePathname();
 
   const isActive = (href: string) => {
-    return pathname === href || pathname.startsWith(href + '/');
+    return pathname === href || pathname?.startsWith(href + '/');
   };
 
-  const NavItem = ({ item, isChild = false }: { item: any; isChild?: boolean }) => {
+  const NavItem = ({ item, isChild = false }: { item: { name: string; href: string; icon: React.ComponentType<{ className?: string }> }; isChild?: boolean }) => {
     const Icon = item.icon;
     const active = isActive(item.href);
 

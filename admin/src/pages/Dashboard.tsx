@@ -8,7 +8,6 @@ import {
   Calendar, 
   TrendingUp,
   FileText,
-  Package,
   DollarSign
 } from 'lucide-react';
 import Link from 'next/link';

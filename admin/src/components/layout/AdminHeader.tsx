@@ -5,8 +5,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '../../../src/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../src/components/ui/avatar';
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChevronDown, User, LogOut } from 'lucide-react';
 
 const AdminHeader: React.FC = () => {

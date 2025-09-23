@@ -1,6 +1,6 @@
-import AdminLayout from '../../components/layout/AdminLayout';
+import AdminLayout from '@/components/layout/AdminLayout';
 
-export default function AdminLayoutWrapper({
+export default function AdminLayoutPage({
   children,
 }: {
   children: React.ReactNode;
