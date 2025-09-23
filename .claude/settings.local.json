@@ -23,7 +23,12 @@
       "Bash(tasklist)",
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(docker:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose:*)"
     ],
     "deny": [],
     "ask": []

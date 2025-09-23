@@ -1,38 +1,23 @@
-version: '3.8'
-
 services:
   # FastAPI Backend
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       - POSTGRES_SERVER=db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=orion_erp
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://localhost:6379
       - SECRET_KEY=development-secret-key-change-in-production
-      - BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:3001
     depends_on:
       - db
-      - redis
     volumes:
       - ./backend:/app
     restart: unless-stopped
 
-  # Next.js Frontend Admin
-  admin:
-    build: ./admin
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-    volumes:
-      - ./admin:/app
-      - /app/node_modules
-      - /app/.next
-    restart: unless-stopped
+  # Note: Admin (Next.js) runs separately with npm run dev
 
   # PostgreSQL Database
   db:
@@ -45,7 +30,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "5432:5432"
+      - "5433:5432"
     restart: unless-stopped
 
   # Redis Cache
@@ -64,7 +49,7 @@ services:
       - PGADMIN_DEFAULT_EMAIL=admin@orion.com
       - PGADMIN_DEFAULT_PASSWORD=admin123
     ports:
-      - "5050:80"
+      - "5051:80"
     depends_on:
       - db
     restart: unless-stopped
