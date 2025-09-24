@@ -2,6 +2,7 @@
 
 import { OrionButton } from "@/components/OrionButton";
 import { ArrowRight, Sparkles } from "lucide-react";
+const heroImage = "/assets/orion-hero.jpg";
 
 export const HeroSection = () => {
   return (
@@ -63,14 +64,12 @@ export const HeroSection = () => {
 
           {/* Hero Image */}
           <div className="relative">
-            <div className="relative rounded-2xl overflow-hidden shadow-card bg-white/10 backdrop-blur-sm border border-white/20 h-96">
-              <div className="w-full h-full bg-gradient-to-br from-action-primary/20 to-orion-primary/10 flex items-center justify-center">
-                <div className="text-center text-white/60">
-                  <Sparkles className="w-16 h-16 mx-auto mb-4" />
-                  <p className="text-lg font-medium">Dashboard Orion ERP</p>
-                  <p className="text-sm">com IA para PMEs</p>
-                </div>
-              </div>
+            <div className="relative rounded-2xl overflow-hidden shadow-card bg-white/10 backdrop-blur-sm border border-white/20">
+              <img
+                src={heroImage}
+                alt="Dashboard Orion ERP com IA para PMEs"
+                className="w-full h-full object-cover"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-orion-primary/20 to-transparent"></div>
             </div>
             
