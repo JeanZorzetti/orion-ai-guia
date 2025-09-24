@@ -9,6 +9,9 @@ from datetime import datetime
 from app.core.database import get_db
 from app.models.invoice import Invoice
 from app.services.invoice_processor import InvoiceProcessorService
+from app.services.document_processor import DocumentProcessor
+from app.services.data_cleaner import DataCleaner
+from app.services.supplier_matcher import SupplierMatcher
 from app.services.ai_service import AIService
 from app.core.security import get_current_user
 from app.models.user import User
@@ -76,43 +79,45 @@ async def upload_invoice(
             temp_file.write(content)
             temp_file_path = temp_file.name
 
-        # Processa a fatura com IA
-        ai_service = AIService()
-        invoice_processor = InvoiceProcessorService(ai_service)
+        # Processa o documento com o novo processador unificado
+        document_processor = DocumentProcessor(db_session=db)
 
-        # Extrai dados da fatura
-        extracted_data = await invoice_processor.process_invoice(temp_file_path, file.filename)
+        # Extrai dados do documento (PDF convertido para imagem ou imagem direta)
+        processing_result = await document_processor.process_document(temp_file_path, file.filename)
 
         # Remove arquivo temporário
         os.unlink(temp_file_path)
 
+        # Extrai dados do resultado do processamento
+        extracted_data = processing_result.get("extracted_data", {})
+
         # Prepara resposta com dados extraídos
         response_data = {
-            "success": True,
-            "message": "Fatura processada com sucesso",
-            "extracted_data": {
-                "supplier_name": extracted_data.get("supplier_name", ""),
-                "supplier_cnpj": extracted_data.get("supplier_cnpj", ""),
-                "invoice_number": extracted_data.get("invoice_number", ""),
-                "issue_date": extracted_data.get("issue_date", ""),
-                "due_date": extracted_data.get("due_date", ""),
-                "total_amount": extracted_data.get("total_amount", 0.0),
-                "tax_amount": extracted_data.get("tax_amount", 0.0),
-                "net_amount": extracted_data.get("net_amount", 0.0),
-                "description": extracted_data.get("description", ""),
-                "category": extracted_data.get("category", ""),
-                "payment_method": extracted_data.get("payment_method", ""),
-                "items": extracted_data.get("items", []),
-                "confidence_score": extracted_data.get("confidence_score", 0.0),
-                "ai_suggestions": extracted_data.get("ai_suggestions", [])
+            "success": processing_result.get("success", False),
+            "message": "Documento processado com sucesso" if processing_result.get("success") else "Erro no processamento",
+            "extracted_data": extracted_data,
+            "processing_info": {
+                "method": processing_result.get("processing_method", "unknown"),
+                "confidence_score": processing_result.get("confidence_score", 0.0),
+                "pages_processed": processing_result.get("total_pages", processing_result.get("pages_processed", 1)),
+                "file_type": processing_result.get("file_type", "unknown"),
+                "image_dimensions": processing_result.get("image_dimensions"),
+                "pdf_dpi": processing_result.get("pdf_dpi"),
+                "cleaning_stats": processing_result.get("cleaning_stats", {}),
+                "supplier_suggestions": processing_result.get("supplier_suggestions", {})
             },
             "file_info": {
                 "filename": file.filename,
+                "original_filename": processing_result.get("original_filename", file.filename),
                 "size": file.size,
                 "content_type": file.content_type,
-                "processed_at": datetime.now().isoformat()
+                "processed_at": processing_result.get("processed_at", datetime.now().isoformat())
             }
         }
+
+        # Adiciona erro se houver
+        if not processing_result.get("success"):
+            response_data["error"] = processing_result.get("error", "Erro desconhecido")
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
@@ -219,6 +224,45 @@ async def list_invoices(
                     }
                     for invoice in invoices
                 ]
+            }
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao listar faturas: {str(e)}"
+        )
+
+@router.post("/test-data-cleaning")
+async def test_data_cleaning(
+    raw_data: Dict[str, Any],
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Endpoint de teste para limpeza e formatação de dados
+
+    - **raw_data**: Dados brutos para testar a limpeza
+    """
+
+    try:
+        # Inicializa o limpador de dados
+        data_cleaner = DataCleaner()
+
+        # Limpa os dados fornecidos
+        cleaned_data = data_cleaner.clean_extracted_data(raw_data)
+
+        # Gera estatísticas de limpeza
+        cleaning_stats = data_cleaner.get_cleaning_stats(raw_data, cleaned_data)
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "message": "Limpeza de dados realizada com sucesso",
+                "original_data": raw_data,
+                "cleaned_data": cleaned_data,
+                "cleaning_stats": cleaning_stats,
+                "processed_at": datetime.now().isoformat()
             }
         )
 

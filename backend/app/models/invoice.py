@@ -13,8 +13,9 @@ class Invoice(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=True)  # Referência ao fornecedor
 
-    # Dados do fornecedor
+    # Dados do fornecedor (mantido para compatibilidade)
     supplier_name = Column(String(255), nullable=False)
     supplier_cnpj = Column(String(20), nullable=True)
     supplier_address = Column(Text, nullable=True)
@@ -60,6 +61,7 @@ class Invoice(Base):
 
     # Relacionamentos
     user = relationship("User", back_populates="invoices")
+    supplier = relationship("Supplier", back_populates="invoices")
     payments = relationship("Payment", back_populates="invoice", cascade="all, delete-orphan")
 
     def __repr__(self):

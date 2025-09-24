@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.services.ai_service import AIService
+from app.services.layout_lm_service import LayoutLMService
 from app.utils.file_utils import FileUtils
 from app.core.config import settings
 
@@ -15,7 +16,9 @@ class InvoiceProcessorService:
 
     def __init__(self, ai_service: AIService):
         self.ai_service = ai_service
+        self.layout_lm_service = LayoutLMService()
         self.file_utils = FileUtils()
+        self.use_layout_lm = os.getenv("USE_LAYOUT_LM", "true").lower() == "true"
 
     async def process_invoice(self, file_path: str, original_filename: str) -> Dict[str, Any]:
         """
@@ -55,7 +58,17 @@ class InvoiceProcessorService:
     async def _process_pdf_invoice(self, file_path: str, original_filename: str) -> Dict[str, Any]:
         """Processa fatura em PDF"""
 
-        # Extrai texto do PDF
+        # Tenta primeiro com LayoutLM se disponível
+        if self.use_layout_lm:
+            try:
+                layout_result = await self.layout_lm_service.process_pdf_document(file_path)
+
+                if layout_result.get("success") and layout_result.get("confidence_score", 0) > 0.3:
+                    return self._format_layout_lm_result(layout_result, original_filename, "pdf")
+            except Exception as e:
+                print(f"Erro no LayoutLM para PDF, usando fallback: {e}")
+
+        # Fallback para método tradicional
         pdf_text = self.file_utils.extract_pdf_text(file_path)
 
         if not pdf_text:
@@ -68,7 +81,17 @@ class InvoiceProcessorService:
     async def _process_image_invoice(self, file_path: str, original_filename: str) -> Dict[str, Any]:
         """Processa fatura em imagem"""
 
-        # Extrai texto da imagem usando OCR
+        # Tenta primeiro com LayoutLM se disponível
+        if self.use_layout_lm:
+            try:
+                layout_result = await self.layout_lm_service.process_image_document(file_path)
+
+                if layout_result.get("success") and layout_result.get("confidence_score", 0) > 0.3:
+                    return self._format_layout_lm_result(layout_result, original_filename, "image")
+            except Exception as e:
+                print(f"Erro no LayoutLM para imagem, usando fallback: {e}")
+
+        # Fallback para método tradicional
         image_text = await self.ai_service.ocr_image(file_path)
 
         # Processa com IA
@@ -219,6 +242,118 @@ class InvoiceProcessorService:
             pass
 
         return data
+
+    def _format_layout_lm_result(self, layout_result: Dict[str, Any], filename: str, file_type: str) -> Dict[str, Any]:
+        """
+        Formata resultado do LayoutLM para o formato esperado pelo sistema
+
+        Args:
+            layout_result: Resultado do processamento LayoutLM
+            filename: Nome do arquivo original
+            file_type: Tipo do arquivo (pdf/image)
+
+        Returns:
+            Dict com dados formatados no padrão do sistema
+        """
+
+        extracted_data = layout_result.get("extracted_data", {})
+        confidence_score = layout_result.get("confidence_score", 0.0)
+
+        # Mapeia campos do LayoutLM para formato esperado
+        formatted_data = {
+            "supplier_name": extracted_data.get("supplier_name", ""),
+            "supplier_cnpj": extracted_data.get("supplier_cnpj", ""),
+            "invoice_number": extracted_data.get("invoice_number", ""),
+            "issue_date": extracted_data.get("issue_date", ""),
+            "due_date": extracted_data.get("due_date", ""),
+            "total_amount": float(extracted_data.get("total_amount", 0.0)),
+            "tax_amount": float(extracted_data.get("tax_amount", 0.0)),
+            "net_amount": float(extracted_data.get("total_amount", 0.0)) - float(extracted_data.get("tax_amount", 0.0)),
+            "description": self._generate_description_from_items(extracted_data.get("items", [])),
+            "category": self._infer_category_from_items(extracted_data.get("items", [])),
+            "payment_method": "",  # LayoutLM não extrai forma de pagamento facilmente
+            "items": self._format_layout_items(extracted_data.get("items", [])),
+            "confidence_score": confidence_score,
+            "ai_suggestions": self._generate_layout_lm_suggestions(layout_result, confidence_score),
+            "success": True,
+            "original_filename": filename,
+            "file_type": file_type,
+            "processed_at": datetime.now().isoformat(),
+            "processing_method": "LayoutLM"
+        }
+
+        return formatted_data
+
+    def _generate_description_from_items(self, items: list) -> str:
+        """Gera descrição geral baseada nos itens extraídos"""
+        if not items:
+            return ""
+
+        if len(items) == 1:
+            return items[0].get("description", "")
+        elif len(items) <= 3:
+            descriptions = [item.get("description", "") for item in items if item.get("description")]
+            return ", ".join(descriptions)
+        else:
+            return f"Múltiplos itens ({len(items)} produtos/serviços)"
+
+    def _infer_category_from_items(self, items: list) -> str:
+        """Infere categoria baseada nos itens"""
+        if not items:
+            return ""
+
+        # Palavras-chave para categorização automática
+        service_keywords = ["serviço", "consultoria", "manutenção", "instalação", "suporte"]
+        material_keywords = ["material", "produto", "equipamento", "ferramenta"]
+        office_keywords = ["papel", "caneta", "impressão", "escritório"]
+
+        all_descriptions = " ".join([item.get("description", "").lower() for item in items])
+
+        if any(keyword in all_descriptions for keyword in service_keywords):
+            return "Serviços"
+        elif any(keyword in all_descriptions for keyword in office_keywords):
+            return "Material de Escritório"
+        elif any(keyword in all_descriptions for keyword in material_keywords):
+            return "Materiais"
+        else:
+            return "Outros"
+
+    def _format_layout_items(self, items: list) -> list:
+        """Formata itens do LayoutLM para o formato esperado"""
+        formatted_items = []
+
+        for item in items:
+            if isinstance(item, dict):
+                formatted_items.append({
+                    "description": item.get("description", ""),
+                    "quantity": int(item.get("quantity", 1)) if item.get("quantity") else 1,
+                    "unit_price": float(item.get("unit_price", 0.0)) if item.get("unit_price") else 0.0,
+                    "total_price": float(item.get("total_price", 0.0)) if item.get("total_price") else 0.0
+                })
+
+        return formatted_items
+
+    def _generate_layout_lm_suggestions(self, layout_result: Dict[str, Any], confidence_score: float) -> list:
+        """Gera sugestões baseadas no resultado do LayoutLM"""
+        suggestions = []
+
+        if confidence_score < 0.5:
+            suggestions.append("Confiança baixa na extração - verifique os dados manualmente")
+        elif confidence_score < 0.7:
+            suggestions.append("Confiança média na extração - recomenda-se verificação")
+        else:
+            suggestions.append("Extração com alta confiança usando LayoutLM")
+
+        # Verifica se houve múltiplas páginas processadas
+        pages_processed = layout_result.get("pages_processed", 1)
+        if pages_processed > 1:
+            suggestions.append(f"Documento com {pages_processed} páginas processadas")
+
+        # Verifica se houve fallback para métodos tradicionais
+        if not layout_result.get("success", False):
+            suggestions.append("LayoutLM falhou - dados extraídos com método tradicional")
+
+        return suggestions
 
     def _create_manual_extraction(self, ai_response: str) -> Dict[str, Any]:
         """Cria extração manual quando o parse JSON falha"""
