@@ -192,13 +192,26 @@ export function InvoiceValidationForm({
       const newItems = [...prev.items];
       const item = { ...newItems[index] };
 
-      if (field === 'quantity' || field === 'unitPrice') {
-        (item as any)[field] = parseFloat(String(value)) || 0;
-        item.total = item.quantity * item.unitPrice;
-      } else if (field === 'description' || field === 'id') {
-        (item as any)[field] = String(value);
-      } else {
-        (item as any)[field] = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
+      switch (field) {
+        case 'description':
+          item.description = String(value);
+          break;
+        case 'quantity':
+          item.quantity = parseFloat(String(value)) || 0;
+          item.total = item.quantity * item.unitPrice;
+          break;
+        case 'unitPrice':
+          item.unitPrice = parseFloat(String(value)) || 0;
+          item.total = item.quantity * item.unitPrice;
+          break;
+        case 'total':
+          item.total = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
+          break;
+        case 'id':
+          if (item.id !== undefined) {
+            item.id = String(value);
+          }
+          break;
       }
 
       newItems[index] = item;
