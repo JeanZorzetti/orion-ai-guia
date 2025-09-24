@@ -536,7 +536,7 @@ export function InvoiceValidationForm({
               <div className="space-y-2">
                 <Label>Valor Líquido</Label>
                 <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded border text-sm font-medium">
-                  {formatCurrency(formData.netValue)}
+                  {formatCurrency(formData.netValue || 0)}
                 </div>
               </div>
 
