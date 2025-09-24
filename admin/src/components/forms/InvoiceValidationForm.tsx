@@ -193,10 +193,12 @@ export function InvoiceValidationForm({
       const item = { ...newItems[index] };
 
       if (field === 'quantity' || field === 'unitPrice') {
-        item[field] = parseFloat(String(value)) || 0;
+        (item as any)[field] = parseFloat(String(value)) || 0;
         item.total = item.quantity * item.unitPrice;
+      } else if (field === 'description' || field === 'id') {
+        (item as any)[field] = String(value);
       } else {
-        item[field] = value as string;
+        (item as any)[field] = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
       }
 
       newItems[index] = item;
