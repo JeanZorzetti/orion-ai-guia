@@ -12,9 +12,10 @@ import {
   TableHeader,
   TableRow,
 } from '../../src/components/ui/table';
-import { 
-  Upload, 
-  Edit, 
+import InvoiceUploadModal from '../../src/components/invoice/InvoiceUploadModal';
+import {
+  Upload,
+  Edit,
   Trash2,
   Filter
 } from 'lucide-react';
@@ -94,10 +95,12 @@ const ContasAPagar: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-foreground">Contas a Pagar</h1>
-        <Button size="lg" data-tour="form-validation">
-          <Upload className="mr-2 h-4 w-4" />
-          Importar Fatura
-        </Button>
+        <InvoiceUploadModal>
+          <Button size="lg" data-tour="form-validation">
+            <Upload className="mr-2 h-4 w-4" />
+            Importar Fatura
+          </Button>
+        </InvoiceUploadModal>
       </div>
 
       {/* Filtros */}

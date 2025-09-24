@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import InvoiceUploadModal from '@/components/invoice/InvoiceUploadModal';
 import {
   Upload,
   AlertTriangle,
@@ -55,10 +56,12 @@ const Dashboard: React.FC = () => {
             <p className="text-muted-foreground mb-4">
               Automatize seu fluxo financeiro em segundos
             </p>
-            <Button size="lg" className="w-full" data-tour="import-button">
-              <FileText className="mr-2 h-4 w-4" />
-              Importar Fatura
-            </Button>
+            <InvoiceUploadModal>
+              <Button size="lg" className="w-full" data-tour="import-button">
+                <FileText className="mr-2 h-4 w-4" />
+                Importar Fatura
+              </Button>
+            </InvoiceUploadModal>
           </CardContent>
         </Card>
 
