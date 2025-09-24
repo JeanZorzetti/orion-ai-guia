@@ -14,3 +14,10 @@ celery==5.3.4
 httpx==0.25.2
 pytest==7.4.3
 pytest-asyncio==0.21.1
+
+# Dependências para processamento de documentos e IA
+aiohttp==3.9.1
+PyPDF2==3.0.1
+Pillow==10.1.0
+pytesseract==0.3.10
+openai==1.5.0
