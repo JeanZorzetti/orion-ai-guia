@@ -109,7 +109,18 @@ const ChartTooltipContent = React.forwardRef<
       indicator?: "line" | "dot" | "dashed"
       nameKey?: string
       labelKey?: string
-      payload?: Array<{ dataKey?: string; name?: string; value?: unknown }>
+      payload?: Array<{
+        dataKey?: string;
+        name?: string;
+        value?: unknown;
+        payload?: { fill?: string };
+        color?: string;
+      }>
+      label?: string
+      labelFormatter?: (value: unknown, payload: unknown) => React.ReactNode
+      labelClassName?: string
+      formatter?: (value: unknown, name: unknown, props: unknown, index?: number, payload?: unknown) => React.ReactNode
+      color?: string
     }
 >(
   (
@@ -187,7 +198,7 @@ const ChartTooltipContent = React.forwardRef<
           {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
-            const indicatorColor = color || item.payload.fill || item.color
+            const indicatorColor = color || item.payload?.fill || item.color
 
             return (
               <div
@@ -198,7 +209,7 @@ const ChartTooltipContent = React.forwardRef<
                 )}
               >
                 {formatter && item?.value !== undefined && item.name ? (
-                  formatter(item.value, item.name, item, index, item.payload)
+                  formatter(item.value!, item.name, item, index, item.payload || {})
                 ) : (
                   <>
                     {itemConfig?.icon ? (
@@ -237,9 +248,9 @@ const ChartTooltipContent = React.forwardRef<
                           {itemConfig?.label || item.name}
                         </span>
                       </div>
-                      {item.value && (
+                      {item.value as React.ReactNode && (
                         <span className="font-mono font-medium tabular-nums text-foreground">
-                          {item.value.toLocaleString()}
+                          {String(item.value)}
                         </span>
                       )}
                     </div>
