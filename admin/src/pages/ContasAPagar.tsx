@@ -80,9 +80,17 @@ const ContasAPagar: React.FC = () => {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const contasFiltradas = filtroAtivo === 'todos' 
-    ? contas 
+  const contasFiltradas = filtroAtivo === 'todos'
+    ? contas
     : contas.filter(conta => conta.status === filtroAtivo);
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR');
+    } catch {
+      return dateString; // Fallback to original string if parsing fails
+    }
+  };
 
   const filtros = [
     { key: 'todos', label: 'Todas' },
@@ -147,7 +155,7 @@ const ContasAPagar: React.FC = () => {
                   <TableCell className="font-medium">{conta.fornecedor}</TableCell>
                   <TableCell className="text-muted-foreground">{conta.descricao}</TableCell>
                   <TableCell>
-                    {new Date(conta.vencimento).toLocaleDateString('pt-BR')}
+                    {formatDate(conta.vencimento)}
                   </TableCell>
                   <TableCell className="font-semibold">
                     R$ {conta.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
