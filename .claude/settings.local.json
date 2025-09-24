@@ -30,7 +30,14 @@
       "Bash(docker-compose up:*)",
       "Bash(docker-compose:*)",
       "Bash(curl:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(npm run start:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(./node_modules/.bin/tailwindcss:*)",
+      "Bash(netstat:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []
