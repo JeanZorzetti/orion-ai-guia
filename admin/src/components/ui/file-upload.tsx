@@ -1,0 +1,118 @@
+'use client';
+
+import React, { useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Upload, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface FileUploadProps {
+  onFilesSelected: (files: File[]) => void;
+  maxFiles?: number;
+  maxSize?: number; // em bytes
+  acceptedFormats?: string[];
+  disabled?: boolean;
+  className?: string;
+  error?: string;
+}
+
+const DEFAULT_ACCEPTED_FORMATS = ['.pdf', '.jpg', '.jpeg', '.png'];
+const DEFAULT_MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+export function FileUpload({
+  onFilesSelected,
+  maxFiles = 1,
+  maxSize = DEFAULT_MAX_SIZE,
+  acceptedFormats = DEFAULT_ACCEPTED_FORMATS,
+  disabled = false,
+  className,
+  error
+}: FileUploadProps) {
+
+  const formatFileSize = useCallback((bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }, []);
+
+  const validateFile = useCallback((file: File): string | null => {
+    // Verifica tamanho
+    if (file.size > maxSize) {
+      return `Arquivo muito grande. Tamanho máximo: ${formatFileSize(maxSize)}`;
+    }
+
+    // Verifica formato
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!acceptedFormats.includes(fileExtension)) {
+      return `Formato não suportado. Formatos aceitos: ${acceptedFormats.join(', ')}`;
+    }
+
+    return null;
+  }, [maxSize, acceptedFormats, formatFileSize]);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      onFilesSelected(acceptedFiles);
+    }
+  }, [onFilesSelected]);
+
+
+  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'image/*': ['.jpg', '.jpeg', '.png']
+    },
+    maxFiles,
+    maxSize,
+    disabled,
+    multiple: maxFiles > 1
+  });
+
+
+  return (
+    <div className={cn('space-y-4', className)}>
+      {/* Área de Drop */}
+      <div
+        {...getRootProps()}
+        className={cn(
+          'border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors',
+          'hover:bg-gray-50 dark:hover:bg-gray-800',
+          {
+            'border-gray-300 dark:border-gray-600': !isDragActive && !error,
+            'border-blue-500 bg-blue-50 dark:bg-blue-900/20': isDragActive && !isDragReject,
+            'border-red-500 bg-red-50 dark:bg-red-900/20': isDragReject || error,
+            'opacity-50 cursor-not-allowed': disabled,
+          }
+        )}
+      >
+        <input {...getInputProps()} />
+
+        <div className="flex flex-col items-center space-y-2">
+          <Upload className="w-12 h-12 text-gray-400" />
+
+          <div className="space-y-1">
+            <p className="text-sm font-medium">
+              {isDragActive
+                ? 'Solte o arquivo aqui'
+                : 'Clique ou arraste o arquivo aqui'
+              }
+            </p>
+            <p className="text-xs text-gray-500">
+              Formatos: {acceptedFormats.join(', ')} • Máx: {formatFileSize(maxSize)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Mensagens de erro */}
+      {error && (
+        <div className="flex items-center space-x-2 text-red-600 text-sm">
+          <AlertCircle className="w-4 h-4" />
+          <span>{error}</span>
+        </div>
+      )}
+    </div>
+  );
+}
