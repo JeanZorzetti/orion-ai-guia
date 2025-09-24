@@ -1,4 +1,4 @@
-import { API_URLS, ENVIRONMENT_INFO } from '@/lib/config';
+import { ENVIRONMENT_INFO } from '@/lib/config';
 
 export interface APIInvoiceItem {
   description: string;

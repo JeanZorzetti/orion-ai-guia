@@ -85,6 +85,11 @@ const environments: EnvironmentConfig = {
 const currentEnvironment = getEnvironment();
 export const apiConfig = environments[currentEnvironment];
 
+// Validação de configuração
+if (!apiConfig) {
+  throw new Error(`Configuração não encontrada para o ambiente: ${currentEnvironment}`);
+}
+
 // URLs completas dos endpoints
 export const API_URLS = {
   AUTH: {
