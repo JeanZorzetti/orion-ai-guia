@@ -20,7 +20,8 @@ import {
 } from 'lucide-react';
 
 const ProdutoDetalhes: React.FC = () => {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string;
 
   // Mock data
   const produto = {
