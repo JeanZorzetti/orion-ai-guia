@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, type DropzoneOptions } from 'react-dropzone';
 import { Upload, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,7 +43,7 @@ export function FileUpload({
   }, [onFilesSelected]);
 
 
-  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
+  const dropzoneOptions: DropzoneOptions = {
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
@@ -52,8 +52,13 @@ export function FileUpload({
     maxFiles,
     maxSize,
     disabled,
-    multiple: maxFiles > 1
-  });
+    multiple: maxFiles > 1,
+    onDragEnter: () => {},
+    onDragLeave: () => {},
+    onDragOver: () => {}
+  };
+
+  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone(dropzoneOptions);
 
 
   return (
@@ -72,7 +77,7 @@ export function FileUpload({
           }
         )}
       >
-        <input {...getInputProps()} />
+        <input {...getInputProps()} type="file" style={{ display: 'none' }} />
 
         <div className="flex flex-col items-center space-y-2">
           <Upload className="w-12 h-12 text-gray-400" />

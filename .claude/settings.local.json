@@ -37,7 +37,8 @@
       "Bash(./node_modules/.bin/tailwindcss:*)",
       "Bash(netstat:*)",
       "WebFetch(domain:localhost)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(git revert:*)"
     ],
     "deny": [],
     "ask": []
