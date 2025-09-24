@@ -65,10 +65,27 @@ const GuidedTour: React.FC = () => {
         const rect = element.getBoundingClientRect();
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        
+
+        // Calculate tooltip dimensions (320px width from w-80 class)
+        const tooltipWidth = 320;
+        const viewportWidth = window.innerWidth;
+
+        // Preferred position (centered on target)
+        let leftPosition = rect.left + scrollLeft + rect.width / 2;
+
+        // Adjust if tooltip would overflow right edge
+        if (leftPosition + tooltipWidth / 2 > viewportWidth - 20) {
+          leftPosition = viewportWidth - tooltipWidth - 20 + scrollLeft;
+        }
+
+        // Adjust if tooltip would overflow left edge
+        if (leftPosition - tooltipWidth / 2 < 20) {
+          leftPosition = tooltipWidth / 2 + 20 + scrollLeft;
+        }
+
         setTooltipPosition({
           top: rect.top + scrollTop + rect.height + 10,
-          left: rect.left + scrollLeft + rect.width / 2,
+          left: leftPosition,
         });
 
         // Add highlight class
