@@ -63,6 +63,14 @@ const config: Config = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Orion Brand Colors
+        "orion-primary": "hsl(var(--orion-primary))",
+        "orion-dark": "hsl(var(--orion-dark))",
+        "orion-medium": "hsl(var(--orion-medium))",
+        "action-primary": "hsl(var(--action-primary))",
+        "action-bright": "hsl(var(--action-bright))",
+        "action-glow": "hsl(var(--action-glow))",
+        "space-dark": "hsl(var(--orion-primary))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -82,6 +90,16 @@ const config: Config = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      backgroundImage: {
+        "gradient-hero": "var(--gradient-hero)",
+        "gradient-action": "var(--gradient-action)",
+        "gradient-subtle": "var(--gradient-subtle)",
+      },
+      boxShadow: {
+        "action": "var(--shadow-action)",
+        "card": "var(--shadow-card)",
+        "glow": "var(--shadow-glow)",
       },
     },
   },
