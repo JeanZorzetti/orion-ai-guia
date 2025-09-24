@@ -28,7 +28,9 @@
       "Bash(git merge:*)",
       "Bash(docker:*)",
       "Bash(docker-compose up:*)",
-      "Bash(docker-compose:*)"
+      "Bash(docker-compose:*)",
+      "Bash(curl:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": []
