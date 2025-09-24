@@ -21,7 +21,6 @@ import {
   Eye,
   Save,
   Building,
-  Calendar,
   DollarSign,
   Hash
 } from 'lucide-react';
@@ -72,7 +71,7 @@ type UploadState = 'idle' | 'uploading' | 'processing' | 'validating' | 'complet
 
 interface InvoiceUploadModalProps {
   children: React.ReactNode;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: Record<string, unknown>) => void;
 }
 
 const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuccess }) => {
@@ -81,15 +80,13 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
   const [uploadState, setUploadState] = useState<UploadState>('idle');
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(null);
-  const [validationIssues, setValidationIssues] = useState<string[]>([]);
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
 
   const resetState = () => {
     setSelectedFile(null);
     setUploadState('idle');
     setExtractedData(null);
     setUploadResponse(null);
-    setValidationIssues([]);
     setFormData({});
   };
 
@@ -143,7 +140,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
           setUploadState('validating');
           setUploadResponse(result);
           setExtractedData(result.extractedData);
-          setValidationIssues(result.validationIssues);
+          // setValidationIssues(result.validationIssues);
 
           // Pré-preenche o formulário com os dados extraídos
           setFormData({
@@ -218,7 +215,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
     }
   };
 
-  const handleFormChange = (field: string, value: any) => {
+  const handleFormChange = (field: string, value: string | number) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -355,7 +352,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
                             <Label htmlFor="supplierName">Nome/Razão Social</Label>
                             <Input
                               id="supplierName"
-                              value={formData.supplierName || ''}
+                              value={(formData.supplierName as string) || ''}
                               onChange={(e) => handleFormChange('supplierName', e.target.value)}
                             />
                           </div>
@@ -363,7 +360,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
                             <Label htmlFor="supplierDocument">CNPJ</Label>
                             <Input
                               id="supplierDocument"
-                              value={formData.supplierDocument || ''}
+                              value={(formData.supplierDocument as string) || ''}
                               onChange={(e) => handleFormChange('supplierDocument', e.target.value)}
                             />
                           </div>
@@ -372,7 +369,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
                           <Label htmlFor="supplierAddress">Endereço</Label>
                           <Input
                             id="supplierAddress"
-                            value={formData.supplierAddress || ''}
+                            value={(formData.supplierAddress as string) || ''}
                             onChange={(e) => handleFormChange('supplierAddress', e.target.value)}
                           />
                         </div>
@@ -393,7 +390,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
                             <Label htmlFor="invoiceNumber">Número da NF</Label>
                             <Input
                               id="invoiceNumber"
-                              value={formData.invoiceNumber || ''}
+                              value={(formData.invoiceNumber as string) || ''}
                               onChange={(e) => handleFormChange('invoiceNumber', e.target.value)}
                             />
                           </div>
@@ -401,7 +398,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
                             <Label htmlFor="category">Categoria</Label>
                             <Input
                               id="category"
-                              value={formData.category || ''}
+                              value={(formData.category as string) || ''}
                               onChange={(e) => handleFormChange('category', e.target.value)}
                             />
                           </div>
@@ -412,7 +409,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
                             <Input
                               id="invoiceDate"
                               type="date"
-                              value={formData.invoiceDate || ''}
+                              value={(formData.invoiceDate as string) || ''}
                               onChange={(e) => handleFormChange('invoiceDate', e.target.value)}
                             />
                           </div>
@@ -421,7 +418,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
                             <Input
                               id="dueDate"
                               type="date"
-                              value={formData.dueDate || ''}
+                              value={(formData.dueDate as string) || ''}
                               onChange={(e) => handleFormChange('dueDate', e.target.value)}
                             />
                           </div>
@@ -445,7 +442,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
                               id="totalValue"
                               type="number"
                               step="0.01"
-                              value={formData.totalValue || ''}
+                              value={(formData.totalValue as number) || ''}
                               onChange={(e) => handleFormChange('totalValue', parseFloat(e.target.value))}
                             />
                           </div>
@@ -455,7 +452,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
                               id="netValue"
                               type="number"
                               step="0.01"
-                              value={formData.netValue || ''}
+                              value={(formData.netValue as number) || ''}
                               onChange={(e) => handleFormChange('netValue', parseFloat(e.target.value))}
                             />
                           </div>
@@ -465,7 +462,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
                               id="taxValue"
                               type="number"
                               step="0.01"
-                              value={formData.taxValue || ''}
+                              value={(formData.taxValue as number) || ''}
                               onChange={(e) => handleFormChange('taxValue', parseFloat(e.target.value))}
                             />
                           </div>
