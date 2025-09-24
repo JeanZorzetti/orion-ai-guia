@@ -1,10 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Standard Vercel deployment config
+  // Vercel deployment config
   images: {
     unoptimized: true,
   },
+  // Force standalone output for Vercel
+  output: "standalone",
+  outputFileTracingRoot: process.cwd(),
 };
 
 export default nextConfig;
