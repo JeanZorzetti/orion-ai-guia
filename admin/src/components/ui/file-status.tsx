@@ -13,7 +13,7 @@ import {
   Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { UploadFile, FileStatus } from '@/hooks/useFileUpload';
+import type { UploadFile, FileStatus } from '@/hooks/useFileUpload';
 
 interface FileStatusProps {
   file: UploadFile;
