@@ -1,41 +1,4 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-pydantic==2.5.1
-pydantic-settings==2.1.0
 python-multipart==0.0.6
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-python-decouple==3.8
-sqlalchemy==2.0.23
-alembic==1.13.1
-psycopg2-binary==2.9.9
-redis==5.0.1
-celery==5.3.4
-pytest==7.4.3
-pytest-asyncio==0.21.1
-pytest-mock==3.12.0
-pytest-cov==4.1.0
-factory-boy==3.3.0
-faker==20.1.0
-
-# Dependências para processamento de documentos e IA
-aiohttp==3.9.1
-PyPDF2==3.0.1
-Pillow==10.1.0
-pytesseract==0.3.10
-openai==1.5.0
-
-# Hugging Face Transformers e LayoutLM
-transformers==4.36.2
-torch==2.1.1
-torchvision==0.16.1
-datasets==2.15.0
-sentencepiece==0.1.99
-protobuf==4.25.1
-accelerate==0.25.0
-pdf2image==1.17.0
-layoutparser[paddleocr]==0.3.4
-
-# Fuzzy matching e processamento de texto
-fuzzywuzzy==0.18.0
-python-Levenshtein==0.25.0
+pydantic==2.5.0
