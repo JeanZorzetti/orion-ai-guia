@@ -1,13 +1,17 @@
 from typing import Any, Dict, List, Optional, Union
 from pydantic_settings import BaseSettings
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Orion ERP"
-    VERSION: str = "1.0.0"
+    VERSION: str = "2.0.0"
     API_V1_STR: str = "/api/v1"
 
-    # CORS (simplified for now)
+    # CORS
     BACKEND_CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
 
     # Database
@@ -24,10 +28,11 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
 
-    # Security
+    # Security - JWT Configuration
     SECRET_KEY: str = "your-secret-key-here-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     class Config:
         case_sensitive = True
