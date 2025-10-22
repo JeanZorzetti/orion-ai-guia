@@ -68,14 +68,14 @@ O cérebro do sistema. [cite_start]Foco total em segurança, multi-tenancy e na 
 
 ---
 
-## Fase 2: Frontend (Next.js) - Aplicação do Cliente ✅ (80% Completo)
+## Fase 2: Frontend (Next.js) - Aplicação do Cliente ✅ (100% Completo)
 
 A interface principal do nosso cliente. Foco na usabilidade e integração com a API de autenticação.
 
 * **Pasta:** `/frontend`
 * **Hospedagem:** Vercel
 * **Domínio (Staging):** `orionerp.roilabs.com.br`
-* **Status:** 🟢 DESENVOLVIMENTO CONCLUÍDO - Aguardando Deploy
+* **Status:** 🟢 ONLINE E FUNCIONANDO
 
 **Tarefas:**
 
@@ -98,8 +98,8 @@ A interface principal do nosso cliente. Foco na usabilidade e integração com a
     * [x] Implementar a lógica de rotas protegidas no Next.js (middleware)
     * [x] Criar tela de Dashboard com proteção de rotas
 5.  **Deploy (Vercel):**
-    * [ ] Conectar o projeto Vercel ao repositório GitHub, apontando para a pasta `/frontend`
-    * [ ] Configurar o deploy automático da branch `main` para o domínio `orionerp.roilabs.com.br`
+    * [x] Conectar o projeto Vercel ao repositório GitHub, apontando para a pasta `/frontend`
+    * [x] Configurar o deploy automático da branch `main` para o domínio `orionerp.roilabs.com.br`
 
 ---
 
