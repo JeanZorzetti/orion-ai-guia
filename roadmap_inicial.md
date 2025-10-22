@@ -8,60 +8,63 @@ Este documento detalha as tarefas técnicas prioritárias para estabelecer a fun
 
 ---
 
-## Fase 0: Configuração do Ambiente e Repositórios
+## Fase 0: Configuração do Ambiente e Repositórios ✅
 
 [cite_start]O objetivo é preparar nosso ambiente de desenvolvimento, versionamento e implantação (CI/CD)[cite: 1255].
 
 1.  **Repositório (GitHub):**
-    * [cite_start][ ] Criar um **monorepo** no GitHub chamado `orion-erp`[cite: 1297].
-    * [cite_start][ ] Criar as pastas raiz: `/backend`, `/frontend`, e `/admin`[cite: 1298].
+    * [cite_start][x] Criar um **monorepo** no GitHub chamado `orion-erp`[cite: 1297].
+    * [cite_start][x] Criar as pastas raiz: `/backend`, `/frontend`, e `/admin`[cite: 1298].
 2.  **Estratégia de Branching:**
-    * [cite_start][ ] Configurar as branches principais[cite: 1300]:
-        * `main`: Produção (deploy bloqueado inicialmente).
-        * `develop`: Staging/Homologação. Esta será a branch de deploy automático para o MVP inicial.
-        * `feature/*`: Branches de trabalho para novas funcionalidades.
+    * [cite_start][x] Configurar as branches principais[cite: 1300]:
+        * `main`: Produção - Usando apenas main conforme solicitado.
 
 ---
 
-## Fase 1: Backend (FastAPI) - API Central
+## Fase 1: Backend (FastAPI) - API Central ✅
 
 O cérebro do sistema. [cite_start]Foco total em segurança, multi-tenancy e na API de autenticação[cite: 1252].
 
 * **Pasta:** `/backend`
-* [cite_start]**Hospedagem:** VPS (Hostinger) via Easypanel[cite: 1252, 1288].
-* [cite_start]**Domínio (Staging):** `orionback.roilabs.com.br`[cite: 1310].
+* [cite_start]**Hospedagem:** VPS (Hostinger) via Easypanel[cite: 1252, 1288]. ✅
+* [cite_start]**Domínio (Staging):** `orionback.roilabs.com.br`[cite: 1310]. ✅
+* **Status:** 🟢 ONLINE E FUNCIONANDO
 
 **Tarefas:**
 
-1.  **Ambiente e Deploy (Easypanel):**
-    * [cite_start][ ] Criar o `Dockerfile` na raiz do `/backend`[cite: 1274]. [cite_start]Este arquivo deve definir a build da nossa aplicação FastAPI com base no `Python 3.11+`[cite: 1260].
-    * [cite_start][ ] Configurar o serviço **PostgreSQL** no Easypanel[cite: 1254, 1312].
-    * [cite_start][ ] Configurar o projeto no Easypanel para buildar e implantar o `/backend` automaticamente a partir da branch `develop`[cite: 1292, 1311].
-2.  **Estrutura do Banco (SQLAlchemy):**
-    * [cite_start][ ] Configurar o **SQLAlchemy** como nosso ORM[cite: 2].
-    * [cite_start][ ] Definir os *models* (classes Python) no `/backend` para o schema do MVP[cite: 3, 6]:
-        * [cite_start]`Workspaces` [cite: 47]
-        * [cite_start]`Users` (com `hashed_password`) [cite: 48, 62]
-        * [cite_start]`Suppliers` [cite: 51]
-        * [cite_start]`Invoices` [cite: 52]
-        * [cite_start]`Products` [cite: 55]
-        * [cite_start]`Sales` [cite: 56]
-    * [cite_start][ ] Garantir que todas as tabelas de dados (Suppliers, Invoices, Products, Sales) contenham a `ForeignKey('workspaces.id')` (`workspace_id`) para garantir o isolamento de dados (multi-tenancy)[cite: 4, 39, 43, 71].
-3.  **Autenticação e Autorização (JWT):**
-    * [cite_start][ ] Implementar o fluxo de **JWT** [cite: 58] [cite_start]usando `Passlib` (para hashing de senhas) [cite: 62] [cite_start]e `python-jose` (para criação/validação de tokens)[cite: 63].
-    * [cite_start][ ] Criar o endpoint `POST /auth/token`[cite: 76]:
-        * [cite_start]Recebe `email` e `senha`[cite: 61].
-        * [cite_start]Verifica o usuário e o hash da senha[cite: 62].
-        * [cite_start]Retorna `access_token` (curta duração) e `refresh_token` (longa duração)[cite: 64, 65].
-4.  **Endpoints de Usuário e Workspace:**
-    * [cite_start][ ] Criar o endpoint `POST /users`[cite: 77]:
+1.  **Ambiente e Deploy (Easypanel):** ✅
+    * [cite_start][x] Criar o `Dockerfile` na raiz do `/backend`[cite: 1274]. [cite_start]Este arquivo deve definir a build da nossa aplicação FastAPI com base no `Python 3.11+`[cite: 1260].
+    * [cite_start][x] Configurar o serviço **PostgreSQL** no Easypanel[cite: 1254, 1312].
+    * [cite_start][x] Configurar o projeto no Easypanel para buildar e implantar o `/backend` automaticamente a partir da branch `main`[cite: 1292, 1311].
+2.  **Estrutura do Banco (SQLAlchemy):** ✅
+    * [cite_start][x] Configurar o **SQLAlchemy** como nosso ORM[cite: 2].
+    * [cite_start][x] Definir os *models* (classes Python) no `/backend` para o schema do MVP[cite: 3, 6]:
+        * [cite_start][x] `Workspaces` [cite: 47]
+        * [cite_start][x] `Users` (com `hashed_password`) [cite: 48, 62]
+        * [cite_start][x] `Suppliers` [cite: 51]
+        * [cite_start][x] `Invoices` [cite: 52]
+        * [cite_start][x] `Products` [cite: 55]
+        * [cite_start][x] `Sales` [cite: 56]
+    * [cite_start][x] Garantir que todas as tabelas de dados (Suppliers, Invoices, Products, Sales) contenham a `ForeignKey('workspaces.id')` (`workspace_id`) para garantir o isolamento de dados (multi-tenancy)[cite: 4, 39, 43, 71].
+3.  **Autenticação e Autorização (JWT):** ✅
+    * [cite_start][x] Implementar o fluxo de **JWT** [cite: 58] [cite_start]usando `Passlib` (para hashing de senhas) [cite: 62] [cite_start]e `python-jose` (para criação/validação de tokens)[cite: 63].
+    * [cite_start][x] Criar o endpoint `POST /api/v1/auth/token`[cite: 76]:
+        * [cite_start][x] Recebe `email` e `senha`[cite: 61].
+        * [cite_start][x] Verifica o usuário e o hash da senha[cite: 62].
+        * [cite_start][x] Retorna `access_token` (curta duração) e `refresh_token` (longa duração)[cite: 64, 65].
+4.  **Endpoints de Usuário e Workspace:** ✅
+    * [cite_start][x] Criar o endpoint `POST /api/v1/users`[cite: 77]:
         * Função: Criação de um novo usuário e seu `Workspace` inicial.
-    * [cite_start][ ] Criar o endpoint `GET /users/me`[cite: 78]:
+    * [cite_start][x] Criar o endpoint `GET /api/v1/users/me`[cite: 78]:
         * Função: Retorna os dados do usuário logado.
-        * [cite_start]Deve usar uma dependência do FastAPI que valida o `Authorization: Bearer <token>`, decodifica o JWT e extrai o `user_id` e `workspace_id`[cite: 68].
-5.  **Segurança (Pydantic e Multi-Tenancy):**
-    * [cite_start][ ] Garantir que todos os endpoints de API usem **Pydantic models** para validação automática de entrada e saída[cite: 73].
-    * [cite_start][ ] Estabelecer a dependência de segurança que injeta o `workspace_id` do usuário (obtido do JWT) em *todas as queries* de banco de dados, aplicando a cláusula `WHERE workspace_id = ...`[cite: 71].
+        * [cite_start][x] Usa dependência do FastAPI que valida o `Authorization: Bearer <token>`, decodifica o JWT e extrai o `user_id` e `workspace_id`[cite: 68].
+5.  **Segurança (Pydantic e Multi-Tenancy):** ✅
+    * [cite_start][x] Garantir que todos os endpoints de API usem **Pydantic models** para validação automática de entrada e saída[cite: 73].
+    * [cite_start][x] Estabelecer a dependência de segurança que injeta o `workspace_id` do usuário (obtido do JWT) em *todas as queries* de banco de dados, aplicando a cláusula `WHERE workspace_id = ...`[cite: 71].
+
+**Migração SQL:** ✅
+* Scripts SQL criados e prontos em `backend/migrations/`
+* Usuário admin criado: `admin@orion.com` / `admin123`
 
 ---
 
