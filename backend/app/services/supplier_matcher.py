@@ -5,8 +5,8 @@ import re
 import unicodedata
 from sqlalchemy.orm import Session
 
-from app.models.supplier import Supplier
-from app.models.invoice import Invoice
+from app.models.supplier_model import Supplier
+from app.models.invoice_model import Invoice
 from app.core.database import get_db
 
 # Configuração de logging

@@ -5,9 +5,9 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.supplier import Supplier
+from app.models.supplier_model import Supplier
 from app.services.supplier_matcher import SupplierMatcher
-from app.core.security import get_current_user
+from app.core.deps import get_current_user
 from app.models.user import User
 
 router = APIRouter()

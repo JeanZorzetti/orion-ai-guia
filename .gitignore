@@ -1,0 +1,10 @@
+Lib/
+Scripts/
+backend/Lib/
+backend/Scripts/
+backend/__pycache__/
+backend/get-pip.py
+backend/python-installer.exe
+backend/simple_test.py
+backend/test_invoice.txt
+node_modules/

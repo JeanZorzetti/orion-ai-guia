@@ -7,13 +7,13 @@ import os
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.invoice import Invoice
+from app.models.invoice_model import Invoice
 from app.services.invoice_processor import InvoiceProcessorService
 from app.services.document_processor import DocumentProcessor
 from app.services.data_cleaner import DataCleaner
 from app.services.supplier_matcher import SupplierMatcher
 from app.services.ai_service import AIService
-from app.core.security import get_current_user
+from app.core.deps import get_current_user
 from app.models.user import User
 
 router = APIRouter()
@@ -149,21 +149,16 @@ async def save_invoice(
     try:
         # Cria nova instância da fatura
         new_invoice = Invoice(
-            user_id=current_user.id,
-            supplier_name=invoice_data.get("supplier_name"),
-            supplier_cnpj=invoice_data.get("supplier_cnpj"),
+            workspace_id=current_user.workspace_id,
             invoice_number=invoice_data.get("invoice_number"),
-            issue_date=datetime.fromisoformat(invoice_data.get("issue_date")),
-            due_date=datetime.fromisoformat(invoice_data.get("due_date")),
-            total_amount=float(invoice_data.get("total_amount", 0)),
-            tax_amount=float(invoice_data.get("tax_amount", 0)),
-            net_amount=float(invoice_data.get("net_amount", 0)),
+            invoice_date=datetime.fromisoformat(invoice_data.get("issue_date")).date(),
+            due_date=datetime.fromisoformat(invoice_data.get("due_date")).date() if invoice_data.get("due_date") else None,
+            total_value=float(invoice_data.get("total_amount", 0)),
+            tax_value=float(invoice_data.get("tax_amount", 0)),
+            net_value=float(invoice_data.get("net_amount", 0)),
             description=invoice_data.get("description"),
             category=invoice_data.get("category"),
-            payment_method=invoice_data.get("payment_method"),
-            status="pending",
-            created_at=datetime.now(),
-            updated_at=datetime.now()
+            status="pending"
         )
 
         # Salva no banco de dados
@@ -201,7 +196,7 @@ async def list_invoices(
     """
 
     try:
-        query = db.query(Invoice).filter(Invoice.user_id == current_user.id)
+        query = db.query(Invoice).filter(Invoice.workspace_id == current_user.workspace_id)
 
         if status_filter:
             query = query.filter(Invoice.status == status_filter)
