@@ -19,7 +19,7 @@ export const authService = {
 
   // Registro
   async register(data: RegisterData): Promise<User> {
-    const response = await api.post<User>('/users', data, { requiresAuth: false });
+    const response = await api.post<User>('/users/', data, { requiresAuth: false });
     return response;
   },
 
