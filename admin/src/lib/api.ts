@@ -1,12 +1,23 @@
 import { AuthTokens, ApiError } from '@/types';
 
-// Garantir que sempre use HTTPS
-const envApiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://orionback.roilabs.com.br/api/v1';
-const API_URL = envApiUrl.replace('http://', 'https://');
+// VERSÃO 3.0 - FORÇAR HTTPS EM TUDO
+// Garantir que SEMPRE use HTTPS, não importa o que venha da env
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
+const defaultUrl = 'https://orionback.roilabs.com.br/api/v1';
 
-// Debug: verificar URL sendo usada
+// Se a env estiver vazia ou undefined, usar default
+let API_URL = rawApiUrl || defaultUrl;
+
+// FORÇAR HTTP para HTTPS
+API_URL = API_URL.replace(/^http:/, 'https:');
+
+// Debug detalhado
 if (typeof window !== 'undefined') {
-  console.log('🔧 API URL configurada:', API_URL);
+  console.log('═══════════════════════════════════════');
+  console.log('🔧 API Configuration [v3.0]');
+  console.log('📝 Raw ENV:', rawApiUrl);
+  console.log('✅ Final URL:', API_URL);
+  console.log('═══════════════════════════════════════');
 }
 
 // Gerenciamento de tokens em memória (access_token) e localStorage (refresh_token)
@@ -46,7 +57,8 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const response = await fetch(`${API_URL}/auth/refresh`, {
+    const url = `${API_URL}/auth/refresh`.replace(/^http:/, 'https:');
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -103,24 +115,27 @@ export async function apiClient<T>(
     }
   }
 
-  const url = `${API_URL}${endpoint}`;
-
-  // Debug: garantir HTTPS
-  const secureUrl = url.replace('http://', 'https://');
+  // GARANTIR HTTPS - camada tripla de proteção
+  let url = `${API_URL}${endpoint}`;
+  url = url.replace(/^http:/, 'https:');
 
   if (typeof window !== 'undefined') {
-    console.log('🌐 Request URL:', secureUrl, '| Endpoint:', endpoint);
+    console.log('🌐 [v3.0] Request:', {
+      endpoint,
+      finalUrl: url,
+      method: config.method || 'GET'
+    });
   }
 
   try {
-    const response = await fetch(secureUrl, config);
+    const response = await fetch(url, config);
 
     // Se o token expirou, tentar fazer refresh e tentar novamente
     if (response.status === 401 && requiresAuth) {
       const newToken = await refreshAccessToken();
       if (newToken) {
         (config.headers as Record<string, string>)['Authorization'] = `Bearer ${newToken}`;
-        const retryResponse = await fetch(secureUrl, config);
+        const retryResponse = await fetch(url, config);
 
         if (!retryResponse.ok) {
           const error: ApiError = await retryResponse.json();
@@ -144,7 +159,7 @@ export async function apiClient<T>(
 
     return response.json();
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('❌ API Error:', error);
     throw error;
   }
 }
