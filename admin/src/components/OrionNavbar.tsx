@@ -44,10 +44,13 @@ export const OrionNavbar = () => {
 
           {/* Desktop CTA */}
           <div className="hidden lg:flex items-center gap-4">
-            <button className="text-white/80 hover:text-white transition-colors font-medium">
+            <button
+              onClick={() => window.location.href = '/login'}
+              className="text-white/80 hover:text-white transition-colors font-medium"
+            >
               Entrar
             </button>
-            <OrionButton variant="action" size="sm">
+            <OrionButton variant="action" size="sm" onClick={() => window.location.href = '/register'}>
               Demonstração
             </OrionButton>
           </div>
@@ -82,10 +85,18 @@ export const OrionNavbar = () => {
               </a>
             ))}
             <div className="flex flex-col gap-3 pt-4">
-              <button className="text-left text-white/80 hover:text-white transition-colors font-medium">
+              <button
+                onClick={() => window.location.href = '/login'}
+                className="text-left text-white/80 hover:text-white transition-colors font-medium"
+              >
                 Entrar
               </button>
-              <OrionButton variant="action" size="sm" className="w-full">
+              <OrionButton
+                variant="action"
+                size="sm"
+                className="w-full"
+                onClick={() => window.location.href = '/register'}
+              >
                 Demonstração
               </OrionButton>
             </div>
