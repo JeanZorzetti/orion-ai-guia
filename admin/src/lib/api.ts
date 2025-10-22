@@ -1,6 +1,13 @@
 import { AuthTokens, ApiError } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://orionback.roilabs.com.br/api/v1';
+// Garantir que sempre use HTTPS
+const envApiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://orionback.roilabs.com.br/api/v1';
+const API_URL = envApiUrl.replace('http://', 'https://');
+
+// Debug: verificar URL sendo usada
+if (typeof window !== 'undefined') {
+  console.log('🔧 API URL configurada:', API_URL);
+}
 
 // Gerenciamento de tokens em memória (access_token) e localStorage (refresh_token)
 let accessToken: string | null = null;
