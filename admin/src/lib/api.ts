@@ -105,15 +105,22 @@ export async function apiClient<T>(
 
   const url = `${API_URL}${endpoint}`;
 
+  // Debug: garantir HTTPS
+  const secureUrl = url.replace('http://', 'https://');
+
+  if (typeof window !== 'undefined') {
+    console.log('🌐 Request URL:', secureUrl, '| Endpoint:', endpoint);
+  }
+
   try {
-    const response = await fetch(url, config);
+    const response = await fetch(secureUrl, config);
 
     // Se o token expirou, tentar fazer refresh e tentar novamente
     if (response.status === 401 && requiresAuth) {
       const newToken = await refreshAccessToken();
       if (newToken) {
         (config.headers as Record<string, string>)['Authorization'] = `Bearer ${newToken}`;
-        const retryResponse = await fetch(url, config);
+        const retryResponse = await fetch(secureUrl, config);
 
         if (!retryResponse.ok) {
           const error: ApiError = await retryResponse.json();
