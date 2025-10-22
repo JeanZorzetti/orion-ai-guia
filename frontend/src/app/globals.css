@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+:root {
+  /* Cores Orion ERP */
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --primary-light: #60a5fa;
+
+  --secondary: #8b5cf6;
+  --secondary-dark: #7c3aed;
+  --secondary-light: #a78bfa;
+
+  --success: #10b981;
+  --success-dark: #059669;
+  --success-light: #34d399;
+
+  --warning: #f59e0b;
+  --warning-dark: #d97706;
+  --warning-light: #fbbf24;
+
+  --danger: #ef4444;
+  --danger-dark: #dc2626;
+  --danger-light: #f87171;
+
+  --background: #ffffff;
+  --foreground: #1f2937;
+  --muted: #f9fafb;
+  --border: #e5e7eb;
+
+  /* Tipografia */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Courier New', monospace;
+}
+
+@theme inline {
+  /* Cores */
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-light: var(--primary-light);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-dark: var(--secondary-dark);
+  --color-secondary-light: var(--secondary-light);
+
+  --color-success: var(--success);
+  --color-success-dark: var(--success-dark);
+  --color-success-light: var(--success-light);
+
+  --color-warning: var(--warning);
+  --color-warning-dark: var(--warning-dark);
+  --color-warning-light: var(--warning-light);
+
+  --color-danger: var(--danger);
+  --color-danger-dark: var(--danger-dark);
+  --color-danger-light: var(--danger-light);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+
+  /* Fontes */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
