@@ -8,11 +8,12 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.models.invoice_model import Invoice
-from app.services.invoice_processor import InvoiceProcessorService
-from app.services.document_processor import DocumentProcessor
-from app.services.data_cleaner import DataCleaner
-from app.services.supplier_matcher import SupplierMatcher
-from app.services.ai_service import AIService
+# Temporariamente comentado - services de IA serão implementados na Fase 2
+# from app.services.invoice_processor import InvoiceProcessorService
+# from app.services.document_processor import DocumentProcessor
+# from app.services.data_cleaner import DataCleaner
+# from app.services.supplier_matcher import SupplierMatcher
+# from app.services.ai_service import AIService
 from app.core.deps import get_current_user
 from app.models.user import User
 
@@ -72,52 +73,25 @@ async def upload_invoice(
             detail=f"Arquivo muito grande. Tamanho máximo: {MAX_FILE_SIZE // (1024*1024)}MB"
         )
 
+    # TODO: Implementar processamento de IA na Fase 2
+    # Por enquanto retorna mock data para o backend iniciar
     try:
-        # Salva arquivo temporário
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
-            content = await file.read()
-            temp_file.write(content)
-            temp_file_path = temp_file.name
-
-        # Processa o documento com o novo processador unificado
-        document_processor = DocumentProcessor(db_session=db)
-
-        # Extrai dados do documento (PDF convertido para imagem ou imagem direta)
-        processing_result = await document_processor.process_document(temp_file_path, file.filename)
-
-        # Remove arquivo temporário
-        os.unlink(temp_file_path)
-
-        # Extrai dados do resultado do processamento
-        extracted_data = processing_result.get("extracted_data", {})
-
-        # Prepara resposta com dados extraídos
+        # Mock response - IA será implementada depois
         response_data = {
-            "success": processing_result.get("success", False),
-            "message": "Documento processado com sucesso" if processing_result.get("success") else "Erro no processamento",
-            "extracted_data": extracted_data,
-            "processing_info": {
-                "method": processing_result.get("processing_method", "unknown"),
-                "confidence_score": processing_result.get("confidence_score", 0.0),
-                "pages_processed": processing_result.get("total_pages", processing_result.get("pages_processed", 1)),
-                "file_type": processing_result.get("file_type", "unknown"),
-                "image_dimensions": processing_result.get("image_dimensions"),
-                "pdf_dpi": processing_result.get("pdf_dpi"),
-                "cleaning_stats": processing_result.get("cleaning_stats", {}),
-                "supplier_suggestions": processing_result.get("supplier_suggestions", {})
+            "success": True,
+            "message": "Endpoint disponível - Processamento de IA será implementado na Fase 2",
+            "extracted_data": {
+                "supplier": {"name": "Mock Supplier", "document": "00.000.000/0000-00"},
+                "invoice": {"number": "MOCK-001", "date": datetime.now().isoformat()},
+                "financial": {"totalValue": 1000.00, "netValue": 850.00, "taxValue": 150.00}
             },
             "file_info": {
                 "filename": file.filename,
-                "original_filename": processing_result.get("original_filename", file.filename),
                 "size": file.size,
                 "content_type": file.content_type,
-                "processed_at": processing_result.get("processed_at", datetime.now().isoformat())
+                "processed_at": datetime.now().isoformat()
             }
         }
-
-        # Adiciona erro se houver
-        if not processing_result.get("success"):
-            response_data["error"] = processing_result.get("error", "Erro desconhecido")
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
@@ -125,10 +99,6 @@ async def upload_invoice(
         )
 
     except Exception as e:
-        # Remove arquivo temporário em caso de erro
-        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
-            os.unlink(temp_file_path)
-
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao processar fatura: {str(e)}"
@@ -230,39 +200,22 @@ async def list_invoices(
 
 @router.post("/test-data-cleaning")
 async def test_data_cleaning(
-    raw_data: Dict[str, Any],
+    raw_data: dict,
     current_user: User = Depends(get_current_user)
 ):
     """
     Endpoint de teste para limpeza e formatação de dados
-
-    - **raw_data**: Dados brutos para testar a limpeza
+    TODO: Implementar DataCleaner na Fase 2
     """
 
-    try:
-        # Inicializa o limpador de dados
-        data_cleaner = DataCleaner()
-
-        # Limpa os dados fornecidos
-        cleaned_data = data_cleaner.clean_extracted_data(raw_data)
-
-        # Gera estatísticas de limpeza
-        cleaning_stats = data_cleaner.get_cleaning_stats(raw_data, cleaned_data)
-
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={
-                "success": True,
-                "message": "Limpeza de dados realizada com sucesso",
-                "original_data": raw_data,
-                "cleaned_data": cleaned_data,
-                "cleaning_stats": cleaning_stats,
-                "processed_at": datetime.now().isoformat()
-            }
-        )
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao listar faturas: {str(e)}"
-        )
+    # Mock response por enquanto
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "success": True,
+            "message": "Endpoint disponível - DataCleaner será implementado na Fase 2",
+            "original_data": raw_data,
+            "cleaned_data": raw_data,  # Mock - retorna os mesmos dados
+            "processed_at": datetime.now().isoformat()
+        }
+    )

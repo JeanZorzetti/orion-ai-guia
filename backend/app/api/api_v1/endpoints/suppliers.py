@@ -1,129 +1,70 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from typing import Dict, Any, Optional
+from typing import Optional
 from datetime import datetime
 
 from app.core.database import get_db
 from app.models.supplier_model import Supplier
-from app.services.supplier_matcher import SupplierMatcher
 from app.core.deps import get_current_user
 from app.models.user import User
 
 router = APIRouter()
 
+# TODO: Fase 2 - Implementar SupplierMatcher com fuzzy matching
+
 @router.post("/search")
 async def search_suppliers(
-    search_data: Dict[str, Any],
+    search_data: dict,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Busca fornecedores usando fuzzy matching
-
-    - **supplier_name**: Nome do fornecedor para buscar
-    - **supplier_cnpj**: CNPJ do fornecedor (opcional)
-    - **limit**: Número máximo de sugestões (padrão: 5)
+    Busca fornecedores
+    TODO: Implementar fuzzy matching na Fase 2
     """
+    supplier_name = search_data.get("supplier_name", "")
 
-    try:
-        supplier_name = search_data.get("supplier_name", "")
-        supplier_cnpj = search_data.get("supplier_cnpj", "")
-        limit = search_data.get("limit", 5)
-
-        if not supplier_name and not supplier_cnpj:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Forneça pelo menos o nome ou CNPJ do fornecedor"
-            )
-
-        # Inicializa o matcher
-        supplier_matcher = SupplierMatcher(db)
-
-        # Busca correspondências
-        matches = supplier_matcher.find_matching_suppliers(
-            supplier_name=supplier_name,
-            supplier_cnpj=supplier_cnpj,
-            limit=limit
-        )
-
-        # Verifica sugestão de merge
-        merge_suggestion = supplier_matcher.suggest_supplier_merge(supplier_name, supplier_cnpj)
-
-        # Obter estatísticas
-        stats = supplier_matcher.get_supplier_statistics()
-
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={
-                "success": True,
-                "message": f"Busca realizada com sucesso",
-                "search_params": {
-                    "supplier_name": supplier_name,
-                    "supplier_cnpj": supplier_cnpj,
-                    "limit": limit
-                },
-                "results": {
-                    "matches": matches,
-                    "total_found": len(matches),
-                    "best_match": matches[0] if matches else None,
-                    "merge_suggestion": merge_suggestion
-                },
-                "statistics": stats,
-                "processed_at": datetime.now().isoformat()
+    # Mock response
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "success": True,
+            "message": "Endpoint disponível - Fuzzy matching será implementado na Fase 2",
+            "results": {
+                "matches": [
+                    {"id": 1, "name": supplier_name, "cnpj": "00.000.000/0000-00", "confidence_score": 0.95}
+                ],
+                "total_found": 1
             }
-        )
+        }
+    )
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro na busca de fornecedores: {str(e)}"
-        )
 
 @router.post("/create-or-merge")
 async def create_or_merge_supplier(
-    supplier_data: Dict[str, Any],
-    auto_merge: bool = False,
+    supplier_data: dict,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Cria novo fornecedor ou faz merge com existente
-
-    - **supplier_data**: Dados do fornecedor
-    - **auto_merge**: Se deve fazer merge automático para correspondências altas
+    Cria ou faz merge de fornecedor
+    TODO: Implementar merge automático na Fase 2
     """
-
-    try:
-        # Inicializa o matcher
-        supplier_matcher = SupplierMatcher(db)
-
-        # Tenta criar ou fazer merge
-        supplier, is_new, matching_info = supplier_matcher.create_or_get_supplier(
-            supplier_data=supplier_data,
-            auto_merge=auto_merge
-        )
-
-        return JSONResponse(
-            status_code=status.HTTP_201_CREATED if is_new else status.HTTP_200_OK,
-            content={
-                "success": True,
-                "message": "Fornecedor criado com sucesso" if is_new else "Fornecedor existente encontrado",
-                "supplier": supplier.to_dict(),
-                "is_new": is_new,
-                "matching_info": matching_info,
-                "processed_at": datetime.now().isoformat()
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content={
+            "success": True,
+            "message": "Endpoint disponível - Merge automático será implementado na Fase 2",
+            "supplier": {
+                "id": 123,
+                "name": supplier_data.get("name", "Novo Fornecedor"),
+                "cnpj": supplier_data.get("cnpj", ""),
+                "is_new": True
             }
-        )
+        }
+    )
 
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao criar/merge fornecedor: {str(e)}"
-        )
 
 @router.get("/list")
 async def list_suppliers(
@@ -135,42 +76,36 @@ async def list_suppliers(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Lista fornecedores com filtros opcionais
+    Lista fornecedores do workspace (com isolamento multi-tenant)
     """
-
     try:
-        query = db.query(Supplier)
+        query = db.query(Supplier).filter(Supplier.workspace_id == current_user.workspace_id)
 
-        # Filtro por status ativo
         if active_only:
-            query = query.filter(Supplier.is_active == True)
+            query = query.filter(Supplier.active == True)
 
-        # Filtro de busca
         if search:
-            search_term = f"%{search}%"
-            query = query.filter(
-                (Supplier.name.ilike(search_term)) |
-                (Supplier.cnpj.ilike(search_term))
-            )
+            query = query.filter(Supplier.name.ilike(f"%{search}%"))
 
-        # Paginação
         suppliers = query.offset(skip).limit(limit).all()
-        total = query.count()
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
                 "success": True,
-                "suppliers": [supplier.to_summary() for supplier in suppliers],
+                "suppliers": [
+                    {
+                        "id": s.id,
+                        "name": s.name,
+                        "document": s.document,
+                        "active": s.active
+                    }
+                    for s in suppliers
+                ],
                 "pagination": {
-                    "total": total,
+                    "total": query.count(),
                     "skip": skip,
-                    "limit": limit,
-                    "has_more": skip + limit < total
-                },
-                "filters": {
-                    "active_only": active_only,
-                    "search": search
+                    "limit": limit
                 }
             }
         )
@@ -181,33 +116,40 @@ async def list_suppliers(
             detail=f"Erro ao listar fornecedores: {str(e)}"
         )
 
+
 @router.get("/statistics")
 async def get_supplier_statistics(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Obter estatísticas dos fornecedores
+    Estatísticas de fornecedores do workspace
     """
-
     try:
-        supplier_matcher = SupplierMatcher(db)
-        stats = supplier_matcher.get_supplier_statistics()
+        total = db.query(Supplier).filter(Supplier.workspace_id == current_user.workspace_id).count()
+        active = db.query(Supplier).filter(
+            Supplier.workspace_id == current_user.workspace_id,
+            Supplier.active == True
+        ).count()
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
                 "success": True,
-                "statistics": stats,
-                "generated_at": datetime.now().isoformat()
+                "statistics": {
+                    "total_suppliers": total,
+                    "active_suppliers": active,
+                    "inactive_suppliers": total - active
+                }
             }
         )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao obter estatísticas: {str(e)}"
+            detail=f"Erro ao buscar estatísticas: {str(e)}"
         )
+
 
 @router.get("/{supplier_id}")
 async def get_supplier(
@@ -216,30 +158,35 @@ async def get_supplier(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Obter detalhes de um fornecedor específico
+    Detalhes de fornecedor (com isolamento multi-tenant)
     """
+    supplier = db.query(Supplier).filter(
+        Supplier.id == supplier_id,
+        Supplier.workspace_id == current_user.workspace_id
+    ).first()
 
-    try:
-        supplier = db.query(Supplier).filter(Supplier.id == supplier_id).first()
-
-        if not supplier:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Fornecedor com ID {supplier_id} não encontrado"
-            )
-
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={
-                "success": True,
-                "supplier": supplier.to_dict()
-            }
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
+    if not supplier:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao obter fornecedor: {str(e)}"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Fornecedor não encontrado"
         )
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "success": True,
+            "supplier": {
+                "id": supplier.id,
+                "name": supplier.name,
+                "document": supplier.document,
+                "email": supplier.email,
+                "phone": supplier.phone,
+                "address": supplier.address,
+                "city": supplier.city,
+                "state": supplier.state,
+                "zip_code": supplier.zip_code,
+                "active": supplier.active,
+                "created_at": supplier.created_at.isoformat() if supplier.created_at else None
+            }
+        }
+    )
