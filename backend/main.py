@@ -35,9 +35,13 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on startup"""
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
-    print("✓ Database tables created successfully")
+    try:
+        # Create all tables
+        Base.metadata.create_all(bind=engine)
+        print("✓ Database tables created successfully")
+    except Exception as e:
+        print(f"⚠ Warning: Could not create database tables: {e}")
+        print("Application will continue, but database operations may fail")
 
 
 # Health check endpoints
