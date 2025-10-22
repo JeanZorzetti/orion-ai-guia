@@ -20,7 +20,19 @@ app = FastAPI(
 )
 
 # CORS configuration
-ALLOWED_ORIGINS = os.getenv("BACKEND_CORS_ORIGINS", "").split(",")
+cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS", "")
+if cors_origins_str:
+    ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+else:
+    # Fallback para desenvolvimento e produção
+    ALLOWED_ORIGINS = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://orionerp.roilabs.com.br",
+        "https://orionback.roilabs.com.br"
+    ]
+
+print(f"🌐 CORS Origins configuradas: {ALLOWED_ORIGINS}")
 
 app.add_middleware(
     CORSMiddleware,
