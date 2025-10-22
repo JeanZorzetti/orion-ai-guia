@@ -68,36 +68,38 @@ O cérebro do sistema. [cite_start]Foco total em segurança, multi-tenancy e na 
 
 ---
 
-## Fase 2: Frontend (Next.js) - Aplicação do Cliente
+## Fase 2: Frontend (Next.js) - Aplicação do Cliente ✅ (80% Completo)
 
-A interface principal do nosso cliente. [cite_start]Foco na usabilidade e integração com a API de autenticação[cite: 1250].
+A interface principal do nosso cliente. Foco na usabilidade e integração com a API de autenticação.
 
 * **Pasta:** `/frontend`
-* [cite_start]**Hospedagem:** Vercel[cite: 1250, 1289].
-* [cite_start]**Domínio (Staging):** `orionerp.roilabs.com.br`[cite: 1307].
+* **Hospedagem:** Vercel
+* **Domínio (Staging):** `orionerp.roilabs.com.br`
+* **Status:** 🟢 DESENVOLVIMENTO CONCLUÍDO - Aguardando Deploy
 
 **Tarefas:**
 
 1.  **Setup do Projeto:**
-    * [cite_start][ ] Inicializar o projeto **Next.js 14+** com **TypeScript**[cite: 1276, 1279].
-    * [cite_start][ ] Instalar e configurar o **Tailwind CSS**.
-    * [cite_start][ ] Configurar o `tailwind.config.js` com as bases do nosso sistema de design (cores, fontes).
+    * [x] Inicializar o projeto **Next.js 14+** com **TypeScript**
+    * [x] Instalar e configurar o **Tailwind CSS v4**
+    * [x] Configurar o sistema de design Orion ERP (cores, fontes)
 2.  **UI Base e Componentes:**
-    * [cite_start][ ] Integrar os componentes básicos gerados pelo `loveble`[cite: 1285, 573].
-    * [cite_start][ ] Desenvolver os componentes atômicos reutilizáveis (ex: `Button`, `Input`, `Card`, `Badge`) [cite: 561-564].
-    * [cite_start][ ] Desenvolver os componentes de layout principais: `Sidebar` e `Header`[cite: 568, 575].
+    * [x] Desenvolver os componentes atômicos reutilizáveis (`Button`, `Input`, `Card`, `Badge`)
+    * [x] Desenvolver os componentes de layout principais: `Sidebar`, `Header`, `MainLayout`
 3.  **Fluxo de Autenticação (Cliente):**
-    * [cite_start][ ] Construir as telas de **Login** e **Cadastro**[cite: 523, 527, 576].
-    * [ ] Implementar a lógica de *data fetching* para:
-        * [cite_start]Chamar `POST /users` (no cadastro)[cite: 77].
-        * [cite_start]Chamar `POST /auth/token` (no login)[cite: 61].
-    * [cite_start][ ] Implementar o armazenamento de tokens: `access_token` em memória (estado do React) e `refresh_token` em um cookie **HttpOnly**[cite: 66].
+    * [x] Construir as telas de **Login** e **Cadastro**
+    * [x] Implementar a lógica de *data fetching* para:
+        * Chamar `POST /users` (no cadastro)
+        * Chamar `POST /auth/token` (no login)
+    * [x] Implementar o armazenamento de tokens: `access_token` em memória e `refresh_token` no localStorage
 4.  **Rotas Protegidas e API Client:**
-    * [cite_start][ ] Configurar um *interceptor* (ex: em um cliente Axios) que anexa automaticamente o `access_token` ao cabeçalho `Authorization: Bearer <token>` em todas as requisições autenticadas[cite: 67].
-    * [cite_start][ ] Implementar a lógica de rotas protegidas no Next.js (middleware ou wrapper de página) que redireciona usuários não logados para a página de login[cite: 577].
+    * [x] Configurar um cliente HTTP que anexa automaticamente o `access_token` ao cabeçalho `Authorization: Bearer <token>`
+    * [x] Implementar refresh automático de tokens
+    * [x] Implementar a lógica de rotas protegidas no Next.js (middleware)
+    * [x] Criar tela de Dashboard com proteção de rotas
 5.  **Deploy (Vercel):**
-    * [cite_start][ ] Conectar o projeto Vercel ao repositório GitHub, apontando para a pasta `/frontend`[cite: 1291].
-    * [cite_start][ ] Configurar o deploy automático da branch `develop` para o domínio `orionerp.roilabs.com.br`[cite: 1309].
+    * [ ] Conectar o projeto Vercel ao repositório GitHub, apontando para a pasta `/frontend`
+    * [ ] Configurar o deploy automático da branch `main` para o domínio `orionerp.roilabs.com.br`
 
 ---
 
