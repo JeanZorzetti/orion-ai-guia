@@ -13,15 +13,22 @@ import {
   TableRow,
 } from '../../src/components/ui/table';
 import InvoiceUploadModal from '../../src/components/invoice/InvoiceUploadModal';
+import { CreateInvoiceModal } from '../../src/components/invoice/CreateInvoiceModal';
+import { EditInvoiceModal } from '../../src/components/invoice/EditInvoiceModal';
+import { InvoiceDetailsModal } from '../../src/components/invoice/InvoiceDetailsModal';
+import { useConfirm } from '@/hooks/useConfirm';
 import {
   Upload,
   Edit,
   Trash2,
   Filter,
-  Loader2
+  Loader2,
+  Plus,
+  Eye
 } from 'lucide-react';
 import { invoiceService } from '../services/invoice';
 import { Invoice } from '../types';
+import { toast } from 'sonner';
 
 type StatusFilter = 'pending' | 'validated' | 'paid' | 'cancelled' | 'all';
 
@@ -30,6 +37,14 @@ const ContasAPagar: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Estados dos modais
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
+  const { confirm, ConfirmDialog } = useConfirm();
 
   useEffect(() => {
     loadInvoices();
@@ -52,15 +67,48 @@ const ContasAPagar: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta fatura?')) return;
+  const handleDelete = async (invoice: Invoice) => {
+    await confirm(
+      {
+        title: 'Confirmar Exclusão',
+        description: `Tem certeza que deseja excluir a fatura ${invoice.invoice_number}? Esta ação não pode ser desfeita.`,
+        confirmText: 'Excluir',
+        cancelText: 'Cancelar',
+        type: 'danger',
+      },
+      async () => {
+        try {
+          await invoiceService.delete(invoice.id);
+          toast.success('Fatura excluída com sucesso!');
+          loadInvoices(); // Recarrega a lista
+        } catch (err) {
+          const error = err as Error;
+          toast.error(error.message || 'Erro ao excluir fatura');
+          throw err; // Re-throw para o useConfirm tratar
+        }
+      }
+    );
+  };
 
-    try {
-      await invoiceService.delete(id);
-      loadInvoices(); // Recarrega a lista
-    } catch (err) {
-      const error = err as Error;
-      alert(error.message || 'Erro ao excluir fatura');
+  const handleView = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setDetailsModalOpen(true);
+  };
+
+  const handleEdit = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setEditModalOpen(true);
+  };
+
+  const handleEditFromDetails = () => {
+    setDetailsModalOpen(false);
+    setEditModalOpen(true);
+  };
+
+  const handleDeleteFromDetails = () => {
+    if (selectedInvoice) {
+      setDetailsModalOpen(false);
+      handleDelete(selectedInvoice);
     }
   };
 
@@ -96,12 +144,21 @@ const ContasAPagar: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-foreground">Contas a Pagar</h1>
-        <InvoiceUploadModal>
-          <Button size="lg" data-tour="form-validation">
-            <Upload className="mr-2 h-4 w-4" />
-            Importar Fatura
+        <div className="flex gap-2">
+          <Button
+            size="lg"
+            onClick={() => setCreateModalOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Fatura
           </Button>
-        </InvoiceUploadModal>
+          <InvoiceUploadModal onSuccess={loadInvoices}>
+            <Button size="lg" variant="outline" data-tour="form-validation">
+              <Upload className="mr-2 h-4 w-4" />
+              Importar Fatura
+            </Button>
+          </InvoiceUploadModal>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -180,14 +237,28 @@ const ContasAPagar: React.FC = () => {
                     <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleView(invoice)}
+                          title="Visualizar detalhes"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(invoice)}
+                          title="Editar fatura"
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           className="text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDelete(invoice.id)}
+                          onClick={() => handleDelete(invoice)}
+                          title="Excluir fatura"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -200,8 +271,39 @@ const ContasAPagar: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Modais */}
+      <CreateInvoiceModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        onSuccess={loadInvoices}
+      />
+
+      <EditInvoiceModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        invoice={selectedInvoice}
+        onSuccess={loadInvoices}
+      />
+
+      <InvoiceDetailsModal
+        open={detailsModalOpen}
+        onOpenChange={setDetailsModalOpen}
+        invoice={selectedInvoice}
+        onEdit={handleEditFromDetails}
+        onDelete={handleDeleteFromDetails}
+      />
+
+      {ConfirmDialog}
     </div>
   );
 };
 
 export default ContasAPagar;
+
+// Force server-side rendering to avoid static generation issues with hooks
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}
