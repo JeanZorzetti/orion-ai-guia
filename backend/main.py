@@ -47,11 +47,13 @@ app.add_middleware(
 @app.get("/api/v1/cors-test")
 async def cors_test():
     """Endpoint para testar se CORS está funcionando"""
+    from datetime import datetime
     return {
         "cors": "OK",
         "message": "Se você está vendo isso, o CORS está funcionando!",
-        "timestamp": datetime.now().isoformat(),
-        "allowed_origins": ["*"]
+        "timestamp": datetime.utcnow().isoformat(),
+        "allowed_origins": ["*"],
+        "version": "3.0"
     }
 
 
