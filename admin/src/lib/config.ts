@@ -45,6 +45,14 @@ const getEnvironment = (): 'development' | 'production' | 'staging' => {
   return 'development';
 };
 
+// Helper para forçar HTTPS em produção
+const ensureHttps = (url: string, isProd: boolean): string => {
+  if (isProd && url.startsWith('http:')) {
+    return url.replace('http:', 'https:');
+  }
+  return url;
+};
+
 // Configurações por ambiente
 const environments: EnvironmentConfig = {
   development: {
@@ -59,7 +67,10 @@ const environments: EnvironmentConfig = {
   },
 
   production: {
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || 'https://orionback.roilabs.com.br',
+    baseUrl: ensureHttps(
+      process.env.NEXT_PUBLIC_API_URL || 'https://orionback.roilabs.com.br',
+      true
+    ),
     endpoints: {
       auth: '/api/v1/auth',
       users: '/api/v1/users',
@@ -70,7 +81,10 @@ const environments: EnvironmentConfig = {
   },
 
   staging: {
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || 'https://staging-orionback.roilabs.com.br',
+    baseUrl: ensureHttps(
+      process.env.NEXT_PUBLIC_API_URL || 'https://staging-orionback.roilabs.com.br',
+      true
+    ),
     endpoints: {
       auth: '/api/v1/auth',
       users: '/api/v1/users',
