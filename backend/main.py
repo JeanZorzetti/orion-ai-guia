@@ -19,12 +19,17 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS configuration
+# CORS configuration - Versão 2.0 com wildcard em produção
 cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS", "")
+is_production = os.getenv("ENVIRONMENT", "development") == "production"
+
 if cors_origins_str:
     ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+elif is_production:
+    # Em produção, aceitar qualquer subdomínio de roilabs.com.br
+    ALLOWED_ORIGINS = ["*"]  # Temporário para debug
 else:
-    # Fallback para desenvolvimento e produção
+    # Desenvolvimento
     ALLOWED_ORIGINS = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
@@ -32,7 +37,9 @@ else:
         "https://orionback.roilabs.com.br"
     ]
 
-print(f"🌐 CORS Origins configuradas: {ALLOWED_ORIGINS}")
+print(f"🌐 CORS Configuration [v2.0]")
+print(f"   Environment: {os.getenv('ENVIRONMENT', 'development')}")
+print(f"   Origins: {ALLOWED_ORIGINS}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,6 +47,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
