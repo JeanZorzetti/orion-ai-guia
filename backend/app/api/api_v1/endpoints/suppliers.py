@@ -1,13 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from typing import Optional
-from datetime import datetime
+from typing import List, Optional
 
 from app.core.database import get_db
 from app.models.supplier_model import Supplier
 from app.core.deps import get_current_user
 from app.models.user import User
+from app.schemas.supplier import SupplierCreate, SupplierUpdate, SupplierResponse
 
 router = APIRouter()
 
@@ -190,3 +189,104 @@ async def get_supplier(
             }
         }
     )
+
+
+# ===== CRUD Endpoints (RESTful) =====
+
+@router.get("/", response_model=List[SupplierResponse])
+def get_suppliers(
+    skip: int = 0,
+    limit: int = 100,
+    active_only: Optional[bool] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lista todos os fornecedores do workspace (multi-tenant)
+    """
+    query = db.query(Supplier).filter(Supplier.workspace_id == current_user.workspace_id)
+
+    if active_only is not None:
+        query = query.filter(Supplier.active == active_only)
+
+    if search:
+        query = query.filter(Supplier.name.ilike(f"%{search}%"))
+
+    suppliers = query.offset(skip).limit(limit).all()
+    return suppliers
+
+
+@router.post("/", response_model=SupplierResponse, status_code=status.HTTP_201_CREATED)
+def create_supplier(
+    supplier: SupplierCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Cria um novo fornecedor no workspace do usuário
+    """
+    db_supplier = Supplier(
+        **supplier.model_dump(),
+        workspace_id=current_user.workspace_id
+    )
+    db.add(db_supplier)
+    db.commit()
+    db.refresh(db_supplier)
+    return db_supplier
+
+
+@router.patch("/{supplier_id}", response_model=SupplierResponse)
+def update_supplier(
+    supplier_id: int,
+    supplier_update: SupplierUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Atualiza um fornecedor existente (multi-tenant)
+    """
+    db_supplier = db.query(Supplier).filter(
+        Supplier.id == supplier_id,
+        Supplier.workspace_id == current_user.workspace_id
+    ).first()
+
+    if not db_supplier:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Fornecedor não encontrado"
+        )
+
+    # Atualiza apenas os campos fornecidos
+    update_data = supplier_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_supplier, field, value)
+
+    db.commit()
+    db.refresh(db_supplier)
+    return db_supplier
+
+
+@router.delete("/{supplier_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_supplier(
+    supplier_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Deleta um fornecedor (multi-tenant)
+    """
+    db_supplier = db.query(Supplier).filter(
+        Supplier.id == supplier_id,
+        Supplier.workspace_id == current_user.workspace_id
+    ).first()
+
+    if not db_supplier:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Fornecedor não encontrado"
+        )
+
+    db.delete(db_supplier)
+    db.commit()
+    return None
