@@ -7,6 +7,9 @@ const publicRoutes = ['/', '/login', '/register'];
 // Rotas protegidas que requerem autenticação
 const protectedRoutes = ['/admin/dashboard', '/admin/financeiro', '/admin/estoque', '/suppliers', '/invoices', '/products', '/sales', '/accounts-payable'];
 
+// Rotas que requerem super admin (verificação adicional será feita no cliente)
+const superAdminRoutes = ['/super-admin'];
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 

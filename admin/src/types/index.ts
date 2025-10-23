@@ -122,3 +122,34 @@ export interface PaginatedResponse<T> {
   limit: number;
   pages: number;
 }
+
+// Tipos de Super Admin
+export interface WorkspaceAdmin {
+  id: number;
+  name: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+  user_count: number;
+}
+
+export interface UserAdmin {
+  id: number;
+  email: string;
+  full_name: string;
+  role: string;
+  workspace_id: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+  workspace_name?: string;
+}
+
+export interface SystemStats {
+  total_workspaces: number;
+  active_workspaces: number;
+  total_users: number;
+  active_users: number;
+  total_invoices: number;
+  total_products: number;
+}
