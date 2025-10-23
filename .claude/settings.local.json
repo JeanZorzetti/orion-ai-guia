@@ -59,7 +59,8 @@
       "Bash(npx create-next-app@latest frontend --typescript --tailwind --app --src-dir --no-git --import-alias \"@/*\")",
       "Bash(yes:*)",
       "Bash(git mv:*)",
-      "Read(//c/Users/jeanz/OneDrive/Desktop/**)"
+      "Read(//c/Users/jeanz/OneDrive/Desktop/**)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

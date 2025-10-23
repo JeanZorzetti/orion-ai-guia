@@ -1,26 +1,34 @@
 import { AuthTokens, ApiError } from '@/types';
 
-// VERSÃO 4.0 - FORÇAR HTTPS EM PRODUÇÃO
+// VERSÃO 5.0 - HTTPS ABSOLUTO
 // Garantir que SEMPRE use HTTPS, não importa o que venha da env
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
 const isProd = process.env.NODE_ENV === 'production';
 
-// Em produção, SEMPRE usar HTTPS
-const defaultUrl = 'https://orionback.roilabs.com.br/api/v1';
+// FUNÇÃO HELPER: Garantir HTTPS em qualquer URL
+const forceHttps = (url: string): string => {
+  if (!url) return 'https://orionback.roilabs.com.br/api/v1';
 
-// Se a env estiver vazia ou undefined, usar default
-let API_URL = rawApiUrl || defaultUrl;
+  // Se já é HTTPS, retorna como está
+  if (url.startsWith('https://')) return url;
 
-// FORÇAR HTTP para HTTPS (proteção dupla)
-if (isProd || API_URL.includes('roilabs.com.br')) {
-  API_URL = API_URL.replace(/^http:/, 'https:');
-}
+  // Se é HTTP, troca para HTTPS
+  if (url.startsWith('http://')) return url.replace('http://', 'https://');
+
+  // Se não tem protocolo, adiciona HTTPS
+  if (!url.startsWith('http')) return `https://${url}`;
+
+  return url;
+};
+
+// Aplicar forceHttps na URL da API
+let API_URL = forceHttps(rawApiUrl || 'https://orionback.roilabs.com.br/api/v1');
 
 // Debug detalhado
 if (typeof window !== 'undefined') {
   console.log('═══════════════════════════════════════');
-  console.log('🔧 API Configuration [v4.0]');
-  console.log('📝 Raw ENV:', rawApiUrl);
+  console.log('🔧 API Configuration [v5.0 - HTTPS ABSOLUTE]');
+  console.log('📝 Raw ENV:', rawApiUrl || '(undefined)');
   console.log('🌍 Environment:', process.env.NODE_ENV);
   console.log('✅ Final URL:', API_URL);
   console.log('🔒 Protocol:', API_URL.startsWith('https:') ? 'HTTPS ✓' : 'HTTP ✗');
@@ -127,7 +135,7 @@ export async function apiClient<T>(
   url = url.replace(/^http:/, 'https:');
 
   if (typeof window !== 'undefined') {
-    console.log('🌐 [v4.0] Request:', {
+    console.log('🌐 [v5.0] Request:', {
       endpoint,
       finalUrl: url,
       method: config.method || 'GET',
