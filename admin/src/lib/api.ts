@@ -136,6 +136,12 @@ export async function apiClient<T>(
   }
 
   try {
+    // DEBUG: Log da URL exata que será passada ao fetch
+    if (typeof window !== 'undefined') {
+      console.log('🔍 [DEBUG] Calling fetch() with URL:', url);
+      console.log('🔍 [DEBUG] URL object:', new URL(url));
+    }
+
     const response = await fetch(url, config);
 
     // Se o token expirou, tentar fazer refresh e tentar novamente
