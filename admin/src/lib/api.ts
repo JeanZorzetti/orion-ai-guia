@@ -147,6 +147,7 @@ export async function apiClient<T>(
     if (typeof window !== 'undefined') {
       console.log('🔍 [DEBUG] Calling fetch() with URL:', url);
       console.log('🔍 [DEBUG] URL object:', new URL(url));
+      console.log('🔍 [DEBUG] Config object:', JSON.stringify(config, null, 2));
 
       // TESTE RAW: Fetch direto SEM config para ver se o problema é no config
       console.log('🧪 [TEST] Fazendo fetch RAW sem config...');
@@ -155,6 +156,15 @@ export async function apiClient<T>(
         console.log('✅ [TEST] Fetch RAW funcionou!', testResponse.status);
       } catch (testError) {
         console.error('❌ [TEST] Fetch RAW FALHOU:', testError);
+      }
+
+      // TESTE COM MESMO CONFIG: Para ver se é algo específico no config
+      console.log('🧪 [TEST] Fazendo fetch com MESMO config para /cors-test...');
+      try {
+        const testResponse2 = await fetch('https://orionback.roilabs.com.br/api/v1/cors-test', config);
+        console.log('✅ [TEST] Fetch COM CONFIG funcionou!', testResponse2.status);
+      } catch (testError2) {
+        console.error('❌ [TEST] Fetch COM CONFIG FALHOU:', testError2);
       }
     }
 
