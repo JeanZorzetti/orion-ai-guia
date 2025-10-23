@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,81 +14,79 @@ import {
   AlertTriangle,
   TrendingUp,
   Edit,
-  Eye
+  Eye,
+  Loader2,
+  Trash2
 } from 'lucide-react';
+import { productService } from '@/services/product';
+import { Product } from '@/types';
 
 const ProdutosPage: React.FC = () => {
-  const produtos = [
-    {
-      id: 1,
-      codigo: 'PRD-001',
-      nome: 'Produto A - Eletrônico Premium',
-      categoria: 'Eletrônicos',
-      estoque: 5,
-      minimo: 20,
-      preco: 299.90,
-      status: 'baixo',
-    },
-    {
-      id: 2,
-      codigo: 'PRD-002',
-      nome: 'Produto B - Ferramenta Profissional',
-      categoria: 'Ferramentas',
-      estoque: 12,
-      minimo: 50,
-      preco: 149.50,
-      status: 'baixo',
-    },
-    {
-      id: 3,
-      codigo: 'PRD-003',
-      nome: 'Produto C - Material de Construção',
-      categoria: 'Material',
-      estoque: 45,
-      minimo: 30,
-      preco: 89.90,
-      status: 'ok',
-    },
-    {
-      id: 4,
-      codigo: 'PRD-004',
-      nome: 'Produto D - Consumível Industrial',
-      categoria: 'Consumíveis',
-      estoque: 3,
-      minimo: 15,
-      preco: 25.00,
-      status: 'critico',
-    },
-    {
-      id: 5,
-      codigo: 'PRD-005',
-      nome: 'Produto E - Acessório Automotivo',
-      categoria: 'Automotivo',
-      estoque: 120,
-      minimo: 50,
-      preco: 199.00,
-      status: 'ok',
-    },
-  ];
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [lowStockFilter, setLowStockFilter] = useState(false);
+
+  useEffect(() => {
+    loadProducts();
+  }, [lowStockFilter]);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await productService.getAll({
+        search: searchTerm || undefined,
+        low_stock: lowStockFilter,
+        active_only: true,
+        limit: 100
+      });
+      setProducts(data);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || 'Erro ao carregar produtos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    loadProducts();
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Tem certeza que deseja excluir este produto?')) return;
+
+    try {
+      await productService.delete(id);
+      loadProducts();
+    } catch (err) {
+      const error = err as Error;
+      alert(error.message || 'Erro ao excluir produto');
+    }
+  };
+
+  const totalProducts = products.length;
+  const lowStockProducts = products.filter(p => p.stock_quantity <= p.min_stock_level).length;
+  const criticalStockProducts = products.filter(p => p.stock_quantity === 0).length;
+  const okStockProducts = products.filter(p => p.stock_quantity > p.min_stock_level).length;
 
   const estatisticas = [
-    { label: 'Total de Produtos', valor: produtos.length, icon: Package, color: 'text-blue-500' },
-    { label: 'Baixo Estoque', valor: produtos.filter(p => p.status === 'baixo').length, icon: AlertTriangle, color: 'text-orange-500' },
-    { label: 'Estoque Crítico', valor: produtos.filter(p => p.status === 'critico').length, icon: AlertTriangle, color: 'text-red-500' },
-    { label: 'Em Estoque OK', valor: produtos.filter(p => p.status === 'ok').length, icon: TrendingUp, color: 'text-green-500' },
+    { label: 'Total de Produtos', valor: totalProducts, icon: Package, color: 'text-blue-500' },
+    { label: 'Baixo Estoque', valor: lowStockProducts, icon: AlertTriangle, color: 'text-orange-500' },
+    { label: 'Estoque Crítico', valor: criticalStockProducts, icon: AlertTriangle, color: 'text-red-500' },
+    { label: 'Em Estoque OK', valor: okStockProducts, icon: TrendingUp, color: 'text-green-500' },
   ];
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'critico':
-        return <Badge variant="destructive">Crítico</Badge>;
-      case 'baixo':
-        return <Badge className="bg-orange-500">Baixo</Badge>;
-      case 'ok':
-        return <Badge className="bg-green-500">OK</Badge>;
-      default:
-        return <Badge variant="outline">-</Badge>;
+  const getStatusBadge = (product: Product) => {
+    if (product.stock_quantity === 0) {
+      return <Badge variant="destructive">Crítico</Badge>;
     }
+    if (product.stock_quantity <= product.min_stock_level) {
+      return <Badge className="bg-orange-500">Baixo</Badge>;
+    }
+    return <Badge className="bg-green-500">OK</Badge>;
   };
 
   return (
@@ -130,85 +130,128 @@ const ProdutosPage: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Buscar por nome, código ou categoria..."
+                placeholder="Buscar por nome ou SKU..."
                 className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleSearch}>
+              <Search className="mr-2 h-4 w-4" />
+              Buscar
+            </Button>
+            <Button
+              variant={lowStockFilter ? 'default' : 'outline'}
+              onClick={() => setLowStockFilter(!lowStockFilter)}
+            >
               <Filter className="mr-2 h-4 w-4" />
-              Filtros
+              {lowStockFilter ? 'Mostrando Baixo Estoque' : 'Filtrar Baixo Estoque'}
             </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Tabela de Produtos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Produtos ({produtos.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 font-semibold text-sm">Código</th>
-                  <th className="text-left p-3 font-semibold text-sm">Produto</th>
-                  <th className="text-left p-3 font-semibold text-sm">Categoria</th>
-                  <th className="text-right p-3 font-semibold text-sm">Estoque</th>
-                  <th className="text-right p-3 font-semibold text-sm">Mínimo</th>
-                  <th className="text-right p-3 font-semibold text-sm">Preço</th>
-                  <th className="text-center p-3 font-semibold text-sm">Status</th>
-                  <th className="text-center p-3 font-semibold text-sm">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {produtos.map((produto) => (
-                  <tr key={produto.id} className="border-b hover:bg-muted/50 transition-colors">
-                    <td className="p-3">
-                      <span className="font-mono text-sm">{produto.codigo}</span>
-                    </td>
-                    <td className="p-3">
-                      <span className="font-medium">{produto.nome}</span>
-                    </td>
-                    <td className="p-3">
-                      <span className="text-sm text-muted-foreground">{produto.categoria}</span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <span className={`font-semibold ${produto.estoque < produto.minimo ? 'text-red-600' : 'text-green-600'}`}>
-                        {produto.estoque}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <span className="text-sm text-muted-foreground">{produto.minimo}</span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <span className="font-semibold">
-                        R$ {produto.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </td>
-                    <td className="p-3 text-center">
-                      {getStatusBadge(produto.status)}
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <Link href={`/admin/estoque/produtos/${produto.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
+      {loading ? (
+        <Card>
+          <CardContent className="py-12 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-destructive">{error}</p>
+            <Button variant="outline" onClick={loadProducts} className="mt-4">
+              Tentar Novamente
+            </Button>
+          </CardContent>
+        </Card>
+      ) : products.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">
+              Nenhum produto encontrado.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Lista de Produtos ({products.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-3 font-semibold text-sm">SKU</th>
+                    <th className="text-left p-3 font-semibold text-sm">Produto</th>
+                    <th className="text-left p-3 font-semibold text-sm">Categoria</th>
+                    <th className="text-right p-3 font-semibold text-sm">Estoque</th>
+                    <th className="text-right p-3 font-semibold text-sm">Mínimo</th>
+                    <th className="text-right p-3 font-semibold text-sm">Preço</th>
+                    <th className="text-center p-3 font-semibold text-sm">Status</th>
+                    <th className="text-center p-3 font-semibold text-sm">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                </thead>
+                <tbody>
+                  {products.map((product) => (
+                    <tr key={product.id} className="border-b hover:bg-muted/50 transition-colors">
+                      <td className="p-3">
+                        <span className="font-mono text-sm">{product.sku || '-'}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="font-medium">{product.name}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-sm text-muted-foreground">{product.category || '-'}</span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className={`font-semibold ${product.stock_quantity <= product.min_stock_level ? 'text-red-600' : 'text-green-600'}`}>
+                          {product.stock_quantity} {product.unit}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className="text-sm text-muted-foreground">{product.min_stock_level} {product.unit}</span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className="font-semibold">
+                          R$ {product.sale_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center">
+                        {getStatusBadge(product)}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <Link href={`/admin/estoque/produtos/${product.id}`}>
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDelete(product.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

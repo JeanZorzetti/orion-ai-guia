@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../src/components/ui/card';
 import { Button } from '../../src/components/ui/button';
 import { Badge } from '../../src/components/ui/badge';
@@ -17,86 +17,79 @@ import {
   Upload,
   Edit,
   Trash2,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react';
+import { invoiceService } from '../services/invoice';
+import { Invoice } from '../types';
 
-type StatusConta = 'a-vencer' | 'vencida' | 'paga';
-
-interface ContaPagar {
-  id: number;
-  fornecedor: string;
-  vencimento: string;
-  valor: number;
-  status: StatusConta;
-  descricao: string;
-}
+type StatusFilter = 'pending' | 'validated' | 'paid' | 'cancelled' | 'all';
 
 const ContasAPagar: React.FC = () => {
-  const [filtroAtivo, setFiltroAtivo] = useState<StatusConta | 'todos'>('todos');
+  const [filtroAtivo, setFiltroAtivo] = useState<StatusFilter>('all');
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const contas: ContaPagar[] = [
-    {
-      id: 1,
-      fornecedor: 'Fornecedor ABC Ltda',
-      vencimento: '2024-01-15',
-      valor: 2500.00,
-      status: 'a-vencer',
-      descricao: 'Compra de materiais'
-    },
-    {
-      id: 2,
-      fornecedor: 'Distribuidora XYZ',
-      vencimento: '2024-01-10',
-      valor: 1800.50,
-      status: 'vencida',
-      descricao: 'Produtos para revenda'
-    },
-    {
-      id: 3,
-      fornecedor: 'Serviços Tech',
-      vencimento: '2024-01-05',
-      valor: 980.00,
-      status: 'paga',
-      descricao: 'Manutenção sistema'
-    },
-    {
-      id: 4,
-      fornecedor: 'Fornecedor DEF',
-      vencimento: '2024-01-20',
-      valor: 3200.00,
-      status: 'a-vencer',
-      descricao: 'Estoque geral'
-    },
-  ];
+  useEffect(() => {
+    loadInvoices();
+  }, [filtroAtivo]);
 
-  const getStatusBadge = (status: StatusConta) => {
-    const statusConfig = {
-      'a-vencer': { label: 'A Vencer', variant: 'default' as const },
-      'vencida': { label: 'Vencida', variant: 'destructive' as const },
-      'paga': { label: 'Paga', variant: 'secondary' as const },
+  const loadInvoices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await invoiceService.getAll({
+        status_filter: filtroAtivo === 'all' ? undefined : filtroAtivo,
+        limit: 100
+      });
+      setInvoices(data);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || 'Erro ao carregar faturas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Tem certeza que deseja excluir esta fatura?')) return;
+
+    try {
+      await invoiceService.delete(id);
+      loadInvoices(); // Recarrega a lista
+    } catch (err) {
+      const error = err as Error;
+      alert(error.message || 'Erro ao excluir fatura');
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { label: string; variant: 'default' | 'destructive' | 'secondary' | 'outline' }> = {
+      'pending': { label: 'Pendente', variant: 'default' },
+      'validated': { label: 'Validada', variant: 'secondary' },
+      'paid': { label: 'Paga', variant: 'outline' },
+      'cancelled': { label: 'Cancelada', variant: 'destructive' },
     };
 
-    const config = statusConfig[status];
+    const config = statusConfig[status] || { label: status, variant: 'default' as const };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const contasFiltradas = filtroAtivo === 'todos'
-    ? contas
-    : contas.filter(conta => conta.status === filtroAtivo);
-
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR');
+      return new Date(dateString).toLocaleDateString('pt-BR');
     } catch {
-      return dateString; // Fallback to original string if parsing fails
+      return dateString;
     }
   };
 
   const filtros = [
-    { key: 'todos', label: 'Todas' },
-    { key: 'a-vencer', label: 'A Vencer' },
-    { key: 'vencida', label: 'Vencidas' },
-    { key: 'paga', label: 'Pagas' },
+    { key: 'all', label: 'Todas' },
+    { key: 'pending', label: 'Pendentes' },
+    { key: 'validated', label: 'Validadas' },
+    { key: 'paid', label: 'Pagas' },
+    { key: 'cancelled', label: 'Canceladas' },
   ];
 
   return (
@@ -136,54 +129,74 @@ const ContasAPagar: React.FC = () => {
       </Card>
 
       {/* Tabela */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fornecedor</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contasFiltradas.map((conta) => (
-                <TableRow key={conta.id}>
-                  <TableCell className="font-medium">{conta.fornecedor}</TableCell>
-                  <TableCell className="text-muted-foreground">{conta.descricao}</TableCell>
-                  <TableCell>
-                    {formatDate(conta.vencimento)}
-                  </TableCell>
-                  <TableCell className="font-semibold">
-                    R$ {conta.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(conta.status)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {contasFiltradas.length === 0 && (
+      {loading ? (
+        <Card>
+          <CardContent className="py-12 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-destructive">{error}</p>
+            <Button variant="outline" onClick={loadInvoices} className="mt-4">
+              Tentar Novamente
+            </Button>
+          </CardContent>
+        </Card>
+      ) : invoices.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
-              Nenhuma conta encontrada com os filtros selecionados.
+              Nenhuma fatura encontrada com os filtros selecionados.
             </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Número</TableHead>
+                  <TableHead>Data Emissão</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoices.map((invoice) => (
+                  <TableRow key={invoice.id}>
+                    <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                    <TableCell>{formatDate(invoice.invoice_date)}</TableCell>
+                    <TableCell>
+                      {invoice.due_date ? formatDate(invoice.due_date) : '-'}
+                    </TableCell>
+                    <TableCell className="font-semibold">
+                      R$ {invoice.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDelete(invoice.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}
