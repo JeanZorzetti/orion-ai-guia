@@ -147,6 +147,15 @@ export async function apiClient<T>(
     if (typeof window !== 'undefined') {
       console.log('🔍 [DEBUG] Calling fetch() with URL:', url);
       console.log('🔍 [DEBUG] URL object:', new URL(url));
+
+      // TESTE RAW: Fetch direto SEM config para ver se o problema é no config
+      console.log('🧪 [TEST] Fazendo fetch RAW sem config...');
+      try {
+        const testResponse = await fetch('https://orionback.roilabs.com.br/api/v1/cors-test');
+        console.log('✅ [TEST] Fetch RAW funcionou!', testResponse.status);
+      } catch (testError) {
+        console.error('❌ [TEST] Fetch RAW FALHOU:', testError);
+      }
     }
 
     const response = await fetch(url, config);
