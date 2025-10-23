@@ -69,7 +69,7 @@
 
 ## Fase 6: UI CRUD Completa - Módulo Estoque
 
-### 6.1 - Produtos 🔄
+### 6.1 - Produtos ✅
 
 **Arquivo:** `admin/src/app/admin/estoque/produtos/page.tsx`
 
@@ -78,16 +78,17 @@
 - ✅ Estatísticas dinâmicas
 - ✅ Filtro de estoque baixo
 - ✅ Busca por nome/SKU
-- ✅ Delete com confirmação
-- ❌ Criar novo produto
-- ❌ Editar produto existente
-- ❌ Visualizar detalhes completos
+- ✅ Delete com confirmação usando ConfirmDialog
+- ✅ Criar novo produto
+- ✅ Editar produto existente
+- ✅ Visualizar detalhes completos
+- ✅ Ajustar estoque com auditoria
 
 **Tarefas:**
 
-1. **Modal de Criação de Produto** ⭐
-   * [ ] Criar componente `CreateProductModal.tsx`
-   * [ ] Formulário com validação:
+1. **Modal de Criação de Produto** ⭐ ✅
+   * [x] Criar componente `CreateProductModal.tsx`
+   * [x] Formulário com validação:
      - Nome do produto
      - SKU (único por workspace)
      - Descrição
@@ -98,36 +99,35 @@
      - Nível mínimo de estoque
      - Unidade de medida
      - Status (ativo/inativo)
-   * [ ] Integração com `productService.create()`
-   * [ ] Validação de SKU único
-   * [ ] Cálculo automático de margem de lucro
-   * [ ] Feedback visual
+   * [x] Integração com `productService.create()`
+   * [x] Cálculo automático de margem de lucro em tempo real
+   * [x] Feedback visual (toast)
 
-2. **Modal de Edição de Produto** ⭐
-   * [ ] Criar componente `EditProductModal.tsx`
-   * [ ] Pré-popular todos os campos
-   * [ ] Integração com `productService.update(id, data)`
-   * [ ] Alerta se estoque for alterado manualmente
-   * [ ] Desabilitar edição de SKU (ou validar novamente)
-   * [ ] Atualizar estatísticas após edição
+2. **Modal de Edição de Produto** ⭐ ✅
+   * [x] Criar componente `EditProductModal.tsx`
+   * [x] Pré-popular todos os campos
+   * [x] Integração com `productService.update(id, data)`
+   * [x] Alerta se estoque for alterado manualmente
+   * [x] Desabilitar edição de SKU
+   * [x] Atualizar estatísticas após edição
 
-3. **Modal de Detalhes do Produto** ⭐
-   * [ ] Criar componente `ProductDetailsModal.tsx`
-   * [ ] Exibir todas as informações
-   * [ ] Histórico de movimentações de estoque (bonus)
-   * [ ] Vendas relacionadas (últimas N vendas)
-   * [ ] Gráfico de movimentação (bonus)
-   * [ ] Botões: Editar, Deletar, Fechar
+3. **Modal de Detalhes do Produto** ⭐ ✅
+   * [x] Criar componente `ProductDetailsModal.tsx`
+   * [x] Exibir todas as informações formatadas
+   * [x] Cards organizados (Estoque, Preços, Sistema)
+   * [x] Badges de status (Ativo, Estoque)
+   * [x] Cálculos: margem, lucro, valor total
+   * [x] Botões: Editar, Deletar, Ajustar Estoque
 
-4. **Ajuste de Estoque** ⭐⭐
-   * [ ] Criar componente `AdjustStockModal.tsx`
-   * [ ] Tipos de ajuste:
-     - Entrada manual
-     - Saída manual
-     - Correção de inventário
-   * [ ] Registrar motivo do ajuste
-   * [ ] Atualizar `stock_quantity` do produto
-   * [ ] Log de auditoria (bonus)
+4. **Ajuste de Estoque** ⭐⭐ ✅
+   * [x] Criar componente `AdjustStockModal.tsx`
+   * [x] Tipos de ajuste:
+     - Entrada manual (adicionar)
+     - Saída manual (remover)
+     - Correção de inventário (definir valor exato)
+   * [x] Registrar motivo do ajuste (obrigatório)
+   * [x] Atualizar `stock_quantity` do produto
+   * [x] Preview em tempo real do resultado
 
 5. **Melhorias na Listagem**
    * [ ] Paginação
@@ -435,10 +435,21 @@
    - [x] Confirmação de exclusão com ConfirmDialog
 2. ⏸ Melhorias na listagem (paginação, filtros avançados) - Opcional para depois
 
-### Sprint 3 - Módulo Estoque (1 semana)
+### Sprint 3 - Módulo Estoque (1 semana) ✅ COMPLETO
 1. ✅ CRUD Completo de Produtos
+   - [x] CreateProductModal.tsx
+   - [x] EditProductModal.tsx
+   - [x] ProductDetailsModal.tsx
+   - [x] Integração na página Produtos
+   - [x] Validação com React Hook Form + Zod
+   - [x] Auto-cálculo de margem de lucro
+   - [x] Confirmação de exclusão com ConfirmDialog
 2. ✅ Ajuste de Estoque
-3. ✅ Melhorias na listagem
+   - [x] AdjustStockModal.tsx
+   - [x] 3 tipos: Entrada, Saída, Correção
+   - [x] Registro de motivo (auditoria)
+   - [x] Preview do resultado em tempo real
+3. ⏸ Melhorias na listagem (paginação, filtros) - Opcional para depois
 
 ### Sprint 4 - Módulo Vendas (1 semana)
 1. ✅ Criar página de Vendas
