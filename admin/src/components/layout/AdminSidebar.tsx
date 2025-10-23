@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -10,9 +10,11 @@ import {
   Settings,
   HelpCircle,
   FileText,
-  Package
+  Package,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { User } from '@/types';
 
 const navigation = [
   {
@@ -61,10 +63,21 @@ const supportNavigation = [
 
 const AdminSidebar: React.FC = () => {
   const pathname = usePathname();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Carregar usuário do localStorage
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setCurrentUser(JSON.parse(userStr));
+    }
+  }, []);
 
   const isActive = (href: string) => {
     return pathname === href || pathname?.startsWith(href + '/');
   };
+
+  const isSuperAdmin = currentUser?.role === 'super_admin';
 
   const NavItem = ({ item, isChild = false }: { item: { name: string; href: string; icon: React.ComponentType<{ className?: string }> }; isChild?: boolean }) => {
     const Icon = item.icon;
@@ -120,6 +133,22 @@ const AdminSidebar: React.FC = () => {
         {supportNavigation.map((item) => (
           <NavItem key={item.name} item={item} />
         ))}
+
+        {/* Super Admin Link - só aparece para super admins */}
+        {isSuperAdmin && (
+          <Link
+            href="/super-admin"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+              'bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
+              'hover:bg-purple-200 dark:hover:bg-purple-900/30',
+              'border border-purple-300 dark:border-purple-800'
+            )}
+          >
+            <Shield className="h-4 w-4" />
+            Super Admin
+          </Link>
+        )}
       </div>
     </div>
   );
