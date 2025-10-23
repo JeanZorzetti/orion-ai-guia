@@ -27,7 +27,7 @@ def reset_admin_password(db: Session = Depends(get_db)):
         if not workspace:
             workspace = Workspace(
                 name="Orion Admin",
-                subdomain="orion-admin"
+                slug="orion-admin"
             )
             db.add(workspace)
             db.commit()
