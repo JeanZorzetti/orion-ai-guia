@@ -1,22 +1,29 @@
 import { AuthTokens, ApiError } from '@/types';
 
-// VERSÃO 3.0 - FORÇAR HTTPS EM TUDO
+// VERSÃO 4.0 - FORÇAR HTTPS EM PRODUÇÃO
 // Garantir que SEMPRE use HTTPS, não importa o que venha da env
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
+const isProd = process.env.NODE_ENV === 'production';
+
+// Em produção, SEMPRE usar HTTPS
 const defaultUrl = 'https://orionback.roilabs.com.br/api/v1';
 
 // Se a env estiver vazia ou undefined, usar default
 let API_URL = rawApiUrl || defaultUrl;
 
-// FORÇAR HTTP para HTTPS
-API_URL = API_URL.replace(/^http:/, 'https:');
+// FORÇAR HTTP para HTTPS (proteção dupla)
+if (isProd || API_URL.includes('roilabs.com.br')) {
+  API_URL = API_URL.replace(/^http:/, 'https:');
+}
 
 // Debug detalhado
 if (typeof window !== 'undefined') {
   console.log('═══════════════════════════════════════');
-  console.log('🔧 API Configuration [v3.0]');
+  console.log('🔧 API Configuration [v4.0]');
   console.log('📝 Raw ENV:', rawApiUrl);
+  console.log('🌍 Environment:', process.env.NODE_ENV);
   console.log('✅ Final URL:', API_URL);
+  console.log('🔒 Protocol:', API_URL.startsWith('https:') ? 'HTTPS ✓' : 'HTTP ✗');
   console.log('═══════════════════════════════════════');
 }
 
@@ -120,10 +127,11 @@ export async function apiClient<T>(
   url = url.replace(/^http:/, 'https:');
 
   if (typeof window !== 'undefined') {
-    console.log('🌐 [v3.0] Request:', {
+    console.log('🌐 [v4.0] Request:', {
       endpoint,
       finalUrl: url,
-      method: config.method || 'GET'
+      method: config.method || 'GET',
+      protocol: url.startsWith('https:') ? 'HTTPS ✓' : 'HTTP ✗'
     });
   }
 
