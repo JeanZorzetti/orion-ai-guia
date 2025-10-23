@@ -20,7 +20,8 @@ export const saleService = {
     if (params?.end_date) queryParams.append('end_date', params.end_date);
 
     const query = queryParams.toString();
-    const response = await api.get<Sale[]>(`/sales${query ? `?${query}` : ''}`);
+    // WORKAROUND: Adicionar trailing slash para evitar redirect HTTP
+    const response = await api.get<Sale[]>(`/sales/${query ? `?${query}` : ''}`);
     return response;
   },
 

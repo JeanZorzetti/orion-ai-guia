@@ -16,7 +16,8 @@ export const supplierService = {
     if (params?.search) queryParams.append('search', params.search);
 
     const query = queryParams.toString();
-    const response = await api.get<Supplier[]>(`/suppliers${query ? `?${query}` : ''}`);
+    // WORKAROUND: Adicionar trailing slash para evitar redirect HTTP
+    const response = await api.get<Supplier[]>(`/suppliers/${query ? `?${query}` : ''}`);
     return response;
   },
 

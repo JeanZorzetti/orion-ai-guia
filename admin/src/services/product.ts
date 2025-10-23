@@ -20,7 +20,8 @@ export const productService = {
     if (params?.low_stock !== undefined) queryParams.append('low_stock', params.low_stock.toString());
 
     const query = queryParams.toString();
-    const response = await api.get<Product[]>(`/products${query ? `?${query}` : ''}`);
+    // WORKAROUND: Adicionar trailing slash para evitar redirect HTTP
+    const response = await api.get<Product[]>(`/products/${query ? `?${query}` : ''}`);
     return response;
   },
 
