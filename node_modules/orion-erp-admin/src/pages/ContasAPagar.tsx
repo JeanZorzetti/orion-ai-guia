@@ -119,7 +119,7 @@ const ContasAPagar: React.FC = () => {
                 key={filtro.key}
                 variant={filtroAtivo === filtro.key ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setFiltroAtivo(filtro.key as StatusConta | 'todos')}
+                onClick={() => setFiltroAtivo(filtro.key as StatusFilter)}
               >
                 {filtro.label}
               </Button>
