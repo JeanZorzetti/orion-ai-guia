@@ -3,7 +3,6 @@ import { AuthTokens, ApiError } from '@/types';
 // VERSÃO 5.0 - HTTPS ABSOLUTO
 // Garantir que SEMPRE use HTTPS, não importa o que venha da env
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
-const isProd = process.env.NODE_ENV === 'production';
 
 // FUNÇÃO HELPER: Garantir HTTPS em qualquer URL
 const forceHttps = (url: string): string => {
@@ -22,7 +21,7 @@ const forceHttps = (url: string): string => {
 };
 
 // Aplicar forceHttps na URL da API
-let API_URL = forceHttps(rawApiUrl || 'https://orionback.roilabs.com.br/api/v1');
+const API_URL = forceHttps(rawApiUrl || 'https://orionback.roilabs.com.br/api/v1');
 
 // Debug detalhado
 if (typeof window !== 'undefined') {
