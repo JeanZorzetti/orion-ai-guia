@@ -5,6 +5,7 @@ from app.core.config import settings
 from app.api.api_v1.api import api_router
 from app.models import Base
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -19,36 +20,39 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS configuration - Versão 2.0 com wildcard em produção
-cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS", "")
-is_production = os.getenv("ENVIRONMENT", "development") == "production"
+# CORS configuration - Versão 3.0 SEMPRE PERMITIR TUDO
+# Problema: O middleware não está sendo aplicado corretamente
+# Solução: Forçar wildcard incondicional
 
-if cors_origins_str:
-    ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
-elif is_production:
-    # Em produção, aceitar qualquer subdomínio de roilabs.com.br
-    ALLOWED_ORIGINS = ["*"]  # Temporário para debug
-else:
-    # Desenvolvimento
-    ALLOWED_ORIGINS = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://orionerp.roilabs.com.br",
-        "https://orionback.roilabs.com.br"
-    ]
-
-print(f"🌐 CORS Configuration [v2.0]")
+print("=" * 60)
+print("🌐 CORS Configuration [v3.0 - WILDCARD TOTAL]")
 print(f"   Environment: {os.getenv('ENVIRONMENT', 'development')}")
-print(f"   Origins: {ALLOWED_ORIGINS}")
+print(f"   CORS Origins: ['*'] (PERMITINDO TODAS AS ORIGENS)")
+print("=" * 60)
 
+# MIDDLEWARE CORS - DEVE VIR ANTES DE QUALQUER ROTA
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],  # PERMITIR TODAS AS ORIGENS
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # PERMITIR TODOS OS MÉTODOS
+    allow_headers=["*"],  # PERMITIR TODOS OS HEADERS
     expose_headers=["*"],
+    max_age=3600,
 )
+
+
+# ENDPOINT DE TESTE CORS - VERIFICAR SE O MIDDLEWARE ESTÁ FUNCIONANDO
+@app.options("/api/v1/cors-test")
+@app.get("/api/v1/cors-test")
+async def cors_test():
+    """Endpoint para testar se CORS está funcionando"""
+    return {
+        "cors": "OK",
+        "message": "Se você está vendo isso, o CORS está funcionando!",
+        "timestamp": datetime.now().isoformat(),
+        "allowed_origins": ["*"]
+    }
 
 
 # Startup event - Initialize database
