@@ -16,7 +16,8 @@ export const invoiceService = {
     if (params?.supplier_id) queryParams.append('supplier_id', params.supplier_id.toString());
 
     const query = queryParams.toString();
-    const response = await api.get<Invoice[]>(`/invoices${query ? `?${query}` : ''}`);
+    // WORKAROUND: Adicionar trailing slash para evitar redirect HTTP
+    const response = await api.get<Invoice[]>(`/invoices/${query ? `?${query}` : ''}`);
     return response;
   },
 
