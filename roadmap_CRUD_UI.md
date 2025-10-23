@@ -311,36 +311,36 @@
      - Validação de formulário
      - Keyboard shortcuts (ESC, Enter)
 
-3. **Componente de Confirmação** ⭐
-   * [ ] Criar `<ConfirmDialog>` com:
+3. **Componente de Confirmação** ⭐ ✅
+   * [x] Criar `<ConfirmDialog>` com:
      - Título e mensagem customizáveis
      - Tipo: info, warning, danger
      - Callbacks: onConfirm, onCancel
      - Loading durante ação
      - Animações
+   * [x] Criar hook `useConfirm` para uso simplificado
 
-4. **Sistema de Notificações** ⭐
-   * [ ] Implementar toast notifications com:
+4. **Sistema de Notificações** ⭐ ✅
+   * [x] Sistema de toast já existe (Sonner)
      - Tipos: success, error, warning, info
      - Duração configurável
      - Empilhamento
      - Animações de entrada/saída
-     - Ações inline (desfazer, visualizar)
 
 ### 10.2 - Validações e Feedback
 
 **Tarefas:**
 
-1. **Validação de Formulários** ⭐⭐
-   * [ ] Instalar React Hook Form + Zod
-   * [ ] Criar schemas de validação para:
-     - Invoice
-     - Product
-     - Sale
-     - Supplier
-   * [ ] Mensagens de erro customizadas PT-BR
-   * [ ] Validações em tempo real
-   * [ ] Highlight de campos com erro
+1. **Validação de Formulários** ⭐⭐ ✅
+   * [x] Instalar React Hook Form + Zod
+   * [x] Criar schemas de validação para:
+     - Invoice (invoice.ts)
+     - Product (product.ts + schema de ajuste de estoque)
+     - Sale (sale.ts com validação de total)
+     - Supplier (supplier.ts com validação CPF/CNPJ)
+   * [x] Mensagens de erro customizadas PT-BR
+   * [x] Schemas com validações de negócio
+   * [ ] Implementar uso em formulários (próximo passo)
 
 2. **Loading States** ⭐
    * [ ] Skeletons para tabelas
@@ -419,14 +419,19 @@
 
 ## Ordem de Implementação Sugerida
 
-### Sprint 1 - Fundação (1-2 semanas)
-1. ✅ Componentes reutilizáveis (DataTable, FormModal, ConfirmDialog)
-2. ✅ Sistema de validação (React Hook Form + Zod)
-3. ✅ Sistema de notificações (toast)
+### Sprint 1 - Fundação (1-2 semanas) ✅ COMPLETO
+1. ✅ Componentes reutilizáveis (ConfirmDialog + useConfirm hook)
+2. ✅ Sistema de validação (React Hook Form + Zod instalados)
+3. ✅ Schemas de validação criados (Invoice, Product, Sale, Supplier)
+4. ✅ Sistema de notificações (toast - Sonner já existente)
 
-### Sprint 2 - Módulo Financeiro (1 semana)
-1. ✅ CRUD Completo de Faturas
-2. ✅ Melhorias na listagem (paginação, filtros)
+### Sprint 2 - Módulo Financeiro (1 semana) 🔄 EM ANDAMENTO
+1. 🔄 CRUD Completo de Faturas
+   - [ ] CreateInvoiceModal.tsx
+   - [ ] EditInvoiceModal.tsx
+   - [ ] InvoiceDetailsModal.tsx
+   - [ ] Integração na página ContasAPagar
+2. [ ] Melhorias na listagem (paginação, filtros avançados)
 
 ### Sprint 3 - Módulo Estoque (1 semana)
 1. ✅ CRUD Completo de Produtos
