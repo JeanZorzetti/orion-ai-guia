@@ -22,8 +22,19 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // Fazer login
       await authService.login({ email, password });
-      router.push('/admin/dashboard');
+
+      // Buscar dados do usuário e salvar no localStorage
+      const user = await authService.getCurrentUser();
+      localStorage.setItem('user', JSON.stringify(user));
+
+      // Redirecionar baseado no role
+      if (user.role === 'super_admin') {
+        router.push('/super-admin');
+      } else {
+        router.push('/admin/dashboard');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login');
     } finally {

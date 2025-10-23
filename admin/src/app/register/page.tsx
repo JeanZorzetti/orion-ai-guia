@@ -43,6 +43,11 @@ export default function RegisterPage() {
 
       // Após registrar, fazer login automaticamente
       await authService.login({ email, password });
+
+      // Buscar dados do usuário e salvar no localStorage
+      const user = await authService.getCurrentUser();
+      localStorage.setItem('user', JSON.stringify(user));
+
       router.push('/admin/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao criar conta');
