@@ -8,23 +8,23 @@
 
 ## Fase 5: UI CRUD Completa - Módulo Financeiro
 
-### 5.1 - Contas a Pagar (Faturas) 🔄
+### 5.1 - Contas a Pagar (Faturas) ✅
 
 **Arquivo:** `admin/src/pages/ContasAPagar.tsx`
 
 **Status Atual:**
 - ✅ Listagem de faturas (GET)
 - ✅ Filtros por status
-- ✅ Delete com confirmação
-- ❌ Criar nova fatura
-- ❌ Editar fatura existente
-- ❌ Visualizar detalhes completos
+- ✅ Delete com confirmação usando ConfirmDialog
+- ✅ Criar nova fatura
+- ✅ Editar fatura existente
+- ✅ Visualizar detalhes completos
 
 **Tarefas:**
 
-1. **Modal de Criação de Fatura** ⭐
-   * [ ] Criar componente `CreateInvoiceModal.tsx`
-   * [ ] Formulário com validação:
+1. **Modal de Criação de Fatura** ⭐ ✅
+   * [x] Criar componente `CreateInvoiceModal.tsx`
+   * [x] Formulário com validação:
      - Fornecedor (select/autocomplete)
      - Número da fatura
      - Data de emissão
@@ -33,24 +33,23 @@
      - Status (pendente, validado, pago, cancelado)
      - Categoria
      - Observações
-   * [ ] Integração com `invoiceService.create()`
-   * [ ] Feedback visual (toast de sucesso/erro)
-   * [ ] Recarregar lista após criação
+   * [x] Integração com `invoiceService.create()`
+   * [x] Feedback visual (toast de sucesso/erro)
+   * [x] Recarregar lista após criação
 
-2. **Modal de Edição de Fatura** ⭐
-   * [ ] Criar componente `EditInvoiceModal.tsx`
-   * [ ] Pré-popular formulário com dados existentes
-   * [ ] Integração com `invoiceService.update(id, data)`
-   * [ ] Permitir mudança de status (workflow)
-   * [ ] Validações de campos
-   * [ ] Atualizar lista após edição
+2. **Modal de Edição de Fatura** ⭐ ✅
+   * [x] Criar componente `EditInvoiceModal.tsx`
+   * [x] Pré-popular formulário com dados existentes
+   * [x] Integração com `invoiceService.update(id, data)`
+   * [x] Permitir mudança de status (workflow)
+   * [x] Validações de campos
+   * [x] Atualizar lista após edição
 
-3. **Modal de Visualização/Detalhes** ⭐
-   * [ ] Criar componente `InvoiceDetailsModal.tsx`
-   * [ ] Exibir todos os campos da fatura
-   * [ ] Mostrar informações do fornecedor
-   * [ ] Histórico de alterações (se implementado)
-   * [ ] Botões: Editar, Deletar, Fechar
+3. **Modal de Visualização/Detalhes** ⭐ ✅
+   * [x] Criar componente `InvoiceDetailsModal.tsx`
+   * [x] Exibir todos os campos da fatura
+   * [x] Mostrar informações do fornecedor
+   * [x] Botões: Editar, Deletar, Fechar
 
 4. **Melhorias na Listagem**
    * [ ] Adicionar paginação (skip/limit)
@@ -425,13 +424,16 @@
 3. ✅ Schemas de validação criados (Invoice, Product, Sale, Supplier)
 4. ✅ Sistema de notificações (toast - Sonner já existente)
 
-### Sprint 2 - Módulo Financeiro (1 semana) 🔄 EM ANDAMENTO
-1. 🔄 CRUD Completo de Faturas
-   - [ ] CreateInvoiceModal.tsx
-   - [ ] EditInvoiceModal.tsx
-   - [ ] InvoiceDetailsModal.tsx
-   - [ ] Integração na página ContasAPagar
-2. [ ] Melhorias na listagem (paginação, filtros avançados)
+### Sprint 2 - Módulo Financeiro (1 semana) ✅ COMPLETO
+1. ✅ CRUD Completo de Faturas
+   - [x] CreateInvoiceModal.tsx
+   - [x] EditInvoiceModal.tsx
+   - [x] InvoiceDetailsModal.tsx
+   - [x] Integração na página ContasAPagar
+   - [x] Validação com React Hook Form + Zod
+   - [x] Auto-cálculo de valores
+   - [x] Confirmação de exclusão com ConfirmDialog
+2. ⏸ Melhorias na listagem (paginação, filtros avançados) - Opcional para depois
 
 ### Sprint 3 - Módulo Estoque (1 semana)
 1. ✅ CRUD Completo de Produtos
