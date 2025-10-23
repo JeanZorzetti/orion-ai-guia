@@ -260,6 +260,27 @@ Implementação dos endpoints RESTful e interfaces para os módulos principais d
 * [x] Frontend com TypeScript strict mode
 * [x] Reutilização de componentes UI (Card, Table, Button, Badge)
 
+**Problemas Técnicos Resolvidos:**
+
+1. **Mixed Content Error - HTTPS/HTTP** 🔧 (EM RESOLUÇÃO)
+   * **Problema:** Frontend em HTTPS tentando carregar recursos do backend via HTTP
+   * **Root Cause:** Múltiplos arquivos usando `fetch()` nativo sem enforcement de HTTPS
+   * **Arquivos corrigidos:**
+     * [x] `config.ts` - Adicionado `ensureHttps()` helper (commit 3fbe78d7)
+     * [x] `invoiceApi.ts` - Aplicado `ensureHttps()` no baseUrl (commit 150615ea)
+     * [x] `InvoiceUploadModal.tsx` - Aplicado `ensureHttps()` em fetch URLs (commit 150615ea)
+     * [x] `api.ts` - v5.0 com `forceHttps()` function (commit 0ddb394c, 01dcab2f)
+   * **Camadas de Proteção Implementadas:**
+     * Layer 1: `forceHttps()` em api.ts
+     * Layer 2: `ensureHttps()` em config.ts
+     * Layer 3: `ensureHttps()` em arquivos legados (invoiceApi, InvoiceUploadModal)
+   * **Status:** Aguardando teste pós-deploy (commit 01dcab2f)
+
+2. **Endpoint `/auth/refresh` 404** ⚠️ (IDENTIFICADO)
+   * **Problema:** Frontend tentando refresh de token em endpoint inexistente
+   * **Status:** Backend não tem endpoint de refresh implementado
+   * **Solução Futura:** Implementar endpoint ou remover lógica de refresh do frontend
+
 ---
 
 ## Próximos Passos (IA Core)
