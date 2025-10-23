@@ -60,7 +60,8 @@
       "Bash(yes:*)",
       "Bash(git mv:*)",
       "Read(//c/Users/jeanz/OneDrive/Desktop/**)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
