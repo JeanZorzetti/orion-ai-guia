@@ -156,10 +156,122 @@ Painel de administração interna (Super Admin).
 
 ---
 
-## Próximos Passos (Pós-Arquitetura Central)
+## Fase 4: Módulos Principais - Backend e Frontend ✅ (CONCLUÍDO)
 
-Após a conclusão destas fases, a arquitetura central estará validada. O próximo sprint focará em:
+Implementação dos endpoints RESTful e interfaces para os módulos principais do ERP.
 
-1.  [cite_start]**Backend:** Implementar os endpoints RESTful dos módulos principais (Financeiro [cite: 79] [cite_start]e Vendas/Estoque [cite: 84]).
-2.  [cite_start]**Frontend:** Construir as telas dos módulos (Contas a Pagar [cite: 540][cite_start], Detalhes do Produto [cite: 548]) e conectá-las às APIs.
-3.  [cite_start]**IA Core:** Iniciar o desenvolvimento dos endpoints de IA: `POST /invoices/upload` [cite: 83] [cite_start]e `GET /products/{product_id}/demand-forecast`[cite: 87].
+* **Status:** 🟢 BACKEND E FRONTEND COMPLETOS
+
+**Backend - Schemas Pydantic:**
+
+1. **Schemas de Fornecedores (Suppliers):** ✅
+   * [x] SupplierCreate, SupplierUpdate, SupplierResponse
+   * [x] Validação de campos (name, document, email, phone, address, etc.)
+
+2. **Schemas de Faturas (Invoices):** ✅
+   * [x] InvoiceCreate, InvoiceUpdate, InvoiceResponse
+   * [x] Campos: invoice_number, invoice_date, due_date, total_value, net_value, tax_value
+   * [x] Status: pending, validated, paid, cancelled
+
+3. **Schemas de Produtos (Products):** ✅
+   * [x] ProductCreate, ProductUpdate, ProductResponse
+   * [x] Campos: name, sku, description, category, cost_price, sale_price
+   * [x] Controle de estoque: stock_quantity, min_stock_level, unit
+
+4. **Schemas de Vendas (Sales):** ✅
+   * [x] SaleCreate, SaleUpdate, SaleResponse
+   * [x] Campos: product_id, customer_name, quantity, unit_price, total_value
+   * [x] Status: pending, completed, cancelled
+
+**Backend - Endpoints CRUD Completos:**
+
+1. **Fornecedores (Suppliers) - `/api/v1/suppliers`:** ✅
+   * [x] `GET /` - Listar com filtros (active_only, search)
+   * [x] `GET /{id}` - Detalhes
+   * [x] `POST /` - Criar
+   * [x] `PATCH /{id}` - Atualizar
+   * [x] `DELETE /{id}` - Deletar
+   * [x] Isolamento multi-tenant via workspace_id
+
+2. **Faturas (Invoices) - `/api/v1/invoices`:** ✅
+   * [x] `GET /` - Listar com filtros (status, supplier_id)
+   * [x] `GET /{id}` - Detalhes
+   * [x] `POST /` - Criar
+   * [x] `PATCH /{id}` - Atualizar
+   * [x] `DELETE /{id}` - Deletar
+   * [x] Ordenação por data de emissão (desc)
+
+3. **Produtos (Products) - `/api/v1/products`:** ✅
+   * [x] `GET /` - Listar com filtros (category, search, low_stock)
+   * [x] `GET /{id}` - Detalhes
+   * [x] `POST /` - Criar com validação de SKU único
+   * [x] `PATCH /{id}` - Atualizar
+   * [x] `DELETE /{id}` - Deletar
+   * [x] Validação: SKU único por workspace
+
+4. **Vendas (Sales) - `/api/v1/sales`:** ✅
+   * [x] `GET /` - Listar com filtros (status, product_id, date range)
+   * [x] `GET /{id}` - Detalhes
+   * [x] `POST /` - Criar com controle automático de estoque
+   * [x] `PATCH /{id}` - Atualizar com ajuste de estoque
+   * [x] `DELETE /{id}` - Deletar com devolução ao estoque
+   * [x] Validação: produto existe, estoque suficiente
+
+**Frontend - Services (TypeScript):**
+
+1. **Services de API:** ✅
+   * [x] invoiceService - CRUD completo de faturas
+   * [x] productService - CRUD completo de produtos
+   * [x] saleService - CRUD completo de vendas
+   * [x] supplierService - CRUD completo de fornecedores
+   * [x] Tipos TypeScript completos com interfaces Create/Update
+
+**Frontend - Páginas Funcionais:**
+
+1. **Contas a Pagar (`/admin/financeiro/contas-a-pagar`):** ✅
+   * [x] Listagem de faturas com dados da API real
+   * [x] Filtros por status (todas, pendentes, validadas, pagas, canceladas)
+   * [x] Exibição: número, data emissão, vencimento, valor, status
+   * [x] Ações: editar, excluir (com confirmação)
+   * [x] Loading states e error handling
+   * [x] Modal de upload de fatura (já existente)
+
+2. **Produtos (`/admin/estoque/produtos`):** ✅
+   * [x] Listagem de produtos com dados da API real
+   * [x] Estatísticas dinâmicas:
+     * Total de produtos
+     * Baixo estoque (quantidade <= mínimo)
+     * Estoque crítico (quantidade = 0)
+     * Estoque OK (quantidade > mínimo)
+   * [x] Busca por nome ou SKU
+   * [x] Filtro de baixo estoque
+   * [x] Exibição: SKU, nome, categoria, estoque, mínimo, preço, status
+   * [x] Badges de status (crítico, baixo, OK)
+   * [x] Ações: visualizar, editar, excluir
+   * [x] Loading states e error handling
+
+**Arquitetura e Padrões:**
+
+* [x] Todos os endpoints seguem padrão RESTful
+* [x] Validação automática com Pydantic
+* [x] Isolamento multi-tenant em todas as queries
+* [x] Response models para type safety
+* [x] Error handling consistente
+* [x] Frontend com TypeScript strict mode
+* [x] Reutilização de componentes UI (Card, Table, Button, Badge)
+
+---
+
+## Próximos Passos (IA Core)
+
+As funcionalidades principais de CRUD estão completas. O próximo passo é implementar os recursos de IA:
+
+1. **IA Core: Endpoint de Upload de Faturas com OCR** (PENDENTE)
+   * `POST /api/v1/invoices/upload` - Processamento de faturas com IA
+   * OCR para extração de dados de PDFs e imagens
+   * Detecção automática de fornecedor, valores, datas
+
+2. **IA Core: Previsão de Demanda** (PENDENTE)
+   * `GET /api/v1/products/{id}/demand-forecast` - Previsão com machine learning
+   * Análise de histórico de vendas
+   * Sugestões de reposição de estoque
