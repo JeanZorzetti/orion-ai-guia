@@ -39,9 +39,17 @@ let accessToken: string | null = null;
 
 export const setAccessToken = (token: string) => {
   accessToken = token;
+  // WORKAROUND: Também salvar no localStorage para persistir entre navegações
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('access_token', token);
+  }
 };
 
 export const getAccessToken = () => {
+  // Se não está em memória, tentar buscar do localStorage
+  if (!accessToken && typeof window !== 'undefined') {
+    accessToken = localStorage.getItem('access_token');
+  }
   return accessToken;
 };
 
@@ -62,6 +70,7 @@ export const clearTokens = () => {
   accessToken = null;
   if (typeof window !== 'undefined') {
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('access_token');
   }
 };
 
