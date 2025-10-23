@@ -11,10 +11,12 @@ import {
   HelpCircle,
   FileText,
   Package,
-  Shield
+  Shield,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { User } from '@/types';
+import { authService } from '@/services/auth';
 
 const navigation = [
   {
@@ -78,6 +80,13 @@ const AdminSidebar: React.FC = () => {
   };
 
   const isSuperAdmin = currentUser?.role === 'super_admin';
+
+  const handleLogout = () => {
+    // Limpar user do localStorage
+    localStorage.removeItem('user');
+    // Chamar logout do authService (limpa tokens e redireciona)
+    authService.logout();
+  };
 
   const NavItem = ({ item, isChild = false }: { item: { name: string; href: string; icon: React.ComponentType<{ className?: string }> }; isChild?: boolean }) => {
     const Icon = item.icon;
@@ -149,6 +158,19 @@ const AdminSidebar: React.FC = () => {
             Super Admin
           </Link>
         )}
+
+        {/* Botão de Logout */}
+        <button
+          onClick={handleLogout}
+          className={cn(
+            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full',
+            'text-red-600 dark:text-red-400',
+            'hover:bg-red-50 dark:hover:bg-red-950/20'
+          )}
+        >
+          <LogOut className="h-4 w-4" />
+          Sair
+        </button>
       </div>
     </div>
   );
