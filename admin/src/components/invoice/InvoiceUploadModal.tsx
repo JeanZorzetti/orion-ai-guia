@@ -27,6 +27,14 @@ import {
 import { toast } from 'sonner';
 import { ENVIRONMENT_INFO } from '@/lib/config';
 
+// Helper para forçar HTTPS em produção
+const ensureHttps = (url: string): string => {
+  if (process.env.NODE_ENV === 'production' && url.startsWith('http:')) {
+    return url.replace('http:', 'https:');
+  }
+  return url;
+};
+
 interface ExtractedData {
   supplier: {
     name: string;
@@ -121,7 +129,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
     formData.append('file', selectedFile);
 
     try {
-      const response = await fetch(`${ENVIRONMENT_INFO.baseUrl}/api/v1/financials/invoices/upload`, {
+      const response = await fetch(ensureHttps(`${ENVIRONMENT_INFO.baseUrl}/api/v1/financials/invoices/upload`), {
         method: 'POST',
         body: formData,
       });
@@ -174,7 +182,7 @@ const InvoiceUploadModal: React.FC<InvoiceUploadModalProps> = ({ children, onSuc
     setUploadState('uploading');
 
     try {
-      const response = await fetch(`${ENVIRONMENT_INFO.baseUrl}/api/v1/financials/invoices`, {
+      const response = await fetch(ensureHttps(`${ENVIRONMENT_INFO.baseUrl}/api/v1/financials/invoices`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

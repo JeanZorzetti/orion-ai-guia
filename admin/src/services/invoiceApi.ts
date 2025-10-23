@@ -1,5 +1,13 @@
 import { ENVIRONMENT_INFO } from '@/lib/config';
 
+// Helper para forçar HTTPS em produção
+const ensureHttps = (url: string): string => {
+  if (process.env.NODE_ENV === 'production' && url.startsWith('http:')) {
+    return url.replace('http:', 'https:');
+  }
+  return url;
+};
+
 export interface APIInvoiceItem {
   description: string;
   quantity: number;
@@ -87,7 +95,7 @@ export interface SaveInvoiceResponse {
 }
 
 class InvoiceApiService {
-  private baseUrl = `${ENVIRONMENT_INFO.baseUrl}/api/v1/financials`;
+  private baseUrl = ensureHttps(`${ENVIRONMENT_INFO.baseUrl}/api/v1/financials`);
 
   async uploadInvoice(file: File): Promise<UploadResponse> {
     const formData = new FormData();
