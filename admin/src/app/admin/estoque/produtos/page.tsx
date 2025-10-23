@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,10 +15,17 @@ import {
   Edit,
   Eye,
   Loader2,
-  Trash2
+  Trash2,
+  PackagePlus
 } from 'lucide-react';
 import { productService } from '@/services/product';
 import { Product } from '@/types';
+import { CreateProductModal } from '@/components/product/CreateProductModal';
+import { EditProductModal } from '@/components/product/EditProductModal';
+import { ProductDetailsModal } from '@/components/product/ProductDetailsModal';
+import { AdjustStockModal } from '@/components/product/AdjustStockModal';
+import { useConfirm } from '@/hooks/useConfirm';
+import { toast } from 'sonner';
 
 const ProdutosPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -27,6 +33,15 @@ const ProdutosPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [lowStockFilter, setLowStockFilter] = useState(false);
+
+  // Estados dos modais
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [adjustStockModalOpen, setAdjustStockModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  const { confirm, ConfirmDialog } = useConfirm();
 
   useEffect(() => {
     loadProducts();
@@ -55,16 +70,59 @@ const ProdutosPage: React.FC = () => {
     loadProducts();
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este produto?')) return;
+  const handleDelete = async (product: Product) => {
+    await confirm(
+      {
+        title: 'Confirmar Exclusão',
+        description: `Tem certeza que deseja excluir o produto "${product.name}"? Esta ação não pode ser desfeita.`,
+        confirmText: 'Excluir',
+        cancelText: 'Cancelar',
+        type: 'danger',
+      },
+      async () => {
+        try {
+          await productService.delete(product.id);
+          toast.success('Produto excluído com sucesso!');
+          loadProducts();
+        } catch (err) {
+          const error = err as Error;
+          toast.error(error.message || 'Erro ao excluir produto');
+          throw err;
+        }
+      }
+    );
+  };
 
-    try {
-      await productService.delete(id);
-      loadProducts();
-    } catch (err) {
-      const error = err as Error;
-      alert(error.message || 'Erro ao excluir produto');
+  const handleView = (product: Product) => {
+    setSelectedProduct(product);
+    setDetailsModalOpen(true);
+  };
+
+  const handleEdit = (product: Product) => {
+    setSelectedProduct(product);
+    setEditModalOpen(true);
+  };
+
+  const handleAdjustStock = (product: Product) => {
+    setSelectedProduct(product);
+    setAdjustStockModalOpen(true);
+  };
+
+  const handleEditFromDetails = () => {
+    setDetailsModalOpen(false);
+    setEditModalOpen(true);
+  };
+
+  const handleDeleteFromDetails = () => {
+    if (selectedProduct) {
+      setDetailsModalOpen(false);
+      handleDelete(selectedProduct);
     }
+  };
+
+  const handleAdjustStockFromDetails = () => {
+    setDetailsModalOpen(false);
+    setAdjustStockModalOpen(true);
   };
 
   const totalProducts = products.length;
@@ -101,7 +159,7 @@ const ProdutosPage: React.FC = () => {
             Gerencie o cadastro de produtos do estoque
           </p>
         </div>
-        <Button size="lg">
+        <Button size="lg" onClick={() => setCreateModalOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Novo Produto
         </Button>
@@ -226,19 +284,37 @@ const ProdutosPage: React.FC = () => {
                       </td>
                       <td className="p-3">
                         <div className="flex items-center justify-center gap-2">
-                          <Link href={`/admin/estoque/produtos/${product.id}`}>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button variant="ghost" size="sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleView(product)}
+                            title="Visualizar detalhes"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(product)}
+                            title="Editar produto"
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => handleAdjustStock(product)}
+                            title="Ajustar estoque"
+                            className="text-blue-600 hover:bg-blue-50"
+                          >
+                            <PackagePlus className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDelete(product.id)}
+                            onClick={() => handleDelete(product)}
+                            title="Excluir produto"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -252,6 +328,38 @@ const ProdutosPage: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Modais */}
+      <CreateProductModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        onSuccess={loadProducts}
+      />
+
+      <EditProductModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        product={selectedProduct}
+        onSuccess={loadProducts}
+      />
+
+      <ProductDetailsModal
+        open={detailsModalOpen}
+        onOpenChange={setDetailsModalOpen}
+        product={selectedProduct}
+        onEdit={handleEditFromDetails}
+        onDelete={handleDeleteFromDetails}
+        onAdjustStock={handleAdjustStockFromDetails}
+      />
+
+      <AdjustStockModal
+        open={adjustStockModalOpen}
+        onOpenChange={setAdjustStockModalOpen}
+        product={selectedProduct}
+        onSuccess={loadProducts}
+      />
+
+      {ConfirmDialog}
     </div>
   );
 };
