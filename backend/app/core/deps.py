@@ -107,3 +107,26 @@ def get_workspace_id(
         workspace_id of the current user
     """
     return current_user.workspace_id
+
+
+def get_current_super_admin(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """
+    Dependency to verify that the current user is a super admin.
+
+    Args:
+        current_user: Current user from get_current_user dependency
+
+    Returns:
+        User object if user is super admin
+
+    Raises:
+        HTTPException: If user is not a super admin
+    """
+    if current_user.role != "super_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized. Super admin access required."
+        )
+    return current_user
