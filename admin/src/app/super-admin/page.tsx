@@ -39,9 +39,10 @@ const SuperAdminDashboard: React.FC = () => {
         // Carregar estatísticas
         const data = await superAdminService.getStats();
         setStats(data);
-      } catch (err: any) {
+      } catch (err) {
         console.error('Erro ao carregar estatísticas:', err);
-        if (err.message?.includes('403') || err.message?.includes('401')) {
+        const error = err as Error;
+        if (error.message?.includes('403') || error.message?.includes('401')) {
           router.push('/admin/dashboard');
         } else {
           setError('Erro ao carregar estatísticas');

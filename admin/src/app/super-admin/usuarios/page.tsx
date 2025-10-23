@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +18,6 @@ import {
 } from 'lucide-react';
 
 const UsuariosPage: React.FC = () => {
-  const router = useRouter();
   const [users, setUsers] = useState<UserAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,7 +44,8 @@ const UsuariosPage: React.FC = () => {
       await superAdminService.deleteUser(id);
       setUsers(users.filter(u => u.id !== id));
       alert('Usuário excluído com sucesso!');
-    } catch (error: any) {
+    } catch (err) {
+      const error = err as Error;
       alert(error.message || 'Erro ao excluir usuário');
     }
   };

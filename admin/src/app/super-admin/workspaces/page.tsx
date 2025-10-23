@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +17,6 @@ import {
 } from 'lucide-react';
 
 const WorkspacesPage: React.FC = () => {
-  const router = useRouter();
   const [workspaces, setWorkspaces] = useState<WorkspaceAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,7 +43,8 @@ const WorkspacesPage: React.FC = () => {
       await superAdminService.deleteWorkspace(id);
       setWorkspaces(workspaces.filter(w => w.id !== id));
       alert('Workspace excluído com sucesso!');
-    } catch (error: any) {
+    } catch (err) {
+      const error = err as Error;
       alert(error.message || 'Erro ao excluir workspace');
     }
   };

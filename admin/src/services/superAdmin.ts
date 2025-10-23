@@ -1,4 +1,4 @@
-import * as api from '@/lib/api';
+import { api } from '@/lib/api';
 import { WorkspaceAdmin, UserAdmin, SystemStats } from '@/types';
 
 // ==================== STATISTICS ====================
@@ -27,7 +27,7 @@ export const superAdminService = {
   },
 
   async deleteWorkspace(id: number): Promise<void> {
-    return api.del(`/super-admin/workspaces/${id}`);
+    return api.delete(`/super-admin/workspaces/${id}`);
   },
 
   // Users
@@ -62,6 +62,6 @@ export const superAdminService = {
   },
 
   async deleteUser(id: number): Promise<void> {
-    return api.del(`/super-admin/users/${id}`);
+    return api.delete(`/super-admin/users/${id}`);
   },
 };
