@@ -35,12 +35,12 @@ export const HeroSection = () => {
                 variant="action"
                 size="lg"
                 className="group"
-                onClick={() => window.open('/admin', '_blank')}
+                onClick={() => window.location.href = '/login'}
               >
                 Acesse o Sistema
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </OrionButton>
-              
+
               <OrionButton variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-orion-primary">
                 Conheça o Programa Fundadores
               </OrionButton>
