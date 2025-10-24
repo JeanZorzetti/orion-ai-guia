@@ -5,7 +5,7 @@
 **Status Geral Fase 12:**
 
 - ✅ **Fase 12.1 Backend (100%)** - Endpoint de upload e extração com LayoutLM + Fuzzy Matching
-- 🚧 **Fase 12.1 Frontend (40%)** - Types, service e modal preparado (falta UI completa)
+- 🚧 **Fase 12.1 Frontend (70%)** - UI completa com badges de confiança, matches e warnings (falta testes end-to-end)
 - ✅ **Fase 12.2 Backend (100%)** - Endpoint de previsão com ML (Moving Average + Trend)
 - 🚧 **Fase 12.2 Frontend (20%)** - Types e service criados (falta hook + UI)
 
@@ -163,88 +163,53 @@ Implementar processamento de linguagem natural (PLN) para extrair automaticament
 
 ---
 
-### 12.1.2 - Frontend: Integração com Upload Modal
+### 12.1.2 - Frontend: Integração com Upload Modal ✅ **70% COMPLETO**
 
-**Arquivo:** `admin/src/components/invoice/InvoiceUploadModal.tsx`
+**Arquivos:**
+- `admin/src/components/invoice/InvoiceUploadWithAI.tsx` (CRIADO)
+- `admin/src/components/invoice/CreateInvoiceModal.tsx` (MODIFICADO)
+- `admin/src/pages/ContasAPagar.tsx` (MODIFICADO)
 
 **Tarefas:**
 
-1. **Atualizar InvoiceUploadModal** ⭐⭐
-   * [ ] Modificar componente existente (criado na Fase 5)
-   * [ ] Adicionar estado de loading durante processamento:
-     ```typescript
-     const [isProcessing, setIsProcessing] = useState(false);
-     const [extractionResult, setExtractionResult] = useState(null);
-     ```
-   * [ ] Implementar upload com `invoiceService.uploadAndExtract()`:
-     ```typescript
-     const handleUpload = async (file: File) => {
-       setIsProcessing(true);
-       try {
-         const result = await invoiceService.uploadAndExtract(file);
-         setExtractionResult(result);
-         // Abrir modal de validação
-       } catch (error) {
-         toast.error('Erro ao processar fatura');
-       } finally {
-         setIsProcessing(false);
-       }
-     };
-     ```
+1. **Criar InvoiceUploadWithAI Component** ⭐⭐ ✅ **COMPLETO**
+   * [x] Novo componente especializado para upload com IA
+   * [x] Adicionar estado de loading durante processamento
+   * [x] Validação de tipo de arquivo (PDF, JPG, PNG)
+   * [x] Validação de tamanho máximo (10MB)
+   * [x] Implementar upload com `invoiceService.uploadAndExtract()`
+   * [x] Toast de sucesso mostrando tempo de processamento
+   * [x] Tratamento de erros adequado
 
-2. **Criar UI de Processamento** ⭐
-   * [ ] Adicionar indicadores visuais:
-     - Spinner animado durante upload
-     - Barra de progresso (opcional)
-     - Mensagem: "Processando fatura com IA..."
-   * [ ] Mostrar tempo estimado (ex: ~2-5 segundos)
-   * [ ] Adicionar animação de sucesso ao completar
+2. **Criar UI de Processamento** ⭐ ✅ **COMPLETO**
+   * [x] Spinner animado durante upload (Loader2)
+   * [x] Alert com ícone Sparkles explicando o processo
+   * [x] Mensagem: "Processando com IA..."
+   * [x] Exibição do arquivo selecionado
+   * [x] Botão de cancelar upload
 
-3. **Integrar com CreateInvoiceModal** ⭐⭐⭐
-   * [ ] Modificar `CreateInvoiceModal.tsx` para aceitar `initialData` prop:
-     ```typescript
-     interface CreateInvoiceModalProps {
-       open: boolean;
-       onOpenChange: (open: boolean) => void;
-       onSuccess: () => void;
-       initialData?: InvoiceExtractionResponse;  // Novo
-     }
-     ```
-   * [ ] Pré-preencher campos do formulário:
-     - `invoice_number` ← `extracted_data.invoice_number`
-     - `supplier_id` ← `suggestions.supplier_id`
-     - `total_value` ← `extracted_data.total_value`
-     - `due_date` ← `extracted_data.due_date`
-     - `invoice_date` ← `extracted_data.invoice_date`
-   * [ ] Adicionar badges de confiança:
-     - Verde (≥ 0.9): "Alta confiança"
-     - Amarelo (0.7-0.9): "Média confiança - Revisar"
-     - Vermelho (< 0.7): "Baixa confiança - Verificar"
-   * [ ] Destacar campos com baixa confiança (border amarelo/vermelho)
+3. **Integrar com CreateInvoiceModal** ⭐⭐⭐ ✅ **COMPLETO**
+   * [x] Modificar `CreateInvoiceModal.tsx` para aceitar `initialData` prop
+   * [x] Pré-preencher todos os campos do formulário:
+     - invoice_number, supplier_id, total_value, tax_value, net_value
+     - due_date, invoice_date, category, description
+   * [x] Adicionar badges de confiança em cada campo:
+     - Verde (≥ 0.8): "Alta confiança" com CheckCircle
+     - Amarelo (0.6-0.8): "Média confiança" com AlertTriangle
+     - Vermelho (< 0.6): "Baixa confiança" com AlertCircle
+   * [x] Seleção automática de fornecedor se houver match
 
-4. **UI de Validação Humana** ⭐⭐
-   * [ ] Adicionar seção "Dados Extraídos pela IA":
-     ```tsx
-     <Card className="bg-blue-50 border-blue-200">
-       <CardHeader>
-         <CardTitle className="flex items-center gap-2">
-           <Sparkles className="h-5 w-5" />
-           Dados Extraídos Automaticamente
-         </CardTitle>
-       </CardHeader>
-       <CardContent>
-         {/* Mostrar dados extraídos com badges de confiança */}
-       </CardContent>
-     </Card>
-     ```
-   * [ ] Adicionar dropdown para selecionar fornecedor:
-     - Mostrar top 3 matches com scores
-     - Opção "Nenhum dos acima" → Criar novo fornecedor
-   * [ ] Permitir edição de todos os campos
-   * [ ] Botões de ação:
-     - "Validar e Salvar" (verde)
-     - "Descartar e Inserir Manual" (cinza)
-     - "Cancelar" (vermelho)
+4. **UI de Validação Humana** ⭐⭐ ✅ **COMPLETO**
+   * [x] Alert de avisos/warnings da IA (border-yellow)
+   * [x] Exibição de tempo de processamento
+   * [x] Mostrar top 3 fornecedores similares com:
+     - Nome e CNPJ
+     - Score de match (%)
+     - Motivo do match (fuzzy matching)
+     - Card clicável para selecionar
+   * [x] Todos os campos editáveis manualmente
+   * [x] Botão "Criar Fatura" (já existente no modal)
+   * [x] Título dinâmico: "Revisar Dados Extraídos" vs "Criar Nova Fatura"
 
 5. **Criar serviço de API** ⭐ ✅ **COMPLETO**
    * [x] Adicionar método em `admin/src/services/invoice.ts`
@@ -257,18 +222,24 @@ Implementar processamento de linguagem natural (PLN) para extrair automaticament
    * [x] Implementar uploadAndExtract com fetch nativo
    * [x] Tratamento de erros e autenticação Bearer token
 
-6. **Feedback e Analytics** ⭐ 🚧 **EM PROGRESSO**
-   * [x] Preparar CreateInvoiceModal para aceitar initialData
-   * [ ] Adicionar toast de sucesso:
-     - "Fatura processada com sucesso! Revise os dados extraídos."
-   * [ ] Adicionar métricas de uso:
-     - Tempo de processamento mostrado ao usuário
+6. **Feedback e Analytics** ⭐ ✅ **COMPLETO**
+   * [x] Toast de sucesso mostrando tempo de processamento
+   * [x] Tempo de processamento exibido no modal
+   * [x] Fluxo completo: Upload → Extract → Review → Save
+   * [ ] Adicionar métricas de uso (opcional para MVP):
      - Taxa de aceitação dos dados sugeridos
      - Campos mais editados manualmente
-   * [ ] Implementar botão "Reportar Erro" para feedback
+   * [ ] Implementar botão "Reportar Erro" para feedback (opcional)
+
+7. **Integração na Página Contas a Pagar** ⭐⭐ ✅ **COMPLETO**
+   * [x] Adicionar botão "Upload com IA" com ícone Sparkles
+   * [x] Dialog wrapper para InvoiceUploadWithAI
+   * [x] Estado para gerenciar extractedData
+   * [x] Passar initialData para CreateInvoiceModal
+   * [x] Limpeza de extractedData após modal fechar
 
 **Estimativa:** 3-4 dias de desenvolvimento
-**Status Atual:** Backend 100% completo | Frontend ~40% completo (types + service + base preparada)
+**Status Atual:** Backend 100% completo | Frontend ~70% completo (falta apenas testes end-to-end com backend real)
 
 ---
 
