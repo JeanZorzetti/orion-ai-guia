@@ -414,7 +414,12 @@
      - Supplier (supplier.ts com validação CPF/CNPJ)
    * [x] Mensagens de erro customizadas PT-BR
    * [x] Schemas com validações de negócio
-   * [ ] Implementar uso em formulários (próximo passo)
+   * [x] Implementar uso em formulários:
+     - ✅ CreateProductModal, EditProductModal, AdjustStockModal
+     - ✅ CreateInvoiceModal, EditInvoiceModal
+     - ✅ CreateSaleModal, EditSaleModal
+     - ✅ CreateSupplierModal, EditSupplierModal
+   * [x] Documentação completa (lib/validations/README.md)
 
 2. **Loading States** ⭐ ✅
    * [x] Skeletons para tabelas (TableSkeleton e GridSkeleton)
