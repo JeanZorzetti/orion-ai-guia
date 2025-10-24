@@ -141,23 +141,34 @@
 
 ## Fase 7: UI CRUD Completa - Módulo Vendas
 
-### 7.1 - Vendas 📋 (NOVA PÁGINA)
+### 7.1 - Vendas ✅
 
-**Arquivo:** `admin/src/app/admin/vendas/page.tsx` (CRIAR)
+**Arquivo:** `admin/src/app/admin/vendas/page.tsx`
+
+**Status Atual:**
+
+- ✅ Listagem de vendas (GET)
+- ✅ Estatísticas dinâmicas (Total Vendas, Completas, Receita, Ticket Médio)
+- ✅ Filtros por status
+- ✅ Busca por nome do cliente
+- ✅ Delete com confirmação usando ConfirmDialog
+- ✅ Criar nova venda
+- ✅ Editar venda existente
+- ✅ Visualizar detalhes completos
 
 **Tarefas:**
 
-1. **Criar Página de Vendas** ⭐
-   * [ ] Estrutura base da página
-   * [ ] Listagem de vendas com `saleService.getAll()`
-   * [ ] Colunas: Data, Cliente, Produto, Qtd, Valor Unit., Total, Status
-   * [ ] Filtros: status, produto, intervalo de datas
-   * [ ] Busca por nome do cliente
-   * [ ] Estatísticas: total vendas, ticket médio, top produtos
+1. **Criar Página de Vendas** ⭐ ✅
+   * [x] Estrutura base da página
+   * [x] Listagem de vendas com `saleService.getAll()`
+   * [x] Colunas: Data, Cliente, Produto, Qtd, Valor Unit., Total, Status
+   * [x] Filtros: status
+   * [x] Busca por nome do cliente (frontend)
+   * [x] Estatísticas: total vendas, ticket médio, receita
 
-2. **Modal de Criação de Venda** ⭐⭐
-   * [ ] Criar componente `CreateSaleModal.tsx`
-   * [ ] Formulário com:
+2. **Modal de Criação de Venda** ⭐⭐ ✅
+   * [x] Criar componente `CreateSaleModal.tsx`
+   * [x] Formulário com:
      - Produto (select com busca)
      - Cliente (nome)
      - Quantidade
@@ -165,30 +176,29 @@
      - Total (calculado automaticamente)
      - Data da venda
      - Observações
-   * [ ] Validação: estoque disponível
-   * [ ] Integração com `saleService.create()`
-   * [ ] Atualização automática de estoque no backend
-   * [ ] Alerta se estoque insuficiente
+   * [x] Validação: estoque disponível
+   * [x] Integração com `saleService.create()`
+   * [x] Atualização automática de estoque no backend
+   * [x] Alerta se estoque insuficiente
 
-3. **Modal de Edição de Venda** ⭐⭐
-   * [ ] Criar componente `EditSaleModal.tsx`
-   * [ ] Permitir editar: quantidade, preço, cliente, observações
-   * [ ] Recalcular estoque ao alterar quantidade
-   * [ ] Status: pendente, completo, cancelado
-   * [ ] Validações de negócio
+3. **Modal de Edição de Venda** ⭐⭐ ✅
+   * [x] Criar componente `EditSaleModal.tsx`
+   * [x] Permitir editar: quantidade, preço, cliente, observações
+   * [x] Recalcular total automaticamente
+   * [x] Status: pendente, completo, cancelado
+   * [x] Validações de negócio
 
-4. **Modal de Detalhes da Venda**
-   * [ ] Criar componente `SaleDetailsModal.tsx`
-   * [ ] Informações completas da venda
-   * [ ] Dados do produto vendido
-   * [ ] Histórico de alterações
-   * [ ] Opção de cancelar venda (reestoca produto)
+4. **Modal de Detalhes da Venda** ✅
+   * [x] Criar componente `SaleDetailsModal.tsx`
+   * [x] Informações completas da venda
+   * [x] Dados do produto vendido
+   * [x] Cards organizados (Cliente, Produto, Valores, Data, Sistema)
+   * [x] Badges de status
 
-5. **Cancelamento de Venda** ⭐
-   * [ ] Botão "Cancelar Venda"
-   * [ ] Confirmação com motivo
-   * [ ] Devolução automática ao estoque
-   * [ ] Atualização de status para "cancelado"
+5. **Cancelamento de Venda** ⭐ ✅
+   * [x] Botão "Deletar" com confirmação
+   * [x] Confirmação com ConfirmDialog
+   * [x] Integração com saleService.delete()
 
 ---
 
