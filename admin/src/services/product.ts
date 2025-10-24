@@ -54,8 +54,7 @@ export const productService = {
     period: '2_weeks' | '4_weeks' | '8_weeks' | '12_weeks' = '4_weeks'
   ): Promise<DemandForecastResponse> {
     const response = await api.get<DemandForecastResponse>(
-      `/products/${productId}/demand-forecast`,
-      { params: { period } }
+      `/products/${productId}/demand-forecast?period=${period}`
     );
     return response;
   },
