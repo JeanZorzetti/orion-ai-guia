@@ -2,7 +2,12 @@
 
 **Objetivo:** Desenvolver e integrar os dois endpoints de IA que definem o diferencial competitivo do Orion ERP: automação de entrada de faturas e previsão inteligente de demanda.
 
-**Status Atual:** ✅ Backend CRUD completo | ✅ Frontend UI completo | 🚀 Pronto para IA Core
+**Status Geral Fase 12:**
+
+- ✅ **Fase 12.1 Backend (100%)** - Endpoint de upload e extração com LayoutLM + Fuzzy Matching
+- 🚧 **Fase 12.1 Frontend (40%)** - Types, service e modal preparado (falta UI completa)
+- ✅ **Fase 12.2 Backend (100%)** - Endpoint de previsão com ML (Moving Average + Trend)
+- 🚧 **Fase 12.2 Frontend (20%)** - Types e service criados (falta hook + UI)
 
 ---
 
