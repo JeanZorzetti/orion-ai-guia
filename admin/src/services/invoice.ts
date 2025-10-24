@@ -1,5 +1,5 @@
 import { api } from '@/lib/api';
-import { Invoice, InvoiceCreate, InvoiceUpdate } from '@/types';
+import { Invoice, InvoiceCreate, InvoiceUpdate, InvoiceExtractionResponse } from '@/types';
 
 export const invoiceService = {
   // Listar invoices
@@ -42,5 +42,30 @@ export const invoiceService = {
   // Deletar invoice
   async delete(id: number): Promise<void> {
     await api.delete(`/invoices/${id}`);
+  },
+
+  // Upload e extração de fatura com IA
+  async uploadAndExtract(file: File): Promise<InvoiceExtractionResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Usa fetch diretamente para upload de arquivo
+    const token = localStorage.getItem('access_token');
+    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
+    const response = await fetch(`${baseURL}/invoices/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Erro ao processar fatura');
+    }
+
+    return response.json();
   },
 };

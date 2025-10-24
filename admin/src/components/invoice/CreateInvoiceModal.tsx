@@ -14,12 +14,17 @@ import { Loader2, Plus } from 'lucide-react';
 import { invoiceSchema, type InvoiceFormData } from '@/lib/validations/invoice';
 import { invoiceService } from '@/services/invoice';
 import { supplierService } from '@/services/supplier';
-import { Supplier } from '@/types';
+import { Supplier, InvoiceExtractionResponse } from '@/types';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CreateInvoiceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  initialData?: InvoiceExtractionResponse | null;
 }
 
 export function CreateInvoiceModal({ open, onOpenChange, onSuccess }: CreateInvoiceModalProps) {

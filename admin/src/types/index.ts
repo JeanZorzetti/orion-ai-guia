@@ -257,3 +257,51 @@ export interface SystemStats {
   total_invoices: number;
   total_products: number;
 }
+
+// Tipos de Extração de Faturas com IA
+
+export interface ConfidenceScores {
+  invoice_number: number;
+  supplier_name: number;
+  total_value: number;
+  due_date: number;
+  invoice_date: number;
+}
+
+export interface SupplierMatch {
+  id: number;
+  name: string;
+  cnpj?: string | null;
+  score: number;
+  match_reason: string;
+  match_type: string;
+}
+
+export interface ExtractedData {
+  invoice_number: string;
+  supplier_name: string;
+  supplier_cnpj?: string | null;
+  supplier_matches: SupplierMatch[];
+  total_value: number;
+  tax_value: number;
+  net_value: number;
+  due_date?: string | null;  // Format: YYYY-MM-DD
+  invoice_date?: string | null;  // Format: YYYY-MM-DD
+  category?: string | null;
+  description?: string | null;
+  confidence: ConfidenceScores;
+}
+
+export interface ExtractionSuggestions {
+  supplier_id?: number | null;  // Top match supplier ID
+  needs_review: boolean;  // True if any confidence < 0.8
+  warnings: string[];
+}
+
+export interface InvoiceExtractionResponse {
+  extracted_data: ExtractedData;
+  suggestions: ExtractionSuggestions;
+  processing_time_ms: number;
+  success: boolean;
+  error?: string | null;
+}
