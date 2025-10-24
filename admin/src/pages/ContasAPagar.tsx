@@ -1,9 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../src/components/ui/card';
 import { Button } from '../../src/components/ui/button';
 import { Badge } from '../../src/components/ui/badge';
+import { Input } from '../../src/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../src/components/ui/select';
 import {
   Table,
   TableBody,
@@ -25,20 +33,40 @@ import {
   Loader2,
   Plus,
   Eye,
-  Download
+  Download,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  X
 } from 'lucide-react';
 import { invoiceService } from '../services/invoice';
-import { Invoice } from '../types';
+import { supplierService } from '../services/supplier';
+import { Invoice, Supplier } from '../types';
 import { toast } from 'sonner';
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
 
 type StatusFilter = 'pending' | 'validated' | 'paid' | 'cancelled' | 'all';
 
+type SortField = 'invoice_number' | 'invoice_date' | 'due_date' | 'total_value' | 'status';
+type SortOrder = 'asc' | 'desc';
+
 const ContasAPagar: React.FC = () => {
   const [filtroAtivo, setFiltroAtivo] = useState<StatusFilter>('all');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Estados de filtros
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  // Estados de ordenação
+  const [sortField, setSortField] = useState<SortField>('invoice_date');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   // Estados dos modais
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -50,6 +78,7 @@ const ContasAPagar: React.FC = () => {
 
   useEffect(() => {
     loadInvoices();
+    loadSuppliers();
   }, [filtroAtivo]);
 
   const loadInvoices = async () => {
@@ -58,7 +87,7 @@ const ContasAPagar: React.FC = () => {
       setError(null);
       const data = await invoiceService.getAll({
         status_filter: filtroAtivo === 'all' ? undefined : filtroAtivo,
-        limit: 100
+        limit: 1000
       });
       setInvoices(data);
     } catch (err) {
@@ -69,9 +98,103 @@ const ContasAPagar: React.FC = () => {
     }
   };
 
+  const loadSuppliers = async () => {
+    try {
+      const data = await supplierService.getAll();
+      setSuppliers(data);
+    } catch (err) {
+      console.error('Erro ao carregar fornecedores:', err);
+    }
+  };
+
+  // Filtrar e ordenar faturas
+  const filteredAndSortedInvoices = useMemo(() => {
+    let filtered = [...invoices];
+
+    // Filtro por busca (número da fatura)
+    if (searchTerm) {
+      filtered = filtered.filter((invoice) =>
+        invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtro por fornecedor
+    if (selectedSupplier !== 'all') {
+      filtered = filtered.filter(
+        (invoice) => invoice.supplier_id?.toString() === selectedSupplier
+      );
+    }
+
+    // Filtro por intervalo de datas (data de emissão)
+    if (startDate) {
+      filtered = filtered.filter(
+        (invoice) => new Date(invoice.invoice_date) >= new Date(startDate)
+      );
+    }
+    if (endDate) {
+      filtered = filtered.filter(
+        (invoice) => new Date(invoice.invoice_date) <= new Date(endDate)
+      );
+    }
+
+    // Ordenação
+    filtered.sort((a, b) => {
+      let aValue: string | number = '';
+      let bValue: string | number = '';
+
+      switch (sortField) {
+        case 'invoice_number':
+          aValue = a.invoice_number;
+          bValue = b.invoice_number;
+          break;
+        case 'invoice_date':
+          aValue = new Date(a.invoice_date).getTime();
+          bValue = new Date(b.invoice_date).getTime();
+          break;
+        case 'due_date':
+          aValue = a.due_date ? new Date(a.due_date).getTime() : 0;
+          bValue = b.due_date ? new Date(b.due_date).getTime() : 0;
+          break;
+        case 'total_value':
+          aValue = a.total_value;
+          bValue = b.total_value;
+          break;
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [invoices, searchTerm, selectedSupplier, startDate, endDate, sortField, sortOrder]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedSupplier('all');
+    setStartDate('');
+    setEndDate('');
+    setFiltroAtivo('all');
+  };
+
+  const hasActiveFilters = searchTerm || selectedSupplier !== 'all' || startDate || endDate || filtroAtivo !== 'all';
+
   const handleExport = () => {
     exportToCSV(
-      invoices,
+      filteredAndSortedInvoices,
       'faturas',
       [
         { key: 'id', label: 'ID' },
@@ -95,7 +218,7 @@ const ContasAPagar: React.FC = () => {
         { key: 'description', label: 'Descrição' },
       ]
     );
-    toast.success(`${invoices.length} fatura(s) exportada(s) com sucesso!`);
+    toast.success(`${filteredAndSortedInvoices.length} fatura(s) exportada(s) com sucesso!`);
   };
 
   const handleDelete = async (invoice: Invoice) => {
@@ -203,23 +326,110 @@ const ContasAPagar: React.FC = () => {
       {/* Filtros */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filtros
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            {filtros.map((filtro) => (
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtros e Busca
+            </CardTitle>
+            {hasActiveFilters && (
               <Button
-                key={filtro.key}
-                variant={filtroAtivo === filtro.key ? 'default' : 'outline'}
+                variant="ghost"
                 size="sm"
-                onClick={() => setFiltroAtivo(filtro.key as StatusFilter)}
+                onClick={clearFilters}
+                className="gap-2"
               >
-                {filtro.label}
+                <X className="h-4 w-4" />
+                Limpar Filtros
               </Button>
-            ))}
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Busca por número */}
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">
+                Buscar por Número
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Digite o número da fatura..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Filtro por fornecedor */}
+            <div className="w-64">
+              <label className="text-sm font-medium mb-2 block">
+                Fornecedor
+              </label>
+              <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os fornecedores" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os fornecedores</SelectItem>
+                  {suppliers.map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Filtro por intervalo de datas */}
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">
+                Data Início
+              </label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">
+                Data Fim
+              </label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Filtros por status */}
+          <div>
+            <label className="text-sm font-medium mb-2 block">
+              Status
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {filtros.map((filtro) => (
+                <Button
+                  key={filtro.key}
+                  variant={filtroAtivo === filtro.key ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFiltroAtivo(filtro.key as StatusFilter)}
+                >
+                  {filtro.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Contador de resultados */}
+          <div className="text-sm text-muted-foreground pt-2 border-t">
+            Mostrando <span className="font-semibold">{filteredAndSortedInvoices.length}</span> de{' '}
+            <span className="font-semibold">{invoices.length}</span> faturas
           </div>
         </CardContent>
       </Card>
@@ -240,7 +450,7 @@ const ContasAPagar: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
-      ) : invoices.length === 0 ? (
+      ) : filteredAndSortedInvoices.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
@@ -254,16 +464,81 @@ const ContasAPagar: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Data Emissão</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hover:bg-transparent p-0 h-auto font-semibold"
+                      onClick={() => handleSort('invoice_number')}
+                    >
+                      Número
+                      {sortField === 'invoice_number' && (
+                        sortOrder === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+                      )}
+                      {sortField !== 'invoice_number' && <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hover:bg-transparent p-0 h-auto font-semibold"
+                      onClick={() => handleSort('invoice_date')}
+                    >
+                      Data Emissão
+                      {sortField === 'invoice_date' && (
+                        sortOrder === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+                      )}
+                      {sortField !== 'invoice_date' && <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hover:bg-transparent p-0 h-auto font-semibold"
+                      onClick={() => handleSort('due_date')}
+                    >
+                      Vencimento
+                      {sortField === 'due_date' && (
+                        sortOrder === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+                      )}
+                      {sortField !== 'due_date' && <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hover:bg-transparent p-0 h-auto font-semibold"
+                      onClick={() => handleSort('total_value')}
+                    >
+                      Valor
+                      {sortField === 'total_value' && (
+                        sortOrder === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+                      )}
+                      {sortField !== 'total_value' && <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hover:bg-transparent p-0 h-auto font-semibold"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status
+                      {sortField === 'status' && (
+                        sortOrder === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+                      )}
+                      {sortField !== 'status' && <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />}
+                    </Button>
+                  </TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoices.map((invoice) => (
+                {filteredAndSortedInvoices.map((invoice) => (
                   <TableRow key={invoice.id}>
                     <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                     <TableCell>{formatDate(invoice.invoice_date)}</TableCell>
