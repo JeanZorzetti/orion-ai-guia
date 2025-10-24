@@ -1,10 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Package,
   Search,
@@ -17,7 +24,13 @@ import {
   Loader2,
   Trash2,
   PackagePlus,
-  Download
+  Download,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  X,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { productService } from '@/services/product';
 import { Product } from '@/types';
@@ -29,12 +42,25 @@ import { useConfirm } from '@/hooks/useConfirm';
 import { toast } from 'sonner';
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
 
+type SortField = 'name' | 'stock_quantity' | 'sale_price' | 'cost_price' | 'category';
+type SortOrder = 'asc' | 'desc';
+type StatusFilter = 'all' | 'active' | 'inactive';
+type StockFilter = 'all' | 'low' | 'ok' | 'critical';
+
 const ProdutosPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [lowStockFilter, setLowStockFilter] = useState(false);
+
+  // Novos filtros
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [stockFilter, setStockFilter] = useState<StockFilter>('all');
+
+  // Ordenação
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   // Estados dos modais
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -47,17 +73,14 @@ const ProdutosPage: React.FC = () => {
 
   useEffect(() => {
     loadProducts();
-  }, [lowStockFilter]);
+  }, []);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await productService.getAll({
-        search: searchTerm || undefined,
-        low_stock: lowStockFilter,
-        active_only: true,
-        limit: 100
+        limit: 1000
       });
       setProducts(data);
     } catch (err) {
@@ -68,9 +91,102 @@ const ProdutosPage: React.FC = () => {
     }
   };
 
-  const handleSearch = () => {
-    loadProducts();
+  // Obter categorias únicas
+  const categories = useMemo(() => {
+    const cats = products
+      .map(p => p.category)
+      .filter((cat): cat is string => !!cat);
+    return Array.from(new Set(cats)).sort();
+  }, [products]);
+
+  // Filtrar e ordenar produtos
+  const filteredAndSortedProducts = useMemo(() => {
+    let filtered = [...products];
+
+    // Filtro por busca (nome ou SKU)
+    if (searchTerm) {
+      filtered = filtered.filter((product) =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtro por categoria
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter((product) => product.category === categoryFilter);
+    }
+
+    // Filtro por status (ativo/inativo)
+    if (statusFilter === 'active') {
+      filtered = filtered.filter((product) => product.active);
+    } else if (statusFilter === 'inactive') {
+      filtered = filtered.filter((product) => !product.active);
+    }
+
+    // Filtro por nível de estoque
+    if (stockFilter === 'critical') {
+      filtered = filtered.filter((product) => product.stock_quantity === 0);
+    } else if (stockFilter === 'low') {
+      filtered = filtered.filter(
+        (product) => product.stock_quantity > 0 && product.stock_quantity <= product.min_stock_level
+      );
+    } else if (stockFilter === 'ok') {
+      filtered = filtered.filter((product) => product.stock_quantity > product.min_stock_level);
+    }
+
+    // Ordenação
+    filtered.sort((a, b) => {
+      let aValue: string | number = '';
+      let bValue: string | number = '';
+
+      switch (sortField) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'stock_quantity':
+          aValue = a.stock_quantity;
+          bValue = b.stock_quantity;
+          break;
+        case 'sale_price':
+          aValue = a.sale_price;
+          bValue = b.sale_price;
+          break;
+        case 'cost_price':
+          aValue = a.cost_price || 0;
+          bValue = b.cost_price || 0;
+          break;
+        case 'category':
+          aValue = (a.category || '').toLowerCase();
+          bValue = (b.category || '').toLowerCase();
+          break;
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [products, searchTerm, categoryFilter, statusFilter, stockFilter, sortField, sortOrder]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
   };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('all');
+    setStatusFilter('all');
+    setStockFilter('all');
+  };
+
+  const hasActiveFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || stockFilter !== 'all';
 
   const handleDelete = async (product: Product) => {
     await confirm(
@@ -150,17 +266,8 @@ const ProdutosPage: React.FC = () => {
   };
 
   const handleExport = () => {
-    const filteredData = lowStockFilter
-      ? products.filter((p) => p.stock_quantity <= p.min_stock_level)
-      : searchTerm
-      ? products.filter((p) =>
-          p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.sku?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      : products;
-
     exportToCSV(
-      filteredData,
+      filteredAndSortedProducts,
       'produtos',
       [
         { key: 'id', label: 'ID' },
@@ -176,7 +283,7 @@ const ProdutosPage: React.FC = () => {
         { key: 'created_at', label: 'Criado em', format: formatDateForExport },
       ]
     );
-    toast.success(`${filteredData.length} produto(s) exportado(s) com sucesso!`);
+    toast.success(`${filteredAndSortedProducts.length} produto(s) exportado(s) com sucesso!`);
   };
 
   return (
@@ -224,30 +331,132 @@ const ProdutosPage: React.FC = () => {
 
       {/* Filtros e Busca */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Buscar por nome ou SKU..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtros e Busca
+            </CardTitle>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="gap-2"
+              >
+                <X className="h-4 w-4" />
+                Limpar Filtros
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Busca */}
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">
+                Buscar Produto
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Digite o nome ou SKU..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
-            <Button variant="outline" onClick={handleSearch}>
-              <Search className="mr-2 h-4 w-4" />
-              Buscar
-            </Button>
-            <Button
-              variant={lowStockFilter ? 'default' : 'outline'}
-              onClick={() => setLowStockFilter(!lowStockFilter)}
-            >
-              <Filter className="mr-2 h-4 w-4" />
-              {lowStockFilter ? 'Mostrando Baixo Estoque' : 'Filtrar Baixo Estoque'}
-            </Button>
+          </div>
+
+          {/* Filtros */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Filtro por Categoria */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Categoria
+              </label>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas as categorias" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as categorias</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro por Status */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Status
+              </label>
+              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="active">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      Ativos
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="inactive">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-red-500" />
+                      Inativos
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro por Nível de Estoque */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Nível de Estoque
+              </label>
+              <Select value={stockFilter} onValueChange={(value) => setStockFilter(value as StockFilter)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="critical">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-red-500" />
+                      Crítico (0)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="low">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-orange-500" />
+                      Baixo ({'<='} mínimo)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="ok">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      OK ({'>'} mínimo)
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Contador de resultados */}
+          <div className="text-sm text-muted-foreground pt-2 border-t">
+            Mostrando <span className="font-semibold">{filteredAndSortedProducts.length}</span> de{' '}
+            <span className="font-semibold">{products.length}</span> produtos
           </div>
         </CardContent>
       </Card>
@@ -268,36 +477,90 @@ const ProdutosPage: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
-      ) : products.length === 0 ? (
+      ) : filteredAndSortedProducts.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
-              Nenhum produto encontrado.
+              Nenhum produto encontrado com os filtros selecionados.
             </p>
           </CardContent>
         </Card>
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Produtos ({products.length})</CardTitle>
+            <CardTitle>Lista de Produtos ({filteredAndSortedProducts.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left p-3 font-semibold text-sm">SKU</th>
-                    <th className="text-left p-3 font-semibold text-sm">Produto</th>
-                    <th className="text-left p-3 font-semibold text-sm">Categoria</th>
-                    <th className="text-right p-3 font-semibold text-sm">Estoque</th>
+                    <th className="text-left p-3">
+                      <span className="font-semibold text-sm">SKU</span>
+                    </th>
+                    <th className="text-left p-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="hover:bg-transparent p-0 h-auto font-semibold text-sm"
+                        onClick={() => handleSort('name')}
+                      >
+                        Produto
+                        {sortField === 'name' && (
+                          sortOrder === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                        )}
+                        {sortField !== 'name' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
+                      </Button>
+                    </th>
+                    <th className="text-left p-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="hover:bg-transparent p-0 h-auto font-semibold text-sm"
+                        onClick={() => handleSort('category')}
+                      >
+                        Categoria
+                        {sortField === 'category' && (
+                          sortOrder === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                        )}
+                        {sortField !== 'category' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
+                      </Button>
+                    </th>
+                    <th className="text-right p-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="hover:bg-transparent p-0 h-auto font-semibold text-sm"
+                        onClick={() => handleSort('stock_quantity')}
+                      >
+                        Estoque
+                        {sortField === 'stock_quantity' && (
+                          sortOrder === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                        )}
+                        {sortField !== 'stock_quantity' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
+                      </Button>
+                    </th>
                     <th className="text-right p-3 font-semibold text-sm">Mínimo</th>
-                    <th className="text-right p-3 font-semibold text-sm">Preço</th>
-                    <th className="text-center p-3 font-semibold text-sm">Status</th>
+                    <th className="text-right p-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="hover:bg-transparent p-0 h-auto font-semibold text-sm"
+                        onClick={() => handleSort('sale_price')}
+                      >
+                        Preço
+                        {sortField === 'sale_price' && (
+                          sortOrder === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                        )}
+                        {sortField !== 'sale_price' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
+                      </Button>
+                    </th>
+                    <th className="text-center p-3 font-semibold text-sm">Estoque</th>
                     <th className="text-center p-3 font-semibold text-sm">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((product) => (
+                  {filteredAndSortedProducts.map((product) => (
                     <tr key={product.id} className="border-b hover:bg-muted/50 transition-colors">
                       <td className="p-3">
                         <span className="font-mono text-sm">{product.sku || '-'}</span>
