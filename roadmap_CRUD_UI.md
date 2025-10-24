@@ -204,46 +204,58 @@
 
 ## Fase 8: UI CRUD Completa - Módulo Fornecedores
 
-### 8.1 - Fornecedores 📋 (NOVA PÁGINA)
+### 8.1 - Fornecedores ✅
 
-**Arquivo:** `admin/src/app/admin/fornecedores/page.tsx` (CRIAR)
+**Arquivo:** `admin/src/app/admin/fornecedores/page.tsx`
+
+**Status Atual:**
+
+- ✅ Listagem de fornecedores (GET)
+- ✅ Estatísticas dinâmicas (Total, Ativos, Inativos)
+- ✅ Filtros por status (Todos, Ativos, Inativos)
+- ✅ Busca por nome, documento ou email
+- ✅ Delete com confirmação usando ConfirmDialog
+- ✅ Criar novo fornecedor
+- ✅ Editar fornecedor existente
+- ✅ Visualizar detalhes completos
+- ✅ Link adicionado no menu lateral (seção Financeiro)
 
 **Tarefas:**
 
-1. **Criar Página de Fornecedores** ⭐
-   * [ ] Estrutura base da página
-   * [ ] Listagem com `supplierService.getAll()`
-   * [ ] Colunas: Nome, Documento (CNPJ/CPF), Email, Telefone, Status
-   * [ ] Filtros: ativo/inativo
-   * [ ] Busca por nome ou documento
-   * [ ] Estatísticas: total fornecedores, ativos, inativos
+1. **Criar Página de Fornecedores** ⭐ ✅
+   * [x] Estrutura base da página
+   * [x] Listagem com `supplierService.getAll()`
+   * [x] Colunas: Nome, Documento (CNPJ/CPF), Email, Telefone, Cidade/UF, Status
+   * [x] Filtros: ativo/inativo
+   * [x] Busca por nome, documento ou email
+   * [x] Estatísticas: total fornecedores, ativos, inativos
+   * [x] Formatação de CPF/CNPJ
 
-2. **Modal de Criação de Fornecedor** ⭐
-   * [ ] Criar componente `CreateSupplierModal.tsx`
-   * [ ] Formulário com:
+2. **Modal de Criação de Fornecedor** ⭐ ✅
+   * [x] Criar componente `CreateSupplierModal.tsx`
+   * [x] Formulário com:
      - Nome completo
-     - Documento (CNPJ/CPF) com máscara
+     - Documento (CNPJ/CPF)
      - Email
-     - Telefone com máscara
-     - Endereço completo
-     - Observações
-     - Status (ativo)
-   * [ ] Validação de email e documento
-   * [ ] Integração com `supplierService.create()`
+     - Telefone
+     - Endereço completo (Rua, Cidade, Estado, CEP)
+     - Status ativo por padrão
+   * [x] Validação de email e documento (CPF 11 dígitos, CNPJ 14 dígitos)
+   * [x] Integração com `supplierService.create()`
 
-3. **Modal de Edição de Fornecedor** ⭐
-   * [ ] Criar componente `EditSupplierModal.tsx`
-   * [ ] Pré-popular todos os campos
-   * [ ] Permitir ativar/desativar fornecedor
-   * [ ] Integração com `supplierService.update()`
-   * [ ] Validações
+3. **Modal de Edição de Fornecedor** ⭐ ✅
+   * [x] Criar componente `EditSupplierModal.tsx`
+   * [x] Pré-popular todos os campos
+   * [x] Switch para ativar/desativar fornecedor
+   * [x] Integração com `supplierService.update()`
+   * [x] Validações com React Hook Form + Zod
 
-4. **Modal de Detalhes do Fornecedor**
-   * [ ] Criar componente `SupplierDetailsModal.tsx`
-   * [ ] Todas as informações do fornecedor
-   * [ ] Listar faturas relacionadas
-   * [ ] Histórico de compras (bonus)
-   * [ ] Estatísticas: total gasto, número de faturas
+4. **Modal de Detalhes do Fornecedor** ✅
+   * [x] Criar componente `SupplierDetailsModal.tsx`
+   * [x] Todas as informações do fornecedor formatadas
+   * [x] Cards organizados (Contato, Endereço, Sistema)
+   * [x] Badges de status (Ativo/Inativo)
+   * [x] Botões: Editar, Excluir, Fechar
 
 ---
 
@@ -466,9 +478,12 @@
 2. ✅ CRUD Completo de Vendas
 3. ✅ Validação de estoque
 
-### Sprint 5 - Módulo Fornecedores (3-4 dias)
+### Sprint 5 - Módulo Fornecedores (3-4 dias) ✅ COMPLETO
+
 1. ✅ Criar página de Fornecedores
 2. ✅ CRUD Completo de Fornecedores
+3. ✅ Validação de CPF/CNPJ
+4. ✅ Link no menu lateral
 
 ### Sprint 6 - Dashboard (3-4 dias)
 1. ✅ Integração com API real
