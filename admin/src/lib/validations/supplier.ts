@@ -32,7 +32,7 @@ export const supplierSchema = z.object({
 
   notes: z.string().optional(),
 
-  active: z.boolean().default(true),
+  active: z.boolean(),
 });
 
 export type SupplierFormData = z.infer<typeof supplierSchema>;

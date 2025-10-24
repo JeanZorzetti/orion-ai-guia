@@ -13,7 +13,8 @@ import {
   Package,
   Shield,
   LogOut,
-  ShoppingCart
+  ShoppingCart,
+  Truck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { User } from '@/types';
@@ -34,6 +35,11 @@ const navigation = [
         name: 'Contas a Pagar',
         href: '/admin/financeiro/contas-a-pagar',
         icon: FileText,
+      },
+      {
+        name: 'Fornecedores',
+        href: '/admin/fornecedores',
+        icon: Truck,
       },
     ],
   },
