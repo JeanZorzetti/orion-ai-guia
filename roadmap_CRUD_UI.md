@@ -485,14 +485,15 @@
      - Vendas (8 colunas com status traduzido)
      - Faturas (11 colunas com valores e impostos)
 
-2. **Imprimir Relatórios** ⭐
-   * [ ] CSS para impressão
-   * [ ] Botão "Imprimir"
-   * [ ] Relatórios de:
-     - Faturas do mês
-     - Produtos em estoque
-     - Vendas do período
-   * [ ] Logo e cabeçalho da empresa
+2. **Imprimir Relatórios** ⭐ ✅ COMPLETO
+   * [x] CSS para impressão (print.css com @media print)
+   * [x] Hook usePrint para gerenciar impressão
+   * [x] Componente PrintButton com loading e tooltip
+   * [x] Componente PrintLayout com cabeçalho e rodapé
+   * [x] Componentes auxiliares (PrintOnly, NoPrint, PrintInfoGrid, PrintSummary)
+   * [x] Integrado na página de Produtos
+   * [x] Logo e cabeçalho da empresa automático
+   * [ ] Integrar nas páginas de Faturas, Vendas e Fornecedores (próxima iteração)
 
 ### 11.3 - Temas e Personalização
 

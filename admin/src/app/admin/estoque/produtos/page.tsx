@@ -49,6 +49,9 @@ import { TableSkeleton, GridSkeleton } from '@/components/ui/table-skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { usePersistedFilters, FilterPreset } from '@/hooks/usePersistedFilters';
 import { FilterPresets } from '@/components/ui/filter-presets';
+import { usePrint } from '@/hooks/usePrint';
+import { PrintButton } from '@/components/ui/print-button';
+import { PrintLayout, NoPrint, PrintOnly, PrintInfoGrid } from '@/components/ui/print-layout';
 
 type SortField = 'name' | 'stock_quantity' | 'sale_price' | 'cost_price' | 'category';
 type SortOrder = 'asc' | 'desc';
@@ -133,6 +136,17 @@ const ProdutosPage: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const { confirm, ConfirmDialog } = useConfirm();
+
+  // Hook de impressão
+  const { isPrinting, handlePrint } = usePrint({
+    documentTitle: 'Relatório de Produtos - Orion ERP',
+    onBeforePrint: () => {
+      console.log('Preparando impressão...');
+    },
+    onAfterPrint: () => {
+      console.log('Impressão concluída');
+    },
+  });
 
   useEffect(() => {
     loadProducts();
@@ -368,18 +382,25 @@ const ProdutosPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Package className="h-8 w-8" />
-            Produtos
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie o cadastro de produtos do estoque
-          </p>
-        </div>
-        <div className="flex gap-2">
+    <PrintLayout
+      title="Relatório de Produtos"
+      subtitle={`${filteredAndSortedProducts.length} produto(s) encontrado(s)`}
+      showHeader
+      showFooter
+    >
+      <div className="space-y-6">
+        <NoPrint>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+                <Package className="h-8 w-8" />
+                Produtos
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Gerencie o cadastro de produtos do estoque
+              </p>
+            </div>
+            <div className="flex gap-2">
           {/* Toggle de visualização */}
           <div className="flex border rounded-md">
             <Button
@@ -408,15 +429,36 @@ const ProdutosPage: React.FC = () => {
             <Download className="mr-2 h-4 w-4" />
             Exportar CSV
           </Button>
+          <PrintButton
+            onClick={handlePrint}
+            loading={isPrinting}
+            label="Imprimir"
+            variant="outline"
+            disabled={products.length === 0}
+          />
           <Button size="lg" onClick={() => setCreateModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Produto
           </Button>
         </div>
       </div>
+        </NoPrint>
+
+        {/* Resumo para impressão */}
+        <PrintOnly>
+          <PrintInfoGrid
+            items={[
+              { label: 'Total de Produtos', value: estatisticas[0]?.valor || '0' },
+              { label: 'Produtos Ativos', value: estatisticas[1]?.valor || '0' },
+              { label: 'Estoque Baixo', value: estatisticas[2]?.valor || '0' },
+              { label: 'Estoque Crítico', value: estatisticas[3]?.valor || '0' },
+            ]}
+          />
+        </PrintOnly>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <NoPrint>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {estatisticas.map((stat, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -429,9 +471,11 @@ const ProdutosPage: React.FC = () => {
           </Card>
         ))}
       </div>
+      </NoPrint>
 
       {/* Filtros e Busca */}
-      <Card>
+      <NoPrint>
+        <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -570,6 +614,7 @@ const ProdutosPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+      </NoPrint>
 
       {/* Tabela de Produtos */}
       {loading ? (
@@ -937,7 +982,8 @@ const ProdutosPage: React.FC = () => {
       />
 
       {ConfirmDialog}
-    </div>
+      </div>
+    </PrintLayout>
   );
 };
 
