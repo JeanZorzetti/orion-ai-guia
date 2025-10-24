@@ -1,93 +1,95 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Settings,
-  User,
   Building2,
-  Bell,
-  Shield,
-  Palette,
-  Database,
-  Mail,
-  ArrowRight
+  Save,
+  RotateCcw,
+  Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
+import { toast } from 'sonner';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { useTheme } from '@/hooks/useTheme';
 
 const ConfiguracoesPage: React.FC = () => {
-  const configuracoes = [
-    {
-      categoria: 'Perfil do Usuário',
-      descricao: 'Gerencie suas informações pessoais e preferências',
-      icon: User,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-50 dark:bg-blue-950/20',
-      items: [
-        { label: 'Nome completo', valor: 'João Silva' },
-        { label: 'E-mail', valor: 'joao@empresa.com' },
-        { label: 'Cargo', valor: 'Administrador' },
-      ],
-    },
-    {
-      categoria: 'Empresa',
-      descricao: 'Dados cadastrais e informações da empresa',
-      icon: Building2,
-      color: 'text-green-500',
-      bgColor: 'bg-green-50 dark:bg-green-950/20',
-      items: [
-        { label: 'Razão Social', valor: 'Empresa ABC Ltda' },
-        { label: 'CNPJ', valor: '00.000.000/0001-00' },
-        { label: 'Endereço', valor: 'Rua Exemplo, 123' },
-      ],
-    },
-    {
-      categoria: 'Notificações',
-      descricao: 'Configure alertas e lembretes do sistema',
-      icon: Bell,
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-50 dark:bg-orange-950/20',
-      items: [
-        { label: 'E-mail', valor: 'Ativado' },
-        { label: 'Contas a vencer', valor: 'Ativado' },
-        { label: 'Estoque baixo', valor: 'Ativado' },
-      ],
-    },
-    {
-      categoria: 'Segurança',
-      descricao: 'Senha, autenticação e controles de acesso',
-      icon: Shield,
-      color: 'text-red-500',
-      bgColor: 'bg-red-50 dark:bg-red-950/20',
-      items: [
-        { label: 'Autenticação em 2 fatores', valor: 'Desativado' },
-        { label: 'Última alteração de senha', valor: 'Há 45 dias' },
-        { label: 'Sessões ativas', valor: '2 dispositivos' },
-      ],
-    },
-    {
-      categoria: 'Aparência',
-      descricao: 'Personalize a interface do sistema',
-      icon: Palette,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-50 dark:bg-purple-950/20',
-      items: [
-        { label: 'Tema', valor: 'Claro' },
-        { label: 'Idioma', valor: 'Português (BR)' },
-        { label: 'Formato de data', valor: 'DD/MM/AAAA' },
-      ],
-    },
-    {
-      categoria: 'Integrações',
-      descricao: 'Conecte com serviços e APIs externas',
-      icon: Mail,
-      color: 'text-cyan-500',
-      bgColor: 'bg-cyan-50 dark:bg-cyan-950/20',
-      items: [
-        { label: 'E-mail (SMTP)', valor: 'Não configurado' },
-        { label: 'API externa', valor: 'Não configurado' },
-        { label: 'Backup automático', valor: 'Desativado' },
-      ],
-    },
-  ];
+  const { settings, updateSettings, resetSettings, loading } = useCompanySettings();
+  const { theme, setTheme } = useTheme();
+
+  const [formData, setFormData] = useState({
+    companyName: settings.companyName,
+    companyLogo: settings.companyLogo || '',
+    companySlogan: settings.companySlogan || '',
+  });
+
+  // Atualizar form quando settings carregar
+  React.useEffect(() => {
+    if (!loading) {
+      setFormData({
+        companyName: settings.companyName,
+        companyLogo: settings.companyLogo || '',
+        companySlogan: settings.companySlogan || '',
+      });
+    }
+  }, [settings, loading]);
+
+  const handleSave = () => {
+    updateSettings({
+      companyName: formData.companyName,
+      companyLogo: formData.companyLogo || null,
+      companySlogan: formData.companySlogan || null,
+    });
+    toast.success('Configurações salvas com sucesso!');
+  };
+
+  const handleReset = () => {
+    resetSettings();
+    setFormData({
+      companyName: 'Orion ERP',
+      companyLogo: '',
+      companySlogan: 'Sistema de Gestão Empresarial',
+    });
+    toast.info('Configurações restauradas para o padrão');
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        toast.error('Por favor, selecione uma imagem válida');
+        return;
+      }
+
+      // Validar tamanho (máximo 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('A imagem deve ter no máximo 2MB');
+        return;
+      }
+
+      // Converter para base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, companyLogo: reader.result as string });
+        toast.success('Logo carregado com sucesso!');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -98,68 +100,174 @@ const ConfiguracoesPage: React.FC = () => {
             Configurações
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie as preferências e configurações do sistema
+            Personalize a aparência e informações da empresa
           </p>
         </div>
       </div>
 
-      {/* Categorias de Configuração */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {configuracoes.map((config) => (
-          <Card key={config.categoria} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`p-2 rounded-lg ${config.bgColor}`}>
-                  <config.icon className={`h-5 w-5 ${config.color}`} />
+        {/* Informações da Empresa */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                <Building2 className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <CardTitle>Informações da Empresa</CardTitle>
+                <CardDescription>
+                  Configure o nome e slogan da empresa
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Nome da Empresa</Label>
+              <Input
+                id="companyName"
+                value={formData.companyName}
+                onChange={(e) =>
+                  setFormData({ ...formData, companyName: e.target.value })
+                }
+                placeholder="Digite o nome da empresa"
+              />
+              <p className="text-xs text-muted-foreground">
+                Este nome aparecerá no header e nos relatórios
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="companySlogan">Slogan</Label>
+              <Input
+                id="companySlogan"
+                value={formData.companySlogan}
+                onChange={(e) =>
+                  setFormData({ ...formData, companySlogan: e.target.value })
+                }
+                placeholder="Digite o slogan da empresa"
+              />
+              <p className="text-xs text-muted-foreground">
+                Descrição breve que aparecerá nos relatórios
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Logo da Empresa */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/20">
+                <ImageIcon className="h-5 w-5 text-purple-500" />
+              </div>
+              <div>
+                <CardTitle>Logo da Empresa</CardTitle>
+                <CardDescription>
+                  Faça upload do logo (máximo 2MB)
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Preview do Logo */}
+            <div className="flex items-center justify-center p-6 border-2 border-dashed rounded-lg bg-muted/50">
+              {formData.companyLogo ? (
+                <img
+                  src={formData.companyLogo}
+                  alt="Logo da empresa"
+                  className="max-h-32 max-w-full object-contain"
+                />
+              ) : (
+                <div className="text-center text-muted-foreground">
+                  <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Nenhum logo carregado</p>
                 </div>
-                <div className="flex-1">
-                  <CardTitle className="text-lg">{config.categoria}</CardTitle>
-                  <CardDescription className="text-sm">
-                    {config.descricao}
+              )}
+            </div>
+
+            {/* Botões de Upload */}
+            <div className="flex gap-2">
+              <Label htmlFor="logoUpload" className="flex-1">
+                <div className="flex items-center justify-center gap-2 px-4 py-2 border rounded-md cursor-pointer hover:bg-muted transition-colors">
+                  <Upload className="h-4 w-4" />
+                  <span className="text-sm">Fazer Upload</span>
+                </div>
+                <Input
+                  id="logoUpload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </Label>
+
+              {formData.companyLogo && (
+                <Button
+                  variant="outline"
+                  onClick={() => setFormData({ ...formData, companyLogo: '' })}
+                >
+                  Remover
+                </Button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="companyLogoUrl">Ou cole a URL da imagem</Label>
+              <Input
+                id="companyLogoUrl"
+                value={formData.companyLogo}
+                onChange={(e) =>
+                  setFormData({ ...formData, companyLogo: e.target.value })
+                }
+                placeholder="https://exemplo.com/logo.png"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tema */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950/20">
+                  <Settings className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <CardTitle>Aparência</CardTitle>
+                  <CardDescription>
+                    Configure o tema visual do sistema
                   </CardDescription>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {config.items.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                >
-                  <span className="text-sm text-muted-foreground">{item.label}</span>
-                  <span className="text-sm font-medium">{item.valor}</span>
-                </div>
-              ))}
-              <Button variant="outline" className="w-full mt-2">
-                Editar {config.categoria}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div>
+                <p className="font-medium">Tema</p>
+                <p className="text-sm text-muted-foreground">
+                  Escolha entre claro, escuro ou sistema
+                </p>
+              </div>
+              <ThemeToggle theme={theme} onThemeChange={setTheme} />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Ações Avançadas */}
-      <Card className="border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/20">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-orange-500" />
-            <CardTitle>Configurações Avançadas</CardTitle>
-          </div>
-          <CardDescription>
-            Opções de gerenciamento de dados e manutenção do sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Button variant="outline" className="w-full">
-              Exportar Dados
+      {/* Botões de Ação */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={handleReset}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Restaurar Padrão
             </Button>
-            <Button variant="outline" className="w-full">
-              Importar Dados
-            </Button>
-            <Button variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">
-              Limpar Cache
+            <Button onClick={handleSave}>
+              <Save className="mr-2 h-4 w-4" />
+              Salvar Configurações
             </Button>
           </div>
         </CardContent>

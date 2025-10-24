@@ -515,10 +515,19 @@
    * [x] Transições suaves entre temas
    * [x] Testar contraste e acessibilidade
 
-2. **Personalização** (Bonus)
-   * [ ] Logo da empresa customizável
-   * [ ] Cores do tema personalizadas
-   * [ ] Nome da empresa no header editável
+2. **Personalização** (Bonus) ✅ COMPLETO
+   * [x] Logo da empresa customizável (upload ou URL)
+   * [x] Nome da empresa editável
+   * [x] Slogan da empresa customizável
+   * [x] Hook useCompanySettings para gerenciar configurações
+   * [x] Página de Configurações funcional com formulário
+   * [x] Preview do logo em tempo real
+   * [x] Validação de upload (tipo e tamanho)
+   * [x] Persistência no localStorage
+   * [x] Integrado no Header (logo ou nome)
+   * [x] Integrado no PrintLayout (logo e slogan nos relatórios)
+   * [x] Botão "Restaurar Padrão"
+   * [ ] Cores do tema personalizadas (futura implementação)
 
 ---
 

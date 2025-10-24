@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 interface PrintLayoutProps {
   /**
@@ -60,11 +61,18 @@ export function PrintLayout({
   children,
   showHeader = true,
   showFooter = true,
-  companyName = 'Orion ERP',
+  companyName: customCompanyName,
   headerInfo,
   footerInfo,
   id = 'print-content',
 }: PrintLayoutProps) {
+  const { settings } = useCompanySettings();
+
+  // Usar configurações da empresa ou valores padrão/custom
+  const companyName = customCompanyName || settings.companyName;
+  const companyLogo = settings.companyLogo;
+  const companySlogan = settings.companySlogan;
+
   const currentDate = new Date().toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -83,8 +91,16 @@ export function PrintLayout({
         <div className="print-header hidden print:block">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-2xl font-bold">{companyName}</h1>
-              <p className="text-sm text-gray-600">Sistema de Gestão Empresarial</p>
+              {companyLogo ? (
+                <img
+                  src={companyLogo}
+                  alt={companyName}
+                  className="h-12 mb-2 object-contain"
+                />
+              ) : (
+                <h1 className="text-2xl font-bold">{companyName}</h1>
+              )}
+              <p className="text-sm text-gray-600">{companySlogan || 'Sistema de Gestão Empresarial'}</p>
             </div>
             <div className="text-right text-sm">
               <p className="font-semibold">{currentDate}</p>

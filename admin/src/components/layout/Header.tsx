@@ -5,6 +5,7 @@ import { User } from '@/types';
 import { authService } from '@/services/auth';
 import { useTheme } from '@/hooks/useTheme';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 interface HeaderProps {
   user?: User | null;
@@ -13,6 +14,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ user }) => {
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const { theme, setTheme } = useTheme();
+  const { settings } = useCompanySettings();
 
   const handleLogout = () => {
     authService.logout();
@@ -22,7 +24,15 @@ const Header: React.FC<HeaderProps> = ({ user }) => {
     <header className="bg-background border-b border-border sticky top-0 z-10 transition-colors">
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-bold text-primary">Orion ERP</h1>
+          {settings.companyLogo ? (
+            <img
+              src={settings.companyLogo}
+              alt={settings.companyName}
+              className="h-8 object-contain"
+            />
+          ) : (
+            <h1 className="text-xl font-bold text-primary">{settings.companyName}</h1>
+          )}
         </div>
 
         <div className="flex items-center space-x-4">
