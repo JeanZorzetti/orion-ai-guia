@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChevronDown, User, LogOut } from 'lucide-react';
+import GlobalSearch from '@/components/GlobalSearch';
 
 const AdminHeader: React.FC = () => {
   const user = {
@@ -24,7 +25,11 @@ const AdminHeader: React.FC = () => {
         <h1 className="text-lg font-semibold text-foreground">{user.company}</h1>
       </div>
 
-      {/* User Menu */}
+      {/* Search and User Menu */}
+      <div className="flex items-center gap-4">
+        <GlobalSearch />
+
+        {/* User Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-3 hover:bg-accent hover:text-accent-foreground rounded-lg px-3 py-2 transition-colors">
           <Avatar className="h-8 w-8">
@@ -51,6 +56,7 @@ const AdminHeader: React.FC = () => {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   );
 };
