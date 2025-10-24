@@ -395,12 +395,15 @@
 
 **Tarefas:**
 
-1. **Busca Global** ⭐⭐
-   * [ ] Barra de busca no header
-   * [ ] Buscar em: faturas, produtos, vendas, fornecedores
-   * [ ] Resultados agrupados por tipo
-   * [ ] Navegação rápida para resultado
-   * [ ] Keyboard shortcut (Ctrl+K)
+1. **Busca Global** ⭐⭐ ✅
+   * [x] Barra de busca no header
+   * [x] Buscar em: faturas, produtos, vendas, fornecedores
+   * [x] Resultados agrupados por tipo (com badges)
+   * [x] Navegação rápida para resultado
+   * [x] Keyboard shortcut (Ctrl+K ou Cmd+K)
+   * [x] Debounce de busca (300ms)
+   * [x] Loading state
+   * [x] Empty states
 
 2. **Filtros Persistentes** ⭐
    * [ ] Salvar filtros no localStorage
@@ -412,12 +415,16 @@
 
 **Tarefas:**
 
-1. **Exportar para CSV/Excel** ⭐
-   * [ ] Botão "Exportar" em cada listagem
-   * [ ] Biblioteca: xlsx ou papaparse
-   * [ ] Exportar dados visíveis ou todos
-   * [ ] Nome de arquivo com data
-   * [ ] Formatação adequada
+1. **Exportar para CSV/Excel** ⭐ ✅
+   * [x] Botão "Exportar CSV" em listagens
+   * [x] Função genérica exportToCSV em lib/export.ts
+   * [x] Exportar dados filtrados (não apenas todos)
+   * [x] Nome de arquivo com timestamp
+   * [x] Formatação adequada (escape de vírgulas, aspas)
+   * [x] BOM UTF-8 para compatibilidade com Excel
+   * [x] Helpers de formatação (moeda, data, datetime)
+   * [x] Implementado na página de Fornecedores
+   * [ ] Adicionar em: Produtos, Vendas, Faturas (próximo passo)
 
 2. **Imprimir Relatórios** ⭐
    * [ ] CSS para impressão
@@ -500,11 +507,12 @@
 4. ✅ Loading states e empty states
 5. ✅ 4 cards de métricas principais
 
-### Sprint 7 - Polimento (3-4 dias)
-1. ✅ Exportações
-2. ✅ Busca global
-3. ✅ Dark mode
-4. ✅ Testes e ajustes finais
+### Sprint 7 - Polimento (3-4 dias) ⚠️ EM PROGRESSO
+
+1. ✅ Exportação para CSV (implementada em Fornecedores)
+2. ✅ Busca global com Ctrl+K
+3. ⏸ Dark mode (opcional - pode ser implementado depois)
+4. ⏸ Testes e ajustes finais
 
 ---
 
