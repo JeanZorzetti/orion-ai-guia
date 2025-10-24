@@ -16,7 +16,8 @@ import {
   Eye,
   Loader2,
   Trash2,
-  Package
+  Package,
+  Download
 } from 'lucide-react';
 import { saleService } from '@/services/sale';
 import { Sale } from '@/types';
@@ -25,6 +26,7 @@ import { EditSaleModal } from '@/components/sale/EditSaleModal';
 import { SaleDetailsModal } from '@/components/sale/SaleDetailsModal';
 import { useConfirm } from '@/hooks/useConfirm';
 import { toast } from 'sonner';
+import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
 
 type StatusFilter = 'pending' | 'completed' | 'cancelled' | 'all';
 
@@ -70,6 +72,24 @@ const VendasPage: React.FC = () => {
 
   const handleSearch = () => {
     loadSales();
+  };
+
+  const handleExport = () => {
+    exportToCSV(
+      sales,
+      'vendas',
+      [
+        { key: 'id', label: 'ID' },
+        { key: 'customer_name', label: 'Cliente' },
+        { key: 'product', label: 'Produto', format: (prod) => prod?.name || '-' },
+        { key: 'quantity', label: 'Quantidade' },
+        { key: 'unit_price', label: 'Preço Unitário', format: formatCurrencyForExport },
+        { key: 'total_value', label: 'Total', format: formatCurrencyForExport },
+        { key: 'status', label: 'Status', format: (s) => s === 'pending' ? 'Pendente' : s === 'completed' ? 'Concluída' : 'Cancelada' },
+        { key: 'sale_date', label: 'Data', format: formatDateForExport },
+      ]
+    );
+    toast.success(`${sales.length} venda(s) exportada(s) com sucesso!`);
   };
 
   const handleDelete = async (sale: Sale) => {
@@ -172,10 +192,20 @@ const VendasPage: React.FC = () => {
             Gerencie as vendas de produtos
           </p>
         </div>
-        <Button size="lg" onClick={() => setCreateModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Venda
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={sales.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exportar CSV
+          </Button>
+          <Button size="lg" onClick={() => setCreateModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Venda
+          </Button>
+        </div>
       </div>
 
       {/* Estatísticas */}

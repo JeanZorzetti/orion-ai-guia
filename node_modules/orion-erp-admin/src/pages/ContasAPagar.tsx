@@ -24,11 +24,13 @@ import {
   Filter,
   Loader2,
   Plus,
-  Eye
+  Eye,
+  Download
 } from 'lucide-react';
 import { invoiceService } from '../services/invoice';
 import { Invoice } from '../types';
 import { toast } from 'sonner';
+import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
 
 type StatusFilter = 'pending' | 'validated' | 'paid' | 'cancelled' | 'all';
 
@@ -65,6 +67,35 @@ const ContasAPagar: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExport = () => {
+    exportToCSV(
+      invoices,
+      'faturas',
+      [
+        { key: 'id', label: 'ID' },
+        { key: 'invoice_number', label: 'Número' },
+        { key: 'supplier', label: 'Fornecedor', format: (sup) => sup?.name || '-' },
+        { key: 'invoice_date', label: 'Data Emissão', format: formatDateForExport },
+        { key: 'due_date', label: 'Vencimento', format: formatDateForExport },
+        { key: 'total_value', label: 'Valor Total', format: formatCurrencyForExport },
+        { key: 'net_value', label: 'Valor Líquido', format: formatCurrencyForExport },
+        { key: 'tax_value', label: 'Impostos', format: formatCurrencyForExport },
+        { key: 'category', label: 'Categoria' },
+        { key: 'status', label: 'Status', format: (s) => {
+          const statusMap: Record<string, string> = {
+            'pending': 'Pendente',
+            'validated': 'Validada',
+            'paid': 'Paga',
+            'cancelled': 'Cancelada'
+          };
+          return statusMap[s] || s;
+        }},
+        { key: 'description', label: 'Descrição' },
+      ]
+    );
+    toast.success(`${invoices.length} fatura(s) exportada(s) com sucesso!`);
   };
 
   const handleDelete = async (invoice: Invoice) => {
@@ -145,6 +176,14 @@ const ContasAPagar: React.FC = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-foreground">Contas a Pagar</h1>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={invoices.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exportar CSV
+          </Button>
           <Button
             size="lg"
             onClick={() => setCreateModalOpen(true)}

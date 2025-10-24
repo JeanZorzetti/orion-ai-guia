@@ -16,7 +16,8 @@ import {
   Eye,
   Loader2,
   Trash2,
-  PackagePlus
+  PackagePlus,
+  Download
 } from 'lucide-react';
 import { productService } from '@/services/product';
 import { Product } from '@/types';
@@ -26,6 +27,7 @@ import { ProductDetailsModal } from '@/components/product/ProductDetailsModal';
 import { AdjustStockModal } from '@/components/product/AdjustStockModal';
 import { useConfirm } from '@/hooks/useConfirm';
 import { toast } from 'sonner';
+import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
 
 const ProdutosPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -147,6 +149,36 @@ const ProdutosPage: React.FC = () => {
     return <Badge className="bg-green-500">OK</Badge>;
   };
 
+  const handleExport = () => {
+    const filteredData = lowStockFilter
+      ? products.filter((p) => p.stock_quantity <= p.min_stock_level)
+      : searchTerm
+      ? products.filter((p) =>
+          p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      : products;
+
+    exportToCSV(
+      filteredData,
+      'produtos',
+      [
+        { key: 'id', label: 'ID' },
+        { key: 'name', label: 'Nome' },
+        { key: 'sku', label: 'SKU' },
+        { key: 'category', label: 'Categoria' },
+        { key: 'cost_price', label: 'Preço Custo', format: formatCurrencyForExport },
+        { key: 'sale_price', label: 'Preço Venda', format: formatCurrencyForExport },
+        { key: 'stock_quantity', label: 'Estoque' },
+        { key: 'min_stock_level', label: 'Estoque Mínimo' },
+        { key: 'unit', label: 'Unidade' },
+        { key: 'active', label: 'Ativo', format: (val) => (val ? 'Sim' : 'Não') },
+        { key: 'created_at', label: 'Criado em', format: formatDateForExport },
+      ]
+    );
+    toast.success(`${filteredData.length} produto(s) exportado(s) com sucesso!`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -159,10 +191,20 @@ const ProdutosPage: React.FC = () => {
             Gerencie o cadastro de produtos do estoque
           </p>
         </div>
-        <Button size="lg" onClick={() => setCreateModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Produto
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={products.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exportar CSV
+          </Button>
+          <Button size="lg" onClick={() => setCreateModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Produto
+          </Button>
+        </div>
       </div>
 
       {/* Estatísticas */}
