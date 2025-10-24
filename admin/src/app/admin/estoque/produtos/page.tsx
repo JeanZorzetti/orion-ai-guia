@@ -47,6 +47,8 @@ import { toast } from 'sonner';
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
 import { TableSkeleton, GridSkeleton } from '@/components/ui/table-skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { usePersistedFilters, FilterPreset } from '@/hooks/usePersistedFilters';
+import { FilterPresets } from '@/components/ui/filter-presets';
 
 type SortField = 'name' | 'stock_quantity' | 'sale_price' | 'cost_price' | 'category';
 type SortOrder = 'asc' | 'desc';
@@ -54,16 +56,63 @@ type StatusFilter = 'all' | 'active' | 'inactive';
 type StockFilter = 'all' | 'low' | 'ok' | 'critical';
 type ViewMode = 'table' | 'grid';
 
+// Interface para filtros
+interface ProductFilters extends Record<string, string> {
+  searchTerm: string;
+  categoryFilter: string;
+  statusFilter: StatusFilter;
+  stockFilter: StockFilter;
+}
+
 const ProdutosPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
 
-  // Novos filtros
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [stockFilter, setStockFilter] = useState<StockFilter>('all');
+  // Filtros persistentes com presets
+  const filterPresets: FilterPreset<ProductFilters>[] = [
+    {
+      id: 'active',
+      name: '✅ Ativos',
+      filters: { searchTerm: '', categoryFilter: 'all', statusFilter: 'active', stockFilter: 'all' },
+    },
+    {
+      id: 'lowStock',
+      name: '⚠️ Estoque Baixo',
+      filters: { searchTerm: '', categoryFilter: 'all', statusFilter: 'all', stockFilter: 'low' },
+    },
+    {
+      id: 'criticalStock',
+      name: '🚨 Estoque Crítico',
+      filters: { searchTerm: '', categoryFilter: 'all', statusFilter: 'all', stockFilter: 'critical' },
+    },
+    {
+      id: 'inactive',
+      name: '❌ Inativos',
+      filters: { searchTerm: '', categoryFilter: 'all', statusFilter: 'inactive', stockFilter: 'all' },
+    },
+  ];
+
+  const {
+    filters,
+    updateFilter,
+    clearFilters,
+    applyPreset,
+    presets,
+    activePreset,
+  } = usePersistedFilters<ProductFilters>({
+    key: 'products',
+    defaultFilters: {
+      searchTerm: '',
+      categoryFilter: 'all',
+      statusFilter: 'all',
+      stockFilter: 'all',
+    },
+    presets: filterPresets,
+  });
+
+  // Destructure filters para facilitar o uso
+  const { searchTerm, categoryFilter, statusFilter, stockFilter } = filters;
 
   // Ordenação
   const [sortField, setSortField] = useState<SortField>('name');
@@ -193,15 +242,12 @@ const ProdutosPage: React.FC = () => {
     }
   };
 
-  const clearFilters = () => {
-    setSearchTerm('');
-    setCategoryFilter('all');
-    setStatusFilter('all');
-    setStockFilter('all');
+  const handleClearFilters = () => {
+    clearFilters();
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || stockFilter !== 'all';
+  const hasActiveFilters = Boolean(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || stockFilter !== 'all');
 
   // Paginação
   const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage);
@@ -396,7 +442,7 @@ const ProdutosPage: React.FC = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={clearFilters}
+                onClick={handleClearFilters}
                 className="gap-2"
               >
                 <X className="h-4 w-4" />
@@ -406,6 +452,15 @@ const ProdutosPage: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Filtros Rápidos (Presets) */}
+          <FilterPresets
+            presets={presets}
+            activePreset={activePreset}
+            onApplyPreset={applyPreset}
+            onClearFilters={handleClearFilters}
+            hasActiveFilters={hasActiveFilters}
+          />
+
           {/* Busca */}
           <div className="flex gap-4">
             <div className="flex-1">
@@ -419,7 +474,7 @@ const ProdutosPage: React.FC = () => {
                   placeholder="Digite o nome ou SKU..."
                   className="pl-10"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => updateFilter('searchTerm', e.target.value)}
                 />
               </div>
             </div>
@@ -432,7 +487,7 @@ const ProdutosPage: React.FC = () => {
               <label className="text-sm font-medium mb-2 block">
                 Categoria
               </label>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <Select value={categoryFilter} onValueChange={(value) => updateFilter('categoryFilter', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todas as categorias" />
                 </SelectTrigger>
@@ -452,7 +507,7 @@ const ProdutosPage: React.FC = () => {
               <label className="text-sm font-medium mb-2 block">
                 Status
               </label>
-              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
+              <Select value={statusFilter} onValueChange={(value) => updateFilter('statusFilter', value as StatusFilter)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -479,7 +534,7 @@ const ProdutosPage: React.FC = () => {
               <label className="text-sm font-medium mb-2 block">
                 Nível de Estoque
               </label>
-              <Select value={stockFilter} onValueChange={(value) => setStockFilter(value as StockFilter)}>
+              <Select value={stockFilter} onValueChange={(value) => updateFilter('stockFilter', value as StockFilter)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>

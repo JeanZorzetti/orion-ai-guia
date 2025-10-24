@@ -456,11 +456,16 @@
    * [x] Loading state
    * [x] Empty states
 
-2. **Filtros Persistentes** ⭐
-   * [ ] Salvar filtros no localStorage
-   * [ ] Restaurar filtros ao voltar à página
-   * [ ] Preset de filtros comuns
-   * [ ] Limpar todos os filtros
+2. **Filtros Persistentes** ⭐ ✅
+   * [x] Salvar filtros no localStorage (usePersistedFilters hook)
+   * [x] Restaurar filtros ao voltar à página (automático)
+   * [x] Preset de filtros comuns (FilterPresets component)
+   * [x] Limpar todos os filtros (clearFilters função)
+   * [x] Implementado na página de Produtos com 4 presets:
+     - ✅ Ativos
+     - ⚠️ Estoque Baixo
+     - 🚨 Estoque Crítico
+     - ❌ Inativos
 
 ### 11.2 - Exportação de Dados
 
