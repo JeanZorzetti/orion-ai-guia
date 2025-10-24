@@ -14,10 +14,10 @@ import {
   TrendingUp,
   Edit,
   Eye,
-  Loader2,
   Trash2,
   Package,
-  Download
+  Download,
+  AlertTriangle
 } from 'lucide-react';
 import { saleService } from '@/services/sale';
 import { Sale } from '@/types';
@@ -27,6 +27,8 @@ import { SaleDetailsModal } from '@/components/sale/SaleDetailsModal';
 import { useConfirm } from '@/hooks/useConfirm';
 import { toast } from 'sonner';
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 type StatusFilter = 'pending' | 'completed' | 'cancelled' | 'all';
 
@@ -262,28 +264,35 @@ const VendasPage: React.FC = () => {
 
       {/* Tabela de Vendas */}
       {loading ? (
-        <Card>
-          <CardContent className="py-12 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </CardContent>
-        </Card>
+        <TableSkeleton rows={8} columns={8} />
       ) : error ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-destructive">{error}</p>
-            <Button variant="outline" onClick={loadSales} className="mt-4">
-              Tentar Novamente
-            </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={AlertTriangle}
+          title="Erro ao carregar vendas"
+          description={error}
+          action={{
+            label: "Tentar Novamente",
+            onClick: loadSales
+          }}
+        />
       ) : sales.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              Nenhuma venda encontrada.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={ShoppingCart}
+          title="Nenhuma venda encontrada"
+          description={
+            searchTerm || statusFilter !== 'all'
+              ? "Nenhuma venda corresponde aos filtros selecionados. Tente ajustar os filtros."
+              : "Você ainda não registrou nenhuma venda. Comece criando sua primeira venda!"
+          }
+          action={
+            !searchTerm && statusFilter === 'all'
+              ? {
+                  label: "Criar Primeira Venda",
+                  onClick: () => setCreateModalOpen(true)
+                }
+              : undefined
+          }
+        />
       ) : (
         <Card>
           <CardHeader>

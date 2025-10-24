@@ -45,6 +45,8 @@ import { AdjustStockModal } from '@/components/product/AdjustStockModal';
 import { useConfirm } from '@/hooks/useConfirm';
 import { toast } from 'sonner';
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
+import { TableSkeleton, GridSkeleton } from '@/components/ui/table-skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 type SortField = 'name' | 'stock_quantity' | 'sale_price' | 'cost_price' | 'category';
 type SortOrder = 'asc' | 'desc';
@@ -516,28 +518,27 @@ const ProdutosPage: React.FC = () => {
 
       {/* Tabela de Produtos */}
       {loading ? (
-        <Card>
-          <CardContent className="py-12 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </CardContent>
-        </Card>
+        viewMode === 'table' ? <TableSkeleton rows={10} columns={8} /> : <GridSkeleton items={8} />
       ) : error ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-destructive">{error}</p>
-            <Button variant="outline" onClick={loadProducts} className="mt-4">
-              Tentar Novamente
-            </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={AlertTriangle}
+          title="Erro ao carregar produtos"
+          description={error}
+          action={{
+            label: "Tentar Novamente",
+            onClick: loadProducts
+          }}
+        />
       ) : filteredAndSortedProducts.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              Nenhum produto encontrado com os filtros selecionados.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Package}
+          title="Nenhum produto encontrado"
+          description={hasActiveFilters ? "Nenhum produto corresponde aos filtros selecionados. Tente ajustar os filtros." : "Você ainda não cadastrou nenhum produto. Comece criando seu primeiro produto!"}
+          action={!hasActiveFilters ? {
+            label: "Criar Primeiro Produto",
+            onClick: () => setCreateModalOpen(true)
+          } : undefined}
+        />
       ) : (
         <Card>
           <CardHeader>

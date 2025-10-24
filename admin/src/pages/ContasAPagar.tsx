@@ -30,7 +30,6 @@ import {
   Edit,
   Trash2,
   Filter,
-  Loader2,
   Plus,
   Eye,
   Download,
@@ -38,13 +37,17 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  X
+  X,
+  FileText,
+  AlertTriangle
 } from 'lucide-react';
 import { invoiceService } from '../services/invoice';
 import { supplierService } from '../services/supplier';
 import { Invoice, Supplier } from '../types';
 import { toast } from 'sonner';
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 type StatusFilter = 'pending' | 'validated' | 'paid' | 'cancelled' | 'all';
 
@@ -436,28 +439,35 @@ const ContasAPagar: React.FC = () => {
 
       {/* Tabela */}
       {loading ? (
-        <Card>
-          <CardContent className="py-12 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </CardContent>
-        </Card>
+        <TableSkeleton rows={10} columns={7} />
       ) : error ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-destructive">{error}</p>
-            <Button variant="outline" onClick={loadInvoices} className="mt-4">
-              Tentar Novamente
-            </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={AlertTriangle}
+          title="Erro ao carregar faturas"
+          description={error}
+          action={{
+            label: "Tentar Novamente",
+            onClick: loadInvoices
+          }}
+        />
       ) : filteredAndSortedInvoices.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              Nenhuma fatura encontrada com os filtros selecionados.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FileText}
+          title="Nenhuma fatura encontrada"
+          description={
+            hasActiveFilters
+              ? "Nenhuma fatura corresponde aos filtros selecionados. Tente ajustar os filtros."
+              : "Você ainda não cadastrou nenhuma fatura. Comece criando sua primeira fatura ou importando uma fatura existente!"
+          }
+          action={
+            !hasActiveFilters
+              ? {
+                  label: "Criar Primeira Fatura",
+                  onClick: () => setCreateModalOpen(true)
+                }
+              : undefined
+          }
+        />
       ) : (
         <Card>
           <CardContent className="p-0">

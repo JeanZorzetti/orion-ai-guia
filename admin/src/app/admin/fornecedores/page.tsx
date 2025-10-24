@@ -18,6 +18,7 @@ import {
   UserCheck,
   UserX,
   Download,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -25,10 +26,13 @@ import CreateSupplierModal from '@/components/supplier/CreateSupplierModal';
 import EditSupplierModal from '@/components/supplier/EditSupplierModal';
 import SupplierDetailsModal from '@/components/supplier/SupplierDetailsModal';
 import { exportToCSV, formatDateForExport } from '@/lib/export';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function FornecedoresPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
@@ -47,11 +51,13 @@ export default function FornecedoresPage() {
   const loadSuppliers = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await supplierService.getAll();
       setSuppliers(data);
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || 'Erro ao carregar fornecedores');
       console.error('Erro ao carregar fornecedores:', error);
-      toast.error('Erro ao carregar fornecedores');
     } finally {
       setLoading(false);
     }
@@ -248,17 +254,39 @@ export default function FornecedoresPage() {
       </Card>
 
       {/* Suppliers Table */}
-      <Card>
-        <CardContent className="pt-6">
-          {loading ? (
-            <div className="text-center py-8 text-gray-500">Carregando fornecedores...</div>
-          ) : filteredSuppliers.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              {searchTerm || activeFilter !== 'all'
-                ? 'Nenhum fornecedor encontrado com os filtros aplicados.'
-                : 'Nenhum fornecedor cadastrado. Clique em "Novo Fornecedor" para começar.'}
-            </div>
-          ) : (
+      {loading ? (
+        <TableSkeleton rows={8} columns={7} />
+      ) : error ? (
+        <EmptyState
+          icon={AlertTriangle}
+          title="Erro ao carregar fornecedores"
+          description={error}
+          action={{
+            label: "Tentar Novamente",
+            onClick: loadSuppliers
+          }}
+        />
+      ) : filteredSuppliers.length === 0 ? (
+        <EmptyState
+          icon={Building2}
+          title="Nenhum fornecedor encontrado"
+          description={
+            searchTerm || activeFilter !== 'all'
+              ? "Nenhum fornecedor corresponde aos filtros selecionados. Tente ajustar os filtros."
+              : "Você ainda não cadastrou nenhum fornecedor. Comece criando seu primeiro fornecedor!"
+          }
+          action={
+            !searchTerm && activeFilter === 'all'
+              ? {
+                  label: "Criar Primeiro Fornecedor",
+                  onClick: () => setCreateModalOpen(true)
+                }
+              : undefined
+          }
+        />
+      ) : (
+        <Card>
+          <CardContent className="pt-6">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -331,9 +359,9 @@ export default function FornecedoresPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Modals */}
       <CreateSupplierModal
