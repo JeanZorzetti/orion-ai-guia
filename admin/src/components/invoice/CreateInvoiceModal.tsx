@@ -15,6 +15,9 @@ import { invoiceSchema, type InvoiceFormData } from '@/lib/validations/invoice';
 import { invoiceService } from '@/services/invoice';
 import { supplierService } from '@/services/supplier';
 import { Supplier, InvoiceExtractionResponse } from '@/types';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 
 interface CreateInvoiceModalProps {
   open: boolean;
@@ -23,7 +26,7 @@ interface CreateInvoiceModalProps {
   initialData?: InvoiceExtractionResponse | null;
 }
 
-export function CreateInvoiceModal({ open, onOpenChange, onSuccess }: CreateInvoiceModalProps) {
+export function CreateInvoiceModal({ open, onOpenChange, onSuccess, initialData }: CreateInvoiceModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
@@ -48,6 +51,29 @@ export function CreateInvoiceModal({ open, onOpenChange, onSuccess }: CreateInvo
       loadSuppliers();
     }
   }, [open]);
+
+  // Preencher formulário com dados extraídos pela IA
+  useEffect(() => {
+    if (initialData?.success && initialData.extracted_data) {
+      const data = initialData.extracted_data;
+      const suggestions = initialData.suggestions;
+
+      // Preencher campos
+      setValue('invoice_number', data.invoice_number || '');
+      setValue('invoice_date', data.invoice_date || '');
+      setValue('due_date', data.due_date || '');
+      setValue('total_value', data.total_value || 0);
+      setValue('tax_value', data.tax_value || 0);
+      setValue('net_value', data.net_value || 0);
+      setValue('category', data.category || '');
+      setValue('notes', data.description || '');
+
+      // Selecionar fornecedor automaticamente se houver match com alta confiança
+      if (suggestions.supplier_id) {
+        setValue('supplier_id', suggestions.supplier_id);
+      }
+    }
+  }, [initialData, setValue]);
 
   const loadSuppliers = async () => {
     setLoadingSuppliers(true);
@@ -96,6 +122,32 @@ export function CreateInvoiceModal({ open, onOpenChange, onSuccess }: CreateInvo
     onOpenChange(false);
   };
 
+  // Função para obter badge de confiança
+  const getConfidenceBadge = (confidence: number) => {
+    if (confidence >= 0.8) {
+      return (
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Alta confiança ({Math.round(confidence * 100)}%)
+        </Badge>
+      );
+    } else if (confidence >= 0.6) {
+      return (
+        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Média confiança ({Math.round(confidence * 100)}%)
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+          <AlertCircle className="h-3 w-3 mr-1" />
+          Baixa confiança ({Math.round(confidence * 100)}%)
+        </Badge>
+      );
+    }
+  };
+
   // Auto-calcular valores quando total_value ou tax_value mudam
   const totalValue = watch('total_value');
   const taxValue = watch('tax_value');
@@ -115,22 +167,78 @@ export function CreateInvoiceModal({ open, onOpenChange, onSuccess }: CreateInvo
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
-            Criar Nova Fatura
+            {initialData ? 'Revisar Dados Extraídos pela IA' : 'Criar Nova Fatura'}
           </DialogTitle>
           <DialogDescription>
-            Preencha os dados da fatura para adicionar ao sistema
+            {initialData
+              ? 'Revise e ajuste os dados extraídos automaticamente pela IA antes de salvar'
+              : 'Preencha os dados da fatura para adicionar ao sistema'}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Avisos da IA */}
+        {initialData?.suggestions?.warnings && initialData.suggestions.warnings.length > 0 && (
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <AlertTriangle className="h-4 w-4 text-yellow-700" />
+            <AlertDescription className="text-yellow-700">
+              <div className="font-semibold mb-1">Atenção aos seguintes pontos:</div>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                {initialData.suggestions.warnings.map((warning, idx) => (
+                  <li key={idx}>{warning}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Info sobre processamento */}
+        {initialData?.processing_time_ms && (
+          <div className="text-xs text-muted-foreground text-right">
+            Processado em {initialData.processing_time_ms}ms
+          </div>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Fornecedor */}
           <div className="space-y-2">
-            <Label htmlFor="supplier_id">
-              Fornecedor <span className="text-destructive">*</span>
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="supplier_id">
+                Fornecedor <span className="text-destructive">*</span>
+              </Label>
+              {initialData?.extracted_data?.confidence?.supplier_name !== undefined && (
+                getConfidenceBadge(initialData.extracted_data.confidence.supplier_name)
+              )}
+            </div>
+
+            {/* Mostrar matches de fornecedor se houver */}
+            {initialData?.extracted_data?.supplier_matches && initialData.extracted_data.supplier_matches.length > 0 && (
+              <Alert className="border-blue-200 bg-blue-50">
+                <AlertCircle className="h-4 w-4 text-blue-700" />
+                <AlertDescription className="text-blue-700">
+                  <div className="font-semibold mb-2">Fornecedores similares encontrados:</div>
+                  <div className="space-y-2">
+                    {initialData.extracted_data.supplier_matches.slice(0, 3).map((match, idx) => (
+                      <div key={idx} className="text-sm flex items-center justify-between bg-white p-2 rounded border border-blue-100">
+                        <div>
+                          <span className="font-medium">{match.name}</span>
+                          {match.cnpj && <span className="text-muted-foreground ml-2">({match.cnpj})</span>}
+                          <div className="text-xs text-muted-foreground">{match.match_reason}</div>
+                        </div>
+                        <Badge variant="outline" className="ml-2">
+                          {Math.round(match.score)}% match
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-xs mt-2">Detectado: {initialData.extracted_data.supplier_name}</div>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <Select
               onValueChange={(value) => setValue('supplier_id', parseInt(value))}
               disabled={loadingSuppliers}
+              value={watch('supplier_id')?.toString()}
             >
               <SelectTrigger id="supplier_id">
                 <SelectValue placeholder={loadingSuppliers ? 'Carregando...' : 'Selecione um fornecedor'} />
@@ -151,9 +259,14 @@ export function CreateInvoiceModal({ open, onOpenChange, onSuccess }: CreateInvo
           {/* Número e Categoria */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="invoice_number">
-                Número da Fatura <span className="text-destructive">*</span>
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="invoice_number">
+                  Número da Fatura <span className="text-destructive">*</span>
+                </Label>
+                {initialData?.extracted_data?.confidence?.invoice_number !== undefined && (
+                  getConfidenceBadge(initialData.extracted_data.confidence.invoice_number)
+                )}
+              </div>
               <Input
                 id="invoice_number"
                 {...register('invoice_number')}
@@ -180,9 +293,14 @@ export function CreateInvoiceModal({ open, onOpenChange, onSuccess }: CreateInvo
           {/* Datas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="invoice_date">
-                Data de Emissão <span className="text-destructive">*</span>
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="invoice_date">
+                  Data de Emissão <span className="text-destructive">*</span>
+                </Label>
+                {initialData?.extracted_data?.confidence?.invoice_date !== undefined && (
+                  getConfidenceBadge(initialData.extracted_data.confidence.invoice_date)
+                )}
+              </div>
               <Input
                 id="invoice_date"
                 type="date"
@@ -194,7 +312,12 @@ export function CreateInvoiceModal({ open, onOpenChange, onSuccess }: CreateInvo
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="due_date">Data de Vencimento</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="due_date">Data de Vencimento</Label>
+                {initialData?.extracted_data?.confidence?.due_date !== undefined && (
+                  getConfidenceBadge(initialData.extracted_data.confidence.due_date)
+                )}
+              </div>
               <Input
                 id="due_date"
                 type="date"
@@ -209,9 +332,14 @@ export function CreateInvoiceModal({ open, onOpenChange, onSuccess }: CreateInvo
           {/* Valores */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="total_value">
-                Valor Total <span className="text-destructive">*</span>
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="total_value">
+                  Valor Total <span className="text-destructive">*</span>
+                </Label>
+                {initialData?.extracted_data?.confidence?.total_value !== undefined && (
+                  getConfidenceBadge(initialData.extracted_data.confidence.total_value)
+                )}
+              </div>
               <Input
                 id="total_value"
                 type="number"

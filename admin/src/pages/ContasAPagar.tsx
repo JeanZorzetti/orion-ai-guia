@@ -24,6 +24,7 @@ import InvoiceUploadModal from '../../src/components/invoice/InvoiceUploadModal'
 import { CreateInvoiceModal } from '../../src/components/invoice/CreateInvoiceModal';
 import { EditInvoiceModal } from '../../src/components/invoice/EditInvoiceModal';
 import { InvoiceDetailsModal } from '../../src/components/invoice/InvoiceDetailsModal';
+import { InvoiceUploadWithAI } from '../../src/components/invoice/InvoiceUploadWithAI';
 import { useConfirm } from '@/hooks/useConfirm';
 import {
   Upload,
@@ -39,12 +40,14 @@ import {
   ArrowDown,
   X,
   FileText,
-  AlertTriangle
+  AlertTriangle,
+  Sparkles
 } from 'lucide-react';
 import { invoiceService } from '../services/invoice';
 import { supplierService } from '../services/supplier';
-import { Invoice, Supplier } from '../types';
+import { Invoice, Supplier, InvoiceExtractionResponse } from '../types';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -79,6 +82,10 @@ const ContasAPagar: React.FC = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
+  // Estados do upload com IA
+  const [uploadWithAIOpen, setUploadWithAIOpen] = useState(false);
+  const [extractedData, setExtractedData] = useState<InvoiceExtractionResponse | null>(null);
 
   const { confirm, ConfirmDialog } = useConfirm();
 
@@ -277,6 +284,16 @@ const ContasAPagar: React.FC = () => {
     }
   };
 
+  const handleAIExtracted = (result: InvoiceExtractionResponse) => {
+    setExtractedData(result);
+    setUploadWithAIOpen(false);
+    setCreateModalOpen(true);
+  };
+
+  const handleCancelAIUpload = () => {
+    setUploadWithAIOpen(false);
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: 'default' | 'destructive' | 'secondary' | 'outline' }> = {
       'pending': { label: 'Pendente', variant: 'default' },
@@ -342,6 +359,15 @@ const ContasAPagar: React.FC = () => {
           >
             <Plus className="mr-2 h-4 w-4" />
             Nova Fatura
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => setUploadWithAIOpen(true)}
+            className="border-primary/50 hover:border-primary"
+          >
+            <Sparkles className="mr-2 h-4 w-4 text-primary" />
+            Upload com IA
           </Button>
           <InvoiceUploadModal onSuccess={loadInvoices}>
             <Button size="lg" variant="outline" data-tour="form-validation">
@@ -638,10 +664,29 @@ const ContasAPagar: React.FC = () => {
       )}
 
       {/* Modais */}
+      <Dialog open={uploadWithAIOpen} onOpenChange={setUploadWithAIOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Upload de Fatura com IA
+            </DialogTitle>
+            <DialogDescription>
+              Faça upload de um PDF ou imagem da fatura e nossa IA irá extrair automaticamente todas as informações
+            </DialogDescription>
+          </DialogHeader>
+          <InvoiceUploadWithAI
+            onExtracted={handleAIExtracted}
+            onCancel={handleCancelAIUpload}
+          />
+        </DialogContent>
+      </Dialog>
+
       <CreateInvoiceModal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
         onSuccess={loadInvoices}
+        initialData={extractedData}
       />
 
       <EditInvoiceModal
