@@ -17,12 +17,14 @@ import {
   Users,
   UserCheck,
   UserX,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useConfirm } from '@/hooks/useConfirm';
 import CreateSupplierModal from '@/components/supplier/CreateSupplierModal';
 import EditSupplierModal from '@/components/supplier/EditSupplierModal';
 import SupplierDetailsModal from '@/components/supplier/SupplierDetailsModal';
+import { exportToCSV, formatDateForExport } from '@/lib/export';
 
 export default function FornecedoresPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -120,6 +122,27 @@ export default function FornecedoresPage() {
     return doc;
   };
 
+  const handleExport = () => {
+    exportToCSV(
+      filteredSuppliers,
+      'fornecedores',
+      [
+        { key: 'id', label: 'ID' },
+        { key: 'name', label: 'Nome' },
+        { key: 'document', label: 'Documento' },
+        { key: 'email', label: 'Email' },
+        { key: 'phone', label: 'Telefone' },
+        { key: 'address', label: 'Endereço' },
+        { key: 'city', label: 'Cidade' },
+        { key: 'state', label: 'Estado' },
+        { key: 'zip_code', label: 'CEP' },
+        { key: 'active', label: 'Ativo', format: (val) => (val ? 'Sim' : 'Não') },
+        { key: 'created_at', label: 'Criado em', format: formatDateForExport },
+      ]
+    );
+    toast.success(`${filteredSuppliers.length} fornecedor(es) exportado(s) com sucesso!`);
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -128,10 +151,21 @@ export default function FornecedoresPage() {
           <h1 className="text-3xl font-bold text-gray-900">Fornecedores</h1>
           <p className="text-gray-500">Gerencie seus fornecedores e parceiros</p>
         </div>
-        <Button onClick={() => setCreateModalOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Fornecedor
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleExport}
+            variant="outline"
+            className="gap-2"
+            disabled={filteredSuppliers.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            Exportar CSV
+          </Button>
+          <Button onClick={() => setCreateModalOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Fornecedor
+          </Button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
