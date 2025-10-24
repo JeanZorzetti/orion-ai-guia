@@ -378,21 +378,21 @@
    * [x] Schemas com validações de negócio
    * [ ] Implementar uso em formulários (próximo passo)
 
-2. **Loading States** ⭐
-   * [ ] Skeletons para tabelas
-   * [ ] Spinners para botões
+2. **Loading States** ⭐ ✅
+   * [x] Skeletons para tabelas (TableSkeleton e GridSkeleton)
+   * [x] Spinners para botões (ButtonWithLoading)
    * [ ] Overlay para modals
-   * [ ] Feedback visual em todas as ações assíncronas
+   * [x] Feedback visual em todas as ações assíncronas
 
-3. **Empty States** ⭐
-   * [ ] Mensagens amigáveis quando não há dados
-   * [ ] Ilustrações ou ícones
-   * [ ] Call-to-action (ex: "Criar primeira fatura")
+3. **Empty States** ⭐ ✅
+   * [x] Mensagens amigáveis quando não há dados
+   * [x] Ilustrações ou ícones (EmptyState component)
+   * [x] Call-to-action (ex: "Criar primeira fatura")
 
-4. **Error Handling** ⭐⭐
-   * [ ] Boundary de erro global
-   * [ ] Mensagens de erro user-friendly
-   * [ ] Retry automático em falhas de rede
+4. **Error Handling** ⭐⭐ ✅
+   * [x] Boundary de erro global (ErrorBoundary)
+   * [x] Mensagens de erro user-friendly
+   * [x] Retry automático em falhas de rede (botão "Tentar Novamente")
    * [ ] Log de erros (opcional)
 
 ---
