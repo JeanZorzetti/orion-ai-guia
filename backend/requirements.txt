@@ -26,10 +26,17 @@ aiohttp==3.9.1
 Pillow==10.1.0
 pdf2image==1.16.3
 pytesseract==0.3.10
-fuzzywuzzy==0.18.0
+pdfplumber==0.10.3
+thefuzz==0.20.0
 python-Levenshtein==0.23.0
 PyPDF2==3.0.1
 opencv-python-headless==4.8.1.78
 numpy==1.26.2
 transformers==4.35.2
 torch==2.1.1
+
+# ML para Previsão de Demanda
+scikit-learn==1.3.2
+statsmodels==0.14.0
+prophet==1.1.5
+pandas==2.1.3
