@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -6,7 +6,13 @@ from app.core.database import get_db
 from app.models.product import Product
 from app.core.deps import get_current_user
 from app.models.user import User
-from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
+from app.schemas.product import (
+    ProductCreate,
+    ProductUpdate,
+    ProductResponse,
+    DemandForecastResponse
+)
+from app.services.demand_forecaster import DemandForecaster
 
 router = APIRouter()
 
@@ -164,3 +170,51 @@ def delete_product(
     db.delete(db_product)
     db.commit()
     return None
+
+
+@router.get("/{product_id}/demand-forecast", response_model=DemandForecastResponse)
+def get_demand_forecast(
+    product_id: int,
+    period: str = Query(default="4_weeks", regex="^(2|4|8|12)_weeks$"),
+    granularity: str = Query(default="weekly", regex="^(daily|weekly|monthly)$"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna previsão de demanda para um produto usando Machine Learning
+
+    Este endpoint analisa o histórico de vendas e gera previsões usando
+    análise de séries temporais (média móvel + tendência linear).
+
+    Args:
+        product_id: ID do produto
+        period: Período de previsão (2_weeks, 4_weeks, 8_weeks, 12_weeks)
+        granularity: Granularidade dos dados (daily, weekly, monthly)
+
+    Returns:
+        DemandForecastResponse com histórico, previsão e insights
+    """
+
+    # Parse período
+    periods_map = {
+        "2_weeks": 2,
+        "4_weeks": 4,
+        "8_weeks": 8,
+        "12_weeks": 12
+    }
+
+    periods = periods_map.get(period, 4)
+
+    # Inicializa forecaster
+    forecaster = DemandForecaster(db)
+
+    # Gera previsão
+    result = forecaster.get_demand_forecast(
+        product_id=product_id,
+        workspace_id=current_user.workspace_id,
+        periods=periods,
+        granularity=granularity
+    )
+
+    # Retorna resposta
+    return result
