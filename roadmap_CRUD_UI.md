@@ -132,13 +132,18 @@
    * [x] Atualizar `stock_quantity` do produto
    * [x] Preview em tempo real do resultado
 
-5. **Melhorias na Listagem**
-   * [ ] Paginação
-   * [ ] Filtro por categoria
-   * [ ] Filtro por status (ativo/inativo)
-   * [ ] Ordenação por: nome, estoque, preço
-   * [ ] Visualização em cards/grid (além de tabela)
-   * [ ] Indicadores visuais: estoque crítico, baixo, OK
+5. **Melhorias na Listagem** ⭐⭐ ✅
+   * [x] Filtro por categoria (dinâmico)
+   * [x] Filtro por status (ativo/inativo com ícones)
+   * [x] Filtro por nível de estoque (crítico, baixo, OK)
+   * [x] Ordenação por: nome, categoria, estoque, preço
+   * [x] Indicadores visuais com cores (🔴 🟠 🟢)
+   * [x] Busca em tempo real
+   * [x] Botão "Limpar Filtros"
+   * [x] Contador de resultados
+   * [x] Exportação CSV filtrada
+   * [ ] Paginação - Opcional para depois
+   * [ ] Visualização em cards/grid - Opcional para depois
 
 ---
 
