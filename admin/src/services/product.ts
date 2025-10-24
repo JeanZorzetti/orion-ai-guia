@@ -1,5 +1,5 @@
 import { api } from '@/lib/api';
-import { Product, ProductCreate, ProductUpdate } from '@/types';
+import { Product, ProductCreate, ProductUpdate, DemandForecastResponse } from '@/types';
 
 export const productService = {
   // Listar produtos
@@ -46,5 +46,17 @@ export const productService = {
   // Deletar produto
   async delete(id: number): Promise<void> {
     await api.delete(`/products/${id}`);
+  },
+
+  // Obter previsão de demanda
+  async getDemandForecast(
+    productId: number,
+    period: '2_weeks' | '4_weeks' | '8_weeks' | '12_weeks' = '4_weeks'
+  ): Promise<DemandForecastResponse> {
+    const response = await api.get<DemandForecastResponse>(
+      `/products/${productId}/demand-forecast`,
+      { params: { period } }
+    );
+    return response;
   },
 };

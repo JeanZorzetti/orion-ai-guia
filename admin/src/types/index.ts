@@ -305,3 +305,66 @@ export interface InvoiceExtractionResponse {
   success: boolean;
   error?: string | null;
 }
+
+// Tipos de Previsão de Demanda
+
+export interface ProductInfo {
+  id: number;
+  name: string;
+  current_stock: number;
+  min_stock_level: number;
+}
+
+export interface HistoricalDataPoint {
+  period: string;  // Format: YYYY-Www
+  units_sold: number;
+  date_start: string;  // Format: YYYY-MM-DD
+}
+
+export interface ForecastDataPoint {
+  period: string;  // Format: YYYY-Www
+  predicted_units: number;
+  lower_bound: number;
+  upper_bound: number;
+  confidence: number;  // 0.0-1.0
+  date_start: string;  // Format: YYYY-MM-DD
+}
+
+export interface ForecastAlert {
+  type: string;  // warning, info, error
+  severity: string;  // high, medium, low
+  message: string;
+  action: string;
+}
+
+export interface DemandInsights {
+  trend: string;  // increasing, stable, decreasing
+  trend_percentage: number;
+  seasonality_detected: boolean;
+  avg_weekly_demand: number;
+  recommended_stock_level: number;
+  reorder_point: number;
+  stock_coverage_weeks: number;
+  total_forecast_4weeks: number;
+  alerts: ForecastAlert[];
+}
+
+export interface ModelInfo {
+  model_used: string;
+  data_points: number;
+  training_period: string;
+  mape: number;  // Mean Absolute Percentage Error
+  rmse: number;  // Root Mean Square Error
+  last_updated: string;
+}
+
+export interface DemandForecastResponse {
+  success: boolean;
+  product?: ProductInfo;
+  historical: HistoricalDataPoint[];
+  forecast: ForecastDataPoint[];
+  insights?: DemandInsights;
+  model_info?: ModelInfo;
+  error?: string;
+  data_points?: number;
+}
