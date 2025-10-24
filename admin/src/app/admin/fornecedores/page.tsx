@@ -28,6 +28,9 @@ import SupplierDetailsModal from '@/components/supplier/SupplierDetailsModal';
 import { exportToCSV, formatDateForExport } from '@/lib/export';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { usePrint } from '@/hooks/usePrint';
+import { PrintButton } from '@/components/ui/print-button';
+import { PrintLayout, NoPrint, PrintOnly, PrintInfoGrid } from '@/components/ui/print-layout';
 
 export default function FornecedoresPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -43,6 +46,11 @@ export default function FornecedoresPage() {
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
 
   const { confirm, ConfirmDialog } = useConfirm();
+
+  // Hook de impressão
+  const { isPrinting, handlePrint } = usePrint({
+    documentTitle: 'Relatório de Fornecedores - Orion ERP',
+  });
 
   useEffect(() => {
     loadSuppliers();
@@ -150,32 +158,60 @@ export default function FornecedoresPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Fornecedores</h1>
-          <p className="text-gray-500">Gerencie seus fornecedores e parceiros</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={handleExport}
-            variant="outline"
-            className="gap-2"
-            disabled={filteredSuppliers.length === 0}
-          >
-            <Download className="h-4 w-4" />
-            Exportar CSV
-          </Button>
-          <Button onClick={() => setCreateModalOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Fornecedor
-          </Button>
-        </div>
-      </div>
+    <PrintLayout
+      title="Relatório de Fornecedores"
+      subtitle={`${filteredSuppliers.length} fornecedor(es) encontrado(s)`}
+      showHeader
+      showFooter
+    >
+      <div className="p-6 space-y-6">
+        <NoPrint>
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Fornecedores</h1>
+              <p className="text-gray-500">Gerencie seus fornecedores e parceiros</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleExport}
+                variant="outline"
+                className="gap-2"
+                disabled={filteredSuppliers.length === 0}
+              >
+                <Download className="h-4 w-4" />
+                Exportar CSV
+              </Button>
+              <PrintButton
+                onClick={handlePrint}
+                loading={isPrinting}
+                label="Imprimir"
+                variant="outline"
+                disabled={filteredSuppliers.length === 0}
+              />
+              <Button onClick={() => setCreateModalOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Novo Fornecedor
+              </Button>
+            </div>
+          </div>
+        </NoPrint>
+
+        {/* Resumo para impressão */}
+        <PrintOnly>
+          <PrintInfoGrid
+            items={[
+              { label: 'Total de Fornecedores', value: totalSuppliers },
+              { label: 'Fornecedores Ativos', value: activeSuppliers },
+              { label: 'Fornecedores Inativos', value: inactiveSuppliers },
+              { label: 'Taxa de Atividade', value: `${((activeSuppliers / totalSuppliers) * 100).toFixed(0)}%` },
+            ]}
+          />
+        </PrintOnly>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <NoPrint>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Fornecedores</CardTitle>
@@ -209,9 +245,11 @@ export default function FornecedoresPage() {
           </CardContent>
         </Card>
       </div>
+      </NoPrint>
 
       {/* Filters */}
-      <Card>
+      <NoPrint>
+        <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search */}
@@ -252,6 +290,7 @@ export default function FornecedoresPage() {
           </div>
         </CardContent>
       </Card>
+      </NoPrint>
 
       {/* Suppliers Table */}
       {loading ? (
@@ -394,6 +433,7 @@ export default function FornecedoresPage() {
       />
 
       {ConfirmDialog}
-    </div>
+      </div>
+    </PrintLayout>
   );
 }

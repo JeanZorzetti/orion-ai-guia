@@ -492,8 +492,12 @@
    * [x] Componente PrintLayout com cabeçalho e rodapé
    * [x] Componentes auxiliares (PrintOnly, NoPrint, PrintInfoGrid, PrintSummary)
    * [x] Integrado na página de Produtos
-   * [x] Logo e cabeçalho da empresa automático
-   * [ ] Integrar nas páginas de Faturas, Vendas e Fornecedores (próxima iteração)
+   * [x] Integrado na página de Faturas (Contas a Pagar)
+   * [x] Integrado na página de Vendas
+   * [x] Integrado na página de Fornecedores
+   * [x] Logo e cabeçalho da empresa automático em todos os relatórios
+   * [x] Resumos estatísticos com PrintInfoGrid em todas as páginas
+   * [x] Filtros e botões ocultos na impressão (NoPrint)
 
 ### 11.3 - Temas e Personalização
 

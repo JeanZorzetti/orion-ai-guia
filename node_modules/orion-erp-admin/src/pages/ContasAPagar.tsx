@@ -48,6 +48,9 @@ import { toast } from 'sonner';
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { usePrint } from '@/hooks/usePrint';
+import { PrintButton } from '@/components/ui/print-button';
+import { PrintLayout, NoPrint, PrintOnly, PrintInfoGrid } from '@/components/ui/print-layout';
 
 type StatusFilter = 'pending' | 'validated' | 'paid' | 'cancelled' | 'all';
 
@@ -78,6 +81,11 @@ const ContasAPagar: React.FC = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
   const { confirm, ConfirmDialog } = useConfirm();
+
+  // Hook de impressão
+  const { isPrinting, handlePrint } = usePrint({
+    documentTitle: 'Relatório de Faturas - Orion ERP',
+  });
 
   useEffect(() => {
     loadInvoices();
@@ -289,6 +297,10 @@ const ContasAPagar: React.FC = () => {
     }
   };
 
+  const formatCurrency = (value: number) => {
+    return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  };
+
   const filtros = [
     { key: 'all', label: 'Todas' },
     { key: 'pending', label: 'Pendentes' },
@@ -298,10 +310,17 @@ const ContasAPagar: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Contas a Pagar</h1>
-        <div className="flex gap-2">
+    <PrintLayout
+      title="Relatório de Faturas"
+      subtitle={`${filteredAndSortedInvoices.length} fatura(s) encontrada(s)`}
+      showHeader
+      showFooter
+    >
+      <div className="space-y-6">
+        <NoPrint>
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-foreground">Contas a Pagar</h1>
+            <div className="flex gap-2">
           <Button
             variant="outline"
             onClick={handleExport}
@@ -310,6 +329,13 @@ const ContasAPagar: React.FC = () => {
             <Download className="mr-2 h-4 w-4" />
             Exportar CSV
           </Button>
+          <PrintButton
+            onClick={handlePrint}
+            loading={isPrinting}
+            label="Imprimir"
+            variant="outline"
+            disabled={invoices.length === 0}
+          />
           <Button
             size="lg"
             onClick={() => setCreateModalOpen(true)}
@@ -325,9 +351,23 @@ const ContasAPagar: React.FC = () => {
           </InvoiceUploadModal>
         </div>
       </div>
+        </NoPrint>
+
+        {/* Resumo para impressão */}
+        <PrintOnly>
+          <PrintInfoGrid
+            items={[
+              { label: 'Total de Faturas', value: filteredAndSortedInvoices.length },
+              { label: 'Pendentes', value: filteredAndSortedInvoices.filter(i => i.status === 'pending').length },
+              { label: 'Pagas', value: filteredAndSortedInvoices.filter(i => i.status === 'paid').length },
+              { label: 'Valor Total', value: formatCurrency(filteredAndSortedInvoices.reduce((sum, i) => sum + i.total_value, 0)) },
+            ]}
+          />
+        </PrintOnly>
 
       {/* Filtros */}
-      <Card>
+      <NoPrint>
+        <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -436,6 +476,7 @@ const ContasAPagar: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+      </NoPrint>
 
       {/* Tabela */}
       {loading ? (
@@ -619,7 +660,8 @@ const ContasAPagar: React.FC = () => {
       />
 
       {ConfirmDialog}
-    </div>
+      </div>
+    </PrintLayout>
   );
 };
 

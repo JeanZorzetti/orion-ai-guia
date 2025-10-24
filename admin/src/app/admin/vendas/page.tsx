@@ -29,6 +29,9 @@ import { toast } from 'sonner';
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { usePrint } from '@/hooks/usePrint';
+import { PrintButton } from '@/components/ui/print-button';
+import { PrintLayout, NoPrint, PrintOnly, PrintInfoGrid } from '@/components/ui/print-layout';
 
 type StatusFilter = 'pending' | 'completed' | 'cancelled' | 'all';
 
@@ -46,6 +49,11 @@ const VendasPage: React.FC = () => {
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
   const { confirm, ConfirmDialog } = useConfirm();
+
+  // Hook de impressão
+  const { isPrinting, handlePrint } = usePrint({
+    documentTitle: 'Relatório de Vendas - Orion ERP',
+  });
 
   useEffect(() => {
     loadSales();
@@ -183,35 +191,63 @@ const VendasPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <ShoppingCart className="h-8 w-8" />
-            Vendas
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie as vendas de produtos
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleExport}
-            disabled={sales.length === 0}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Exportar CSV
-          </Button>
-          <Button size="lg" onClick={() => setCreateModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Venda
-          </Button>
-        </div>
-      </div>
+    <PrintLayout
+      title="Relatório de Vendas"
+      subtitle={`${sales.length} venda(s) encontrada(s)`}
+      showHeader
+      showFooter
+    >
+      <div className="space-y-6">
+        <NoPrint>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+                <ShoppingCart className="h-8 w-8" />
+                Vendas
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Gerencie as vendas de produtos
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExport}
+                disabled={sales.length === 0}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Exportar CSV
+              </Button>
+              <PrintButton
+                onClick={handlePrint}
+                loading={isPrinting}
+                label="Imprimir"
+                variant="outline"
+                disabled={sales.length === 0}
+              />
+              <Button size="lg" onClick={() => setCreateModalOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Venda
+              </Button>
+            </div>
+          </div>
+        </NoPrint>
+
+        {/* Resumo para impressão */}
+        <PrintOnly>
+          <PrintInfoGrid
+            items={[
+              { label: 'Total de Vendas', value: statistics[0]?.value || '0' },
+              { label: 'Valor Total', value: statistics[1]?.value || 'R$ 0,00' },
+              { label: 'Vendas Concluídas', value: sales.filter(s => s.status === 'completed').length },
+              { label: 'Vendas Pendentes', value: sales.filter(s => s.status === 'pending').length },
+            ]}
+          />
+        </PrintOnly>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <NoPrint>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {statistics.map((stat, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -226,9 +262,11 @@ const VendasPage: React.FC = () => {
           </Card>
         ))}
       </div>
+      </NoPrint>
 
       {/* Filtros */}
-      <Card>
+      <NoPrint>
+        <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
@@ -261,6 +299,7 @@ const VendasPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+      </NoPrint>
 
       {/* Tabela de Vendas */}
       {loading ? (
@@ -406,7 +445,8 @@ const VendasPage: React.FC = () => {
       />
 
       {ConfirmDialog}
-    </div>
+      </div>
+    </PrintLayout>
   );
 };
 
