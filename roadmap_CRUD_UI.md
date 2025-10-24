@@ -499,16 +499,22 @@
 
 **Tarefas:**
 
-1. **Dark Mode** ⭐
-   * [ ] Toggle dark/light mode
-   * [ ] Persistir preferência
-   * [ ] Atualizar todas as cores
-   * [ ] Testar contraste
+1. **Dark Mode** ⭐ ✅ COMPLETO
+   * [x] Toggle dark/light mode (ThemeToggle component)
+   * [x] Persistir preferência (localStorage)
+   * [x] Suporte a tema System (detecta preferência do OS)
+   * [x] Hook useTheme para gerenciar tema
+   * [x] CSS global com variáveis dark mode
+   * [x] Header atualizado com classes responsivas
+   * [x] Dropdown com 3 opções: Claro, Escuro, Sistema
+   * [x] Ícones: Sun (claro), Moon (escuro), Monitor (sistema)
+   * [x] Transições suaves entre temas
+   * [x] Testar contraste e acessibilidade
 
 2. **Personalização** (Bonus)
-   * [ ] Logo da empresa
-   * [ ] Cores do tema
-   * [ ] Nome da empresa no header
+   * [ ] Logo da empresa customizável
+   * [ ] Cores do tema personalizadas
+   * [ ] Nome da empresa no header editável
 
 ---
 
