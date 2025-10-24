@@ -132,7 +132,7 @@
    * [x] Atualizar `stock_quantity` do produto
    * [x] Preview em tempo real do resultado
 
-5. **Melhorias na Listagem** ⭐⭐ ✅
+5. **Melhorias na Listagem** ⭐⭐ ✅ COMPLETO
    * [x] Filtro por categoria (dinâmico)
    * [x] Filtro por status (ativo/inativo com ícones)
    * [x] Filtro por nível de estoque (crítico, baixo, OK)
@@ -142,8 +142,8 @@
    * [x] Botão "Limpar Filtros"
    * [x] Contador de resultados
    * [x] Exportação CSV filtrada
-   * [ ] Paginação - Opcional para depois
-   * [ ] Visualização em cards/grid - Opcional para depois
+   * [x] Paginação (10/25/50/100 itens + navegação)
+   * [x] Visualização em cards/grid (toggle com tabela)
 
 ---
 
