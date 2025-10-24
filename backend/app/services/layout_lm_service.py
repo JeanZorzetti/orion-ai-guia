@@ -4,9 +4,7 @@ import logging
 from typing import Dict, List, Any, Optional, Tuple
 from transformers import (
     LayoutLMv3Processor,
-    LayoutLMv3ForTokenClassification,
-    LayoutLMForTokenClassification,
-    LayoutLMProcessor
+    LayoutLMv3ForTokenClassification
 )
 from PIL import Image
 import numpy as np
