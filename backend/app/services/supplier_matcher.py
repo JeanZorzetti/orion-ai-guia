@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Any, List, Tuple, Optional
-from fuzzywuzzy import fuzz, process
+from thefuzz import fuzz, process
 import re
 import unicodedata
 from sqlalchemy.orm import Session
