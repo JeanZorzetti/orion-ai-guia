@@ -12,7 +12,8 @@ import {
   FileText,
   Package,
   Shield,
-  LogOut
+  LogOut,
+  ShoppingCart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { User } from '@/types';
@@ -41,6 +42,11 @@ const navigation = [
     href: '/admin/estoque',
     icon: BarChart3,
     children: [
+      {
+        name: 'Vendas',
+        href: '/admin/vendas',
+        icon: ShoppingCart,
+      },
       {
         name: 'Produtos',
         href: '/admin/estoque/produtos',
