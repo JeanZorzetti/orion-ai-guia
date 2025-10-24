@@ -66,52 +66,53 @@ Implementar processamento de linguagem natural (PLN) para extrair automaticament
 
 **Tarefas:**
 
-1. **Criar Endpoint de Upload** ⭐⭐⭐
-   * [ ] Criar rota `POST /api/v1/invoices/upload`
-   * [ ] Aceitar `multipart/form-data` (arquivo + workspace_id)
-   * [ ] Validar tipos de arquivo permitidos:
+1. **Criar Endpoint de Upload** ⭐⭐⭐ ✅ **COMPLETO**
+   * [x] Criar rota `POST /api/v1/invoices/upload`
+   * [x] Aceitar `multipart/form-data` (arquivo + workspace_id)
+   * [x] Validar tipos de arquivo permitidos:
      - PDF (.pdf)
      - Imagens (.jpg, .jpeg, .png)
-   * [ ] Validar tamanho máximo (ex: 10MB)
-   * [ ] Implementar tratamento de erros robusto
-   * [ ] Adicionar logging detalhado para debug
+   * [x] Validar tamanho máximo (10MB)
+   * [x] Implementar tratamento de erros robusto
+   * [x] Adicionar logging detalhado para debug
 
-2. **Implementar Extração de Dados com IA** ⭐⭐⭐
-   * [ ] Instalar dependências:
+2. **Implementar Extração de Dados com IA** ⭐⭐⭐ ✅ **COMPLETO** (serviços já existiam)
+   * [x] Instalar dependências:
      ```bash
      pip install transformers torch pillow pytesseract pdfplumber thefuzz
      ```
-   * [ ] Criar módulo `app/services/invoice_extractor.py`
-   * [ ] Implementar classe `InvoiceExtractor`:
+   * [x] Criar módulo `app/services/invoice_extractor.py` (já existia como invoice_processor.py)
+   * [x] Implementar classe `InvoiceExtractor`:
      - Método `extract_from_pdf(file_path)` → dict
      - Método `extract_from_image(file_path)` → dict
      - Método `preprocess_document()` → normalização
-   * [ ] Integrar LayoutLM para extração estruturada:
-     - Modelo: `microsoft/layoutlm-base-uncased` ou similar
+   * [x] Integrar LayoutLM para extração estruturada (layout_lm_service.py):
+     - Modelo: `microsoft/layoutlmv3-base`
      - Extrair: supplier_name, total_value, due_date, invoice_number
-   * [ ] Implementar fallback com Tesseract OCR
-   * [ ] Pós-processamento:
+   * [x] Implementar fallback com Tesseract OCR
+   * [x] Pós-processamento:
      - Limpar textos extraídos
      - Validar formatos de data
      - Converter valores monetários para float
-   * [ ] Adicionar confiança (confidence score) para cada campo
+   * [x] Adicionar confiança (confidence score) para cada campo
 
-3. **Implementar Fuzzy Matching de Fornecedores** ⭐⭐
-   * [ ] Criar módulo `app/services/supplier_matcher.py`
-   * [ ] Implementar função `match_supplier(name: str, workspace_id: int)`:
+3. **Implementar Fuzzy Matching de Fornecedores** ⭐⭐ ✅ **COMPLETO** (já existia)
+   * [x] Criar módulo `app/services/supplier_matcher.py` (já existia)
+   * [x] Implementar função `match_supplier(name: str, workspace_id: int)`:
      - Buscar todos os fornecedores do workspace
      - Calcular similarity score com `thefuzz.fuzz.ratio()`
      - Retornar top 3 matches com scores
-     - Threshold mínimo: 80% de similaridade
-   * [ ] Implementar normalização de nomes:
+     - Threshold mínimo: 70% (configurável)
+   * [x] Implementar normalização de nomes:
      - Remover acentos
      - Converter para lowercase
      - Remover pontuação especial
      - Remover palavras comuns (Ltda, LTDA, S.A., etc.)
-   * [ ] Considerar também matching por CNPJ/CPF (se extraído)
+   * [x] Considerar também matching por CNPJ/CPF (match exato)
+   * [x] Busca histórica em faturas anteriores
 
-4. **Estrutura de Resposta JSON** ⭐
-   * [ ] Definir Pydantic schema `InvoiceExtractionResponse`:
+4. **Estrutura de Resposta JSON** ⭐ ✅ **COMPLETO**
+   * [x] Definir Pydantic schema `InvoiceExtractionResponse`:
      ```python
      {
        "extracted_data": {
@@ -240,22 +241,19 @@ Implementar processamento de linguagem natural (PLN) para extrair automaticament
      - "Descartar e Inserir Manual" (cinza)
      - "Cancelar" (vermelho)
 
-5. **Criar serviço de API** ⭐
-   * [ ] Adicionar método em `admin/src/services/invoice.ts`:
-     ```typescript
-     async uploadAndExtract(file: File): Promise<InvoiceExtractionResponse> {
-       const formData = new FormData();
-       formData.append('file', file);
+5. **Criar serviço de API** ⭐ ✅ **COMPLETO**
+   * [x] Adicionar método em `admin/src/services/invoice.ts`
+   * [x] Criar tipos TypeScript em `admin/src/types/index.ts`:
+     - ConfidenceScores
+     - SupplierMatch
+     - ExtractedData
+     - ExtractionSuggestions
+     - InvoiceExtractionResponse
+   * [x] Implementar uploadAndExtract com fetch nativo
+   * [x] Tratamento de erros e autenticação Bearer token
 
-       const response = await api.post('/invoices/upload', formData, {
-         headers: { 'Content-Type': 'multipart/form-data' }
-       });
-
-       return response.data;
-     }
-     ```
-
-6. **Feedback e Analytics** ⭐
+6. **Feedback e Analytics** ⭐ 🚧 **EM PROGRESSO**
+   * [x] Preparar CreateInvoiceModal para aceitar initialData
    * [ ] Adicionar toast de sucesso:
      - "Fatura processada com sucesso! Revise os dados extraídos."
    * [ ] Adicionar métricas de uso:
@@ -265,6 +263,7 @@ Implementar processamento de linguagem natural (PLN) para extrair automaticament
    * [ ] Implementar botão "Reportar Erro" para feedback
 
 **Estimativa:** 3-4 dias de desenvolvimento
+**Status Atual:** Backend 100% completo | Frontend ~40% completo (types + service + base preparada)
 
 ---
 
