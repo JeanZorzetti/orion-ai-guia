@@ -10,8 +10,8 @@ import numpy as np
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.models.sale_model import Sale
-from app.models.product_model import Product
+from app.models.sale import Sale
+from app.models.product import Product
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
