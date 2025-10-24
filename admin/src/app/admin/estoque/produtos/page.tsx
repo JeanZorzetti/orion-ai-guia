@@ -30,7 +30,11 @@ import {
   ArrowDown,
   X,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Grid3x3,
+  List,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { productService } from '@/services/product';
 import { Product } from '@/types';
@@ -46,6 +50,7 @@ type SortField = 'name' | 'stock_quantity' | 'sale_price' | 'cost_price' | 'cate
 type SortOrder = 'asc' | 'desc';
 type StatusFilter = 'all' | 'active' | 'inactive';
 type StockFilter = 'all' | 'low' | 'ok' | 'critical';
+type ViewMode = 'table' | 'grid';
 
 const ProdutosPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -61,6 +66,13 @@ const ProdutosPage: React.FC = () => {
   // Ordenação
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Visualização
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
 
   // Estados dos modais
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -184,9 +196,30 @@ const ProdutosPage: React.FC = () => {
     setCategoryFilter('all');
     setStatusFilter('all');
     setStockFilter('all');
+    setCurrentPage(1);
   };
 
   const hasActiveFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || stockFilter !== 'all';
+
+  // Paginação
+  const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedProducts = filteredAndSortedProducts.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value));
+    setCurrentPage(1);
+  };
+
+  // Resetar página ao filtrar
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, categoryFilter, statusFilter, stockFilter]);
 
   const handleDelete = async (product: Product) => {
     await confirm(
@@ -299,6 +332,26 @@ const ProdutosPage: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          {/* Toggle de visualização */}
+          <div className="flex border rounded-md">
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('table')}
+              className="rounded-r-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="rounded-l-none"
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+          </div>
+
           <Button
             variant="outline"
             onClick={handleExport}
@@ -488,79 +541,97 @@ const ProdutosPage: React.FC = () => {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Produtos ({filteredAndSortedProducts.length})</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Lista de Produtos ({filteredAndSortedProducts.length})</CardTitle>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Itens por página:</span>
+                <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-3">
-                      <span className="font-semibold text-sm">SKU</span>
-                    </th>
-                    <th className="text-left p-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="hover:bg-transparent p-0 h-auto font-semibold text-sm"
-                        onClick={() => handleSort('name')}
-                      >
-                        Produto
-                        {sortField === 'name' && (
-                          sortOrder === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                        )}
-                        {sortField !== 'name' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
-                      </Button>
-                    </th>
-                    <th className="text-left p-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="hover:bg-transparent p-0 h-auto font-semibold text-sm"
-                        onClick={() => handleSort('category')}
-                      >
-                        Categoria
-                        {sortField === 'category' && (
-                          sortOrder === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                        )}
-                        {sortField !== 'category' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
-                      </Button>
-                    </th>
-                    <th className="text-right p-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="hover:bg-transparent p-0 h-auto font-semibold text-sm"
-                        onClick={() => handleSort('stock_quantity')}
-                      >
-                        Estoque
-                        {sortField === 'stock_quantity' && (
-                          sortOrder === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                        )}
-                        {sortField !== 'stock_quantity' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
-                      </Button>
-                    </th>
-                    <th className="text-right p-3 font-semibold text-sm">Mínimo</th>
-                    <th className="text-right p-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="hover:bg-transparent p-0 h-auto font-semibold text-sm"
-                        onClick={() => handleSort('sale_price')}
-                      >
-                        Preço
-                        {sortField === 'sale_price' && (
-                          sortOrder === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                        )}
-                        {sortField !== 'sale_price' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
-                      </Button>
-                    </th>
-                    <th className="text-center p-3 font-semibold text-sm">Estoque</th>
-                    <th className="text-center p-3 font-semibold text-sm">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedProducts.map((product) => (
+            {/* Visualização em Tabela */}
+            {viewMode === 'table' && (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-3">
+                        <span className="font-semibold text-sm">SKU</span>
+                      </th>
+                      <th className="text-left p-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="hover:bg-transparent p-0 h-auto font-semibold text-sm"
+                          onClick={() => handleSort('name')}
+                        >
+                          Produto
+                          {sortField === 'name' && (
+                            sortOrder === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                          )}
+                          {sortField !== 'name' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
+                        </Button>
+                      </th>
+                      <th className="text-left p-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="hover:bg-transparent p-0 h-auto font-semibold text-sm"
+                          onClick={() => handleSort('category')}
+                        >
+                          Categoria
+                          {sortField === 'category' && (
+                            sortOrder === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                          )}
+                          {sortField !== 'category' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
+                        </Button>
+                      </th>
+                      <th className="text-right p-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="hover:bg-transparent p-0 h-auto font-semibold text-sm"
+                          onClick={() => handleSort('stock_quantity')}
+                        >
+                          Estoque
+                          {sortField === 'stock_quantity' && (
+                            sortOrder === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                          )}
+                          {sortField !== 'stock_quantity' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
+                        </Button>
+                      </th>
+                      <th className="text-right p-3 font-semibold text-sm">Mínimo</th>
+                      <th className="text-right p-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="hover:bg-transparent p-0 h-auto font-semibold text-sm"
+                          onClick={() => handleSort('sale_price')}
+                        >
+                          Preço
+                          {sortField === 'sale_price' && (
+                            sortOrder === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                          )}
+                          {sortField !== 'sale_price' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />}
+                        </Button>
+                      </th>
+                      <th className="text-center p-3 font-semibold text-sm">Estoque</th>
+                      <th className="text-center p-3 font-semibold text-sm">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedProducts.map((product) => (
                     <tr key={product.id} className="border-b hover:bg-muted/50 transition-colors">
                       <td className="p-3">
                         <span className="font-mono text-sm">{product.sku || '-'}</span>
@@ -625,11 +696,156 @@ const ProdutosPage: React.FC = () => {
                           </Button>
                         </div>
                       </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Visualização em Grid */}
+            {viewMode === 'grid' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {paginatedProducts.map((product) => (
+                  <Card key={product.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-base line-clamp-2">{product.name}</CardTitle>
+                          {product.sku && (
+                            <p className="text-xs text-muted-foreground font-mono mt-1">{product.sku}</p>
+                          )}
+                        </div>
+                        {getStatusBadge(product)}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {/* Categoria */}
+                      {product.category && (
+                        <div className="flex items-center gap-2">
+                          <Package className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{product.category}</span>
+                        </div>
+                      )}
+
+                      {/* Preço */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Preço</span>
+                        <span className="text-lg font-bold">
+                          R$ {product.sale_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      {/* Estoque */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Estoque</span>
+                        <span className={`text-sm font-semibold ${product.stock_quantity <= product.min_stock_level ? 'text-red-600' : 'text-green-600'}`}>
+                          {product.stock_quantity} {product.unit}
+                        </span>
+                      </div>
+
+                      {/* Mínimo */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Mínimo</span>
+                        <span className="text-xs text-muted-foreground">
+                          {product.min_stock_level} {product.unit}
+                        </span>
+                      </div>
+
+                      {/* Ações */}
+                      <div className="flex gap-1 pt-2 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleView(product)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleEdit(product)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 text-blue-600"
+                          onClick={() => handleAdjustStock(product)}
+                        >
+                          <PackagePlus className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 text-destructive"
+                          onClick={() => handleDelete(product)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Controles de Paginação */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                <div className="text-sm text-muted-foreground">
+                  Mostrando {startIndex + 1} a {Math.min(endIndex, filteredAndSortedProducts.length)} de {filteredAndSortedProducts.length} produtos
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Anterior
+                  </Button>
+                  <div className="flex gap-1">
+                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => goToPage(pageNum)}
+                          className="w-10"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Próxima
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
