@@ -320,23 +320,25 @@
 
 ---
 
-## Fase 10: Melhorias de UX/UI ✅ (PARCIALMENTE CONCLUÍDA)
+## Fase 10: Melhorias de UX/UI ✅ (COMPLETA)
 
 **Status Geral:**
 
+- ✅ 10.1 - Componentes Reutilizáveis - **COMPLETO**
+  - ✅ DataTable genérico (completo)
+  - ✅ FormModal genérico (completo)
+  - ✅ ConfirmDialog e useConfirm (completo)
+  - ✅ Sistema de notificações Sonner (completo)
 - ✅ 10.2 - Validações e Feedback - **COMPLETO**
   - ✅ Loading States (TableSkeleton, GridSkeleton, ButtonWithLoading)
   - ✅ Empty States (EmptyState component com ícones e ações)
   - ✅ Error Handling (ErrorBoundary global com retry)
   - ✅ Validação de Formulários (schemas Zod criados)
-- 🔄 10.1 - Componentes Reutilizáveis - **EM PROGRESSO**
-  - ⏸️ DataTable genérico (pendente)
-  - ⏸️ FormModal genérico (pendente)
-  - ✅ ConfirmDialog e useConfirm (completo)
-  - ✅ Sistema de notificações Sonner (completo)
 
 **Componentes Criados:**
 
+- `DataTable` - Tabela genérica com paginação, ordenação, busca e filtros
+- `FormModal` - Modal genérico para formulários com validação
 - `TableSkeleton` - Skeleton para tabelas
 - `GridSkeleton` - Skeleton para grids de cards
 - `ButtonWithLoading` - Botão com spinner integrado
@@ -356,26 +358,32 @@
 
 **Tarefas:**
 
-1. **Componente de Tabela Genérico** ⭐⭐
-   * [ ] Criar `<DataTable>` com:
-     - Paginação integrada
-     - Ordenação por colunas
-     - Filtros por coluna
-     - Busca global
+1. **Componente de Tabela Genérico** ⭐⭐ ✅
+   * [x] Criar `<DataTable>` com:
+     - Paginação integrada (10/25/50/100 items)
+     - Ordenação por colunas (asc/desc)
+     - Filtros por coluna específica
+     - Busca global configurável
      - Ações por linha (editar, deletar, visualizar)
-     - Loading state
-     - Empty state
-   * [ ] TypeScript genérico para type safety
-   * [ ] Estilização consistente
+     - Loading state (TableSkeleton)
+     - Empty state (EmptyState com ícone e ação)
+     - Error state com retry
+   * [x] TypeScript genérico para type safety
+   * [x] Estilização consistente
+   * [x] Arquivo de exemplos de uso (data-table.example.tsx.md)
 
-2. **Componente de Modal Genérico** ⭐
-   * [ ] Criar `<FormModal>` com:
-     - Header customizável
-     - Body com children
+2. **Componente de Modal Genérico** ⭐ ✅
+   * [x] Criar `<FormModal>` com:
+     - Header customizável (título e descrição)
+     - Body com children flexível
      - Footer com botões (Cancelar, Salvar)
-     - Loading state
-     - Validação de formulário
-     - Keyboard shortcuts (ESC, Enter)
+     - Loading state (ButtonWithLoading)
+     - Suporte a validação de formulário
+     - Keyboard shortcuts (ESC para fechar, Ctrl+Enter para submeter)
+     - Tamanhos configuráveis (sm, md, lg, xl, full)
+     - Prevent close configurável
+   * [x] Variante FormModalWithoutForm para casos complexos
+   * [x] Arquivo de exemplos de uso (form-modal.example.tsx.md)
 
 3. **Componente de Confirmação** ⭐ ✅
    * [x] Criar `<ConfirmDialog>` com:
