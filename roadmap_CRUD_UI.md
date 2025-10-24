@@ -415,7 +415,7 @@
 
 **Tarefas:**
 
-1. **Exportar para CSV/Excel** ⭐ ✅
+1. **Exportar para CSV/Excel** ⭐ ✅ COMPLETO
    * [x] Botão "Exportar CSV" em listagens
    * [x] Função genérica exportToCSV em lib/export.ts
    * [x] Exportar dados filtrados (não apenas todos)
@@ -423,8 +423,11 @@
    * [x] Formatação adequada (escape de vírgulas, aspas)
    * [x] BOM UTF-8 para compatibilidade com Excel
    * [x] Helpers de formatação (moeda, data, datetime)
-   * [x] Implementado na página de Fornecedores
-   * [ ] Adicionar em: Produtos, Vendas, Faturas (próximo passo)
+   * [x] Implementado em todas as páginas principais:
+     - Fornecedores (11 colunas)
+     - Produtos (11 colunas com filtros)
+     - Vendas (8 colunas com status traduzido)
+     - Faturas (11 colunas com valores e impostos)
 
 2. **Imprimir Relatórios** ⭐
    * [ ] CSS para impressão
@@ -507,12 +510,25 @@
 4. ✅ Loading states e empty states
 5. ✅ 4 cards de métricas principais
 
-### Sprint 7 - Polimento (3-4 dias) ⚠️ EM PROGRESSO
+### Sprint 7 - Polimento (3-4 dias) ✅ COMPLETO
 
-1. ✅ Exportação para CSV (implementada em Fornecedores)
+1. ✅ Exportação para CSV
+   - [x] Biblioteca genérica exportToCSV em lib/export.ts
+   - [x] Implementada em Fornecedores
+   - [x] Implementada em Produtos
+   - [x] Implementada em Vendas
+   - [x] Implementada em Faturas (Contas a Pagar)
+   - [x] Formatação brasileira (moeda, data)
+   - [x] UTF-8 BOM para Excel
+   - [x] Timestamp nos arquivos
 2. ✅ Busca global com Ctrl+K
-3. ⏸ Dark mode (opcional - pode ser implementado depois)
-4. ⏸ Testes e ajustes finais
+   - [x] GlobalSearch component criado
+   - [x] Busca em 4 entidades
+   - [x] Keyboard shortcut (Ctrl+K / Cmd+K)
+   - [x] Debounce 300ms
+   - [x] Loading e empty states
+3. ⏸ Dark mode (opcional - implementação futura)
+4. ⏸ Testes e ajustes finais (opcional - próxima fase)
 
 ---
 
