@@ -51,13 +51,16 @@
    * [x] Mostrar informações do fornecedor
    * [x] Botões: Editar, Deletar, Fechar
 
-4. **Melhorias na Listagem**
-   * [ ] Adicionar paginação (skip/limit)
-   * [ ] Busca por número de fatura
-   * [ ] Filtro por fornecedor
-   * [ ] Filtro por intervalo de datas
-   * [ ] Ordenação por colunas
-   * [ ] Exportar para CSV/Excel (bonus)
+4. **Melhorias na Listagem** ⭐⭐ ✅
+   * [x] Busca por número de fatura (em tempo real)
+   * [x] Filtro por fornecedor (select com lista)
+   * [x] Filtro por intervalo de datas (início e fim)
+   * [x] Ordenação por colunas (5 campos clicáveis)
+   * [x] Exportar para CSV/Excel com dados filtrados
+   * [x] Contador de resultados filtrados
+   * [x] Botão "Limpar Filtros"
+   * [x] Indicadores visuais de ordenação (setas)
+   * [ ] Paginação (skip/limit) - Opcional para depois
 
 **Componentes UI Necessários:**
 - `Button`, `Input`, `Select`, `DatePicker`
