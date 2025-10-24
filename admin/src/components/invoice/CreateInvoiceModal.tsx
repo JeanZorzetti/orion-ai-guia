@@ -15,10 +15,6 @@ import { invoiceSchema, type InvoiceFormData } from '@/lib/validations/invoice';
 import { invoiceService } from '@/services/invoice';
 import { supplierService } from '@/services/supplier';
 import { Supplier, InvoiceExtractionResponse } from '@/types';
-import { Badge } from '@/components/ui/badge';
-import { Sparkles, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CreateInvoiceModalProps {
   open: boolean;

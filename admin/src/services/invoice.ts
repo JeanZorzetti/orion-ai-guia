@@ -51,7 +51,7 @@ export const invoiceService = {
 
     // Usa fetch diretamente para upload de arquivo
     const token = localStorage.getItem('access_token');
-    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
     const response = await fetch(`${baseURL}/invoices/upload`, {
       method: 'POST',
