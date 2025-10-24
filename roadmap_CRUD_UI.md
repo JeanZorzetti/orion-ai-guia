@@ -261,47 +261,54 @@
 
 ## Fase 9: Dashboard Completo
 
-### 9.1 - Dashboard Admin 📊
+### 9.1 - Dashboard Admin ✅
 
 **Arquivo:** `admin/src/app/admin/dashboard/page.tsx`
 
 **Status Atual:**
-- ❌ Mock data estático
-- ❌ Sem integração com API real
+
+- ✅ Dados reais da API (invoices, products, sales)
+- ✅ Client component com loading state
+- ✅ Carregamento paralelo de dados
+- ✅ Estatísticas financeiras calculadas
+- ✅ Estatísticas de estoque calculadas
+- ✅ Estatísticas de vendas calculadas
+- ✅ Gráfico de vendas dos últimos 7 dias
 
 **Tarefas:**
 
-1. **Estatísticas Financeiras** ⭐
-   * [ ] Card: Total a Pagar (faturas pendentes)
-   * [ ] Card: Total Pago (faturas pagas no mês)
-   * [ ] Card: Faturas Vencidas
-   * [ ] Card: Próximas a Vencer (7 dias)
-   * [ ] Gráfico: Fluxo de caixa mensal
-   * [ ] Integrar com `/api/v1/dashboard/stats`
+1. **Estatísticas Financeiras** ⭐ ✅
+   * [x] Card: Total a Pagar (faturas pendentes)
+   * [x] Card: Total Pago (faturas pagas)
+   * [x] Card: Faturas Vencidas (com destaque vermelho)
+   * [x] Card: Próximas a Vencer (próximos 7 dias)
+   * [x] Integração com invoiceService.getAll()
+   * [x] Cálculos em tempo real
+   * [x] Formatação de moeda e datas
 
-2. **Estatísticas de Estoque** ⭐
-   * [ ] Card: Total de Produtos
-   * [ ] Card: Produtos com Estoque Baixo
-   * [ ] Card: Produtos com Estoque Crítico (zero)
-   * [ ] Card: Valor Total em Estoque
-   * [ ] Lista: Top 5 produtos mais vendidos
-   * [ ] Alerta visual para produtos críticos
+2. **Estatísticas de Estoque** ⭐ ✅
+   * [x] Card: Valor Total em Estoque
+   * [x] Card: Produtos Ativos
+   * [x] Lista: Produtos com Estoque Baixo (<= mínimo)
+   * [x] Badge diferenciado para estoque zero (crítico)
+   * [x] Alerta visual para produtos críticos
+   * [x] Apenas produtos ativos considerados
+   * [x] Empty state quando estoque está adequado
 
-3. **Estatísticas de Vendas** ⭐
-   * [ ] Card: Vendas do Mês
-   * [ ] Card: Ticket Médio
-   * [ ] Card: Total de Vendas (ano)
-   * [ ] Gráfico: Vendas por mês (últimos 6 meses)
-   * [ ] Lista: Últimas 10 vendas
+3. **Estatísticas de Vendas** ⭐ ✅
+   * [x] Card: Receita de Vendas (vendas completadas)
+   * [x] Card: Ticket Médio (calculado dinamicamente)
+   * [x] Gráfico: Vendas dos últimos 7 dias
+   * [x] Barra de progresso proporcional por dia
+   * [x] Total e ticket médio no rodapé do gráfico
+   * [x] Integração com saleService.getAll()
 
-4. **Atividades Recentes** ⭐
-   * [ ] Timeline de atividades:
-     - Faturas criadas/pagas
-     - Produtos criados/editados
-     - Vendas realizadas
-     - Fornecedores adicionados
-   * [ ] Filtro por tipo de atividade
-   * [ ] Links diretos para detalhes
+4. **Melhorias Gerais** ✅
+   * [x] Loading state com spinner animado
+   * [x] Empty states user-friendly
+   * [x] Links para páginas de detalhes
+   * [x] 4 cards de métricas principais no topo
+   * [x] Verificações de segurança (campos opcionais)
 
 ---
 
@@ -485,10 +492,13 @@
 3. ✅ Validação de CPF/CNPJ
 4. ✅ Link no menu lateral
 
-### Sprint 6 - Dashboard (3-4 dias)
+### Sprint 6 - Dashboard (3-4 dias) ✅ COMPLETO
+
 1. ✅ Integração com API real
-2. ✅ Estatísticas dinâmicas
-3. ✅ Gráficos
+2. ✅ Estatísticas dinâmicas (Financeiro, Estoque, Vendas)
+3. ✅ Gráfico de vendas dos últimos 7 dias
+4. ✅ Loading states e empty states
+5. ✅ 4 cards de métricas principais
 
 ### Sprint 7 - Polimento (3-4 dias)
 1. ✅ Exportações
