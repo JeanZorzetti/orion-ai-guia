@@ -44,6 +44,7 @@ const Sidebar: React.FC = () => {
 
   // Initialize and update expanded state based on current path
   useEffect(() => {
+    console.log('🔥 useEffect rodou! pathname:', pathname);
     const newExpanded: Record<string, boolean> = {};
 
     menuItems.forEach((item) => {
@@ -52,18 +53,26 @@ const Sidebar: React.FC = () => {
         const shouldExpand = item.subItems.some((subItem) =>
           pathname === subItem.href || pathname?.startsWith(subItem.href + '/')
         );
+        console.log(`🔥 Menu "${item.label}" shouldExpand:`, shouldExpand);
         newExpanded[item.label] = shouldExpand;
       }
     });
 
+    console.log('🔥 useEffect setando novo estado:', newExpanded);
     setExpandedMenus(newExpanded);
   }, [pathname]);
 
   const toggleMenu = (label: string) => {
-    setExpandedMenus((prev) => ({
-      ...prev,
-      [label]: !prev[label],
-    }));
+    console.log('🔥 TOGGLE MENU:', label);
+    console.log('🔥 Estado ANTES:', expandedMenus);
+    setExpandedMenus((prev) => {
+      const newState = {
+        ...prev,
+        [label]: !prev[label],
+      };
+      console.log('🔥 Estado DEPOIS:', newState);
+      return newState;
+    });
   };
 
   const isMenuActive = (item: MenuItem): boolean => {
@@ -81,6 +90,8 @@ const Sidebar: React.FC = () => {
           const isActive = isMenuActive(item);
           const hasSubItems = item.subItems && item.subItems.length > 0;
           const isExpanded = expandedMenus[item.label] || false;
+
+          console.log(`🔥 Renderizando "${item.label}": isExpanded=${isExpanded}`);
 
           if (hasSubItems) {
             return (
