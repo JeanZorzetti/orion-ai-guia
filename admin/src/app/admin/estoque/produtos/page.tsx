@@ -172,7 +172,7 @@ const ProdutosPage: React.FC = () => {
   const categories = useMemo(() => {
     const cats = products
       .map(p => p.category)
-      .filter((cat): cat is string => !!cat);
+      .filter((cat): cat is string => !!cat && cat.trim() !== '');
     return Array.from(new Set(cats)).sort();
   }, [products]);
 
