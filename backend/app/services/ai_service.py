@@ -17,7 +17,8 @@ class AIService:
 
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY", "")
-        self.model = "gpt-4o-mini"  # Modelo mais econômico para processamento de texto
+        self.model = "gpt-4o-mini"  # Modelo para processamento de texto
+        self.vision_model = "gpt-4o"  # Modelo com visão para processar imagens
         self.base_url = "https://api.openai.com/v1"
 
     async def extract_invoice_data(self, prompt: str) -> str:
@@ -74,8 +75,160 @@ class AIService:
             print(f"Erro ao chamar serviço de IA: {e}")
             return self._create_mock_response()
 
+    async def extract_invoice_from_image(self, image_path: str) -> str:
+        """
+        Extrai dados da fatura diretamente da imagem usando GPT-4o Vision
+
+        Args:
+            image_path: Caminho para o arquivo de imagem
+
+        Returns:
+            JSON com dados extraídos da fatura
+        """
+
+        if not self.api_key:
+            return self._create_mock_response()
+
+        try:
+            # Converte imagem para base64
+            with open(image_path, "rb") as image_file:
+                base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+
+            async with aiohttp.ClientSession() as session:
+                headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                }
+
+                payload = {
+                    "model": self.vision_model,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": """Você é um assistente especializado em análise de faturas e notas fiscais brasileiras.
+                                         Sua função é extrair dados estruturados de documentos fiscais com alta precisão.
+                                         Sempre retorne apenas JSON válido, sem texto adicional."""
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": """Analise esta fatura/nota fiscal brasileira e extraia TODOS os dados no formato JSON exato:
+
+{
+    "supplier_name": "Nome completo do fornecedor/prestador",
+    "supplier_cnpj": "CNPJ (apenas números)",
+    "invoice_number": "Número da nota fiscal",
+    "issue_date": "Data de emissão (formato YYYY-MM-DD)",
+    "due_date": "Data de vencimento (formato YYYY-MM-DD)",
+    "total_amount": 0.00,
+    "tax_amount": 0.00,
+    "net_amount": 0.00,
+    "description": "Descrição dos itens/serviços",
+    "category": "Categoria (Serviços, Material, etc)",
+    "payment_method": "Forma de pagamento",
+    "items": [
+        {
+            "description": "Nome do item/serviço",
+            "quantity": 1,
+            "unit_price": 0.00,
+            "total_price": 0.00
+        }
+    ],
+    "confidence_score": 0.95,
+    "ai_suggestions": ["observações importantes"]
+}
+
+IMPORTANTE:
+- Leia TODO o texto visível na imagem
+- Use formato de data YYYY-MM-DD
+- Valores em formato decimal (use ponto, não vírgula)
+- Se ISS ou outro imposto estiver separado, coloque em tax_amount
+- Calcule net_amount = total_amount - tax_amount
+- confidence_score deve refletir sua certeza (0.0 a 1.0)
+- Retorne APENAS o JSON, sem markdown ou texto extra"""
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{base64_image}"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "max_tokens": 2000,
+                    "temperature": 0.1
+                }
+
+                async with session.post(f"{self.base_url}/chat/completions",
+                                      headers=headers, json=payload) as response:
+
+                    if response.status == 200:
+                        data = await response.json()
+                        return data["choices"][0]["message"]["content"]
+                    else:
+                        error_text = await response.text()
+                        print(f"Erro na API OpenAI Vision: {response.status} - {error_text}")
+                        # Fallback para OCR tradicional
+                        return await self._ocr_image_fallback(image_path)
+
+        except Exception as e:
+            print(f"Erro ao processar imagem com Vision API: {e}")
+            # Fallback para OCR tradicional
+            return await self._ocr_image_fallback(image_path)
+
+    async def _ocr_image_fallback(self, image_path: str) -> str:
+        """Fallback para OCR tradicional se Vision API falhar"""
+        try:
+            # Carrega a imagem
+            image = Image.open(image_path)
+
+            # Aplica OCR usando Tesseract
+            custom_config = r'--oem 3 --psm 6 -l por'
+            text = pytesseract.image_to_string(image, config=custom_config)
+
+            # Processa o texto extraído com o modelo de texto
+            return await self.extract_invoice_data(self._build_extraction_prompt_from_text(text))
+
+        except Exception as e:
+            print(f"Erro no OCR fallback: {e}")
+            return self._create_mock_response()
+
+    def _build_extraction_prompt_from_text(self, text: str) -> str:
+        """Constrói prompt para extração a partir de texto OCR"""
+        return f"""
+        Analise o texto da fatura a seguir e extraia os dados estruturados em formato JSON.
+
+        TEXTO DA FATURA:
+        {text}
+
+        Extraia os seguintes dados no formato JSON exato:
+        {{
+            "supplier_name": "Nome completo do fornecedor",
+            "supplier_cnpj": "CNPJ do fornecedor (apenas números)",
+            "invoice_number": "Número da nota fiscal",
+            "issue_date": "Data de emissão no formato YYYY-MM-DD",
+            "due_date": "Data de vencimento no formato YYYY-MM-DD",
+            "total_amount": 0.00,
+            "tax_amount": 0.00,
+            "net_amount": 0.00,
+            "description": "Descrição dos produtos/serviços",
+            "category": "Categoria inferida",
+            "payment_method": "Forma de pagamento",
+            "items": [],
+            "confidence_score": 0.95,
+            "ai_suggestions": []
+        }}
+
+        Retorne APENAS o JSON, sem texto adicional.
+        """
+
     async def ocr_image(self, image_path: str) -> str:
         """
+        DEPRECATED: Use extract_invoice_from_image() para melhor precisão
+
         Extrai texto de imagem usando OCR
 
         Args:

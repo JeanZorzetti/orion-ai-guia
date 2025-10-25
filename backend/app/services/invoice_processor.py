@@ -81,7 +81,29 @@ class InvoiceProcessorService:
     async def _process_image_invoice(self, file_path: str, original_filename: str) -> Dict[str, Any]:
         """Processa fatura em imagem"""
 
-        # Tenta primeiro com LayoutLM se disponível
+        # Método 1: GPT-4o Vision (melhor precisão, não precisa OCR)
+        try:
+            print("Tentando processar com GPT-4o Vision...")
+            vision_response = await self.ai_service.extract_invoice_from_image(file_path)
+
+            # Parse da resposta
+            extracted_data = self._parse_ai_response(vision_response)
+
+            # Se conseguiu extrair com boa confiança, retorna
+            if extracted_data.get("confidence_score", 0) > 0.3:
+                extracted_data.update({
+                    "original_filename": original_filename,
+                    "file_type": "image",
+                    "processed_at": datetime.now().isoformat(),
+                    "processing_method": "GPT-4o Vision",
+                    "success": True
+                })
+                print(f"✓ Processado com GPT-4o Vision - confiança: {extracted_data.get('confidence_score', 0)}")
+                return extracted_data
+        except Exception as e:
+            print(f"Erro no GPT-4o Vision, tentando LayoutLM: {e}")
+
+        # Método 2: LayoutLM se disponível
         if self.use_layout_lm:
             try:
                 layout_result = await self.layout_lm_service.process_image_document(file_path)
@@ -91,7 +113,8 @@ class InvoiceProcessorService:
             except Exception as e:
                 print(f"Erro no LayoutLM para imagem, usando fallback: {e}")
 
-        # Fallback para método tradicional
+        # Método 3: Fallback - OCR tradicional + GPT
+        print("Usando OCR tradicional como fallback...")
         image_text = await self.ai_service.ocr_image(file_path)
 
         # Processa com IA
