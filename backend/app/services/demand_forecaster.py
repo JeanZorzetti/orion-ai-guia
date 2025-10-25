@@ -198,21 +198,22 @@ class DemandForecaster:
         logger.info(f"Sales DF após conversão: {len(sales_df)} linhas, soma={sales_df['units_sold'].sum()}")
 
         # Cria série temporal completa com frequência correta
-        # Normaliza start_date para o início do período
+        # Normaliza start_date para o início do período E para meia-noite
         if granularity == 'weekly':
             period_start = start_date - timedelta(days=start_date.weekday())
+            period_start = period_start.replace(hour=0, minute=0, second=0, microsecond=0)
         elif granularity == 'monthly':
-            period_start = start_date.replace(day=1)
+            period_start = start_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         else:
-            period_start = start_date
+            period_start = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
         date_range = pd.date_range(start=period_start, end=end_date, freq=freq)
 
         logger.info(f"Date range: {len(date_range)} períodos, primeiro={date_range[0]}, último={date_range[-1]}")
 
-        # DataFrame vazio com todas as datas
+        # DataFrame vazio com todas as datas - NORMALIZA PARA MEIA-NOITE
         result = pd.DataFrame({'date': date_range})
-        result['date'] = pd.to_datetime(result['date'])
+        result['date'] = pd.to_datetime(result['date']).dt.normalize()
 
         logger.info(f"Result antes do merge: {len(result)} linhas")
         logger.info(f"Primeiras datas do result: {result['date'].head().tolist()}")
