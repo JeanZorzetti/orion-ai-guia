@@ -142,41 +142,7 @@ export async function apiClient<T>(
   let url = `${API_URL}${endpoint}`;
   url = url.replace(/^http:/, 'https:');
 
-  if (typeof window !== 'undefined') {
-    console.log('🌐 [v5.0] Request:', {
-      endpoint,
-      finalUrl: url,
-      method: config.method || 'GET',
-      protocol: url.startsWith('https:') ? 'HTTPS ✓' : 'HTTP ✗'
-    });
-  }
-
   try {
-    // DEBUG: Log da URL exata que será passada ao fetch
-    if (typeof window !== 'undefined') {
-      console.log('🔍 [DEBUG] Calling fetch() with URL:', url);
-      console.log('🔍 [DEBUG] URL object:', new URL(url));
-      console.log('🔍 [DEBUG] Config object:', JSON.stringify(config, null, 2));
-
-      // TESTE RAW: Fetch direto SEM config para ver se o problema é no config
-      console.log('🧪 [TEST] Fazendo fetch RAW sem config...');
-      try {
-        const testResponse = await fetch('https://orionback.roilabs.com.br/api/v1/cors-test');
-        console.log('✅ [TEST] Fetch RAW funcionou!', testResponse.status);
-      } catch (testError) {
-        console.error('❌ [TEST] Fetch RAW FALHOU:', testError);
-      }
-
-      // TESTE COM MESMO CONFIG: Para ver se é algo específico no config
-      console.log('🧪 [TEST] Fazendo fetch com MESMO config para /cors-test...');
-      try {
-        const testResponse2 = await fetch('https://orionback.roilabs.com.br/api/v1/cors-test', config);
-        console.log('✅ [TEST] Fetch COM CONFIG funcionou!', testResponse2.status);
-      } catch (testError2) {
-        console.error('❌ [TEST] Fetch COM CONFIG FALHOU:', testError2);
-      }
-    }
-
     const response = await fetch(url, config);
 
     // Se o token expirou, tentar fazer refresh e tentar novamente
