@@ -289,17 +289,17 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
 **Tarefas:**
 
 1. **Criar Endpoint de Previsão** ⭐⭐
-   * [ ] Criar rota `GET /api/v1/products/{product_id}/demand-forecast`
-   * [ ] Query parameters opcionais:
+   * [x] Criar rota `GET /api/v1/products/{product_id}/demand-forecast`
+   * [x] Query parameters opcionais:
      - `period` (default: "4_weeks"): "2_weeks", "4_weeks", "8_weeks", "12_weeks"
-     - `granularity` (default: "weekly"): "daily", "weekly", "monthly"
-   * [ ] Validar que o produto existe e pertence ao workspace do usuário
+     - ~~`granularity` (default: "weekly"): "daily", "weekly", "monthly"~~ (não implementado)
+   * [x] Validar que o produto existe e pertence ao workspace do usuário
    * [ ] Implementar cache de previsões (ex: 24 horas)
    * [ ] Adicionar rate limiting (evitar abuso de processamento)
 
 2. **Implementar Análise de Histórico** ⭐⭐
-   * [ ] Criar módulo `app/services/demand_forecaster.py`
-   * [ ] Implementar classe `DemandForecaster`:
+   * [x] Criar módulo `app/services/demand_forecaster.py`
+   * [x] Implementar classe `DemandForecaster`:
      ```python
      class DemandForecaster:
          def get_historical_sales(self, product_id: int, workspace_id: int):
@@ -314,17 +314,17 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
              """Calcula média, mediana, tendência"""
              pass
      ```
-   * [ ] Buscar vendas do produto dos últimos 12 meses (mínimo)
-   * [ ] Filtrar apenas vendas com status 'completed'
-   * [ ] Agrupar por período configurado (dia/semana/mês)
-   * [ ] Tratar períodos sem vendas (preencher com zero)
+   * [x] Buscar vendas do produto dos últimos 12 meses (mínimo)
+   * [x] Filtrar apenas vendas com status 'completed'
+   * [x] Agrupar por período configurado (dia/semana/mês) - implementado apenas weekly
+   * [x] Tratar períodos sem vendas (preencher com zero)
 
 3. **Implementar Modelo de ML** ⭐⭐⭐
-   * [ ] Instalar dependências:
+   * [x] Instalar dependências:
      ```bash
      pip install scikit-learn statsmodels prophet pandas numpy
      ```
-   * [ ] Implementar método `predict_demand()`:
+   * [x] Implementar método `predict_demand()`:
      ```python
      def predict_demand(
          self,
@@ -343,28 +343,16 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
              }
          """
      ```
-   * [ ] Escolher modelo baseado em volume de dados:
-     - **< 12 pontos de dados**: Média móvel simples
-     - **12-50 pontos**: Regressão Linear ou Média Móvel Exponencial
-     - **> 50 pontos**: Prophet ou ARIMA
-   * [ ] Implementar Prophet (recomendado):
-     ```python
-     from prophet import Prophet
-
-     model = Prophet(
-         daily_seasonality=False,
-         weekly_seasonality=True,
-         yearly_seasonality=True
-     )
-     model.fit(df)
-     future = model.make_future_dataframe(periods=periods_ahead, freq='W')
-     forecast = model.predict(future)
-     ```
-   * [ ] Calcular intervalos de confiança (80% e 95%)
-   * [ ] Validar previsões (não permitir valores negativos)
+   * [x] Escolher modelo baseado em volume de dados:
+     - **< 12 pontos de dados**: Média móvel simples ✅
+     - **12-50 pontos**: Regressão Linear ou Média Móvel Exponencial ✅
+     - **> 50 pontos**: ~~Prophet ou ARIMA~~ (não implementado - usa Moving Average + Linear Trend)
+   * [ ] Implementar Prophet (recomendado) - NÃO IMPLEMENTADO, usa Moving Average + Linear Trend
+   * [x] Calcular intervalos de confiança (80% e 95%)
+   * [x] Validar previsões (não permitir valores negativos)
 
 4. **Calcular Métricas e Insights** ⭐⭐
-   * [ ] Implementar função `generate_insights()`:
+   * [x] Implementar função `generate_insights()`:
      ```python
      def generate_insights(self, historical_data, forecast):
          """
@@ -384,22 +372,22 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
              }
          ```
      ```
-   * [ ] Detectar tendência (crescente/estável/decrescente):
-     - Regressão linear nos últimos 3 meses
-     - Classificar por inclinação da reta
-   * [ ] Detectar sazonalidade:
-     - Análise de autocorrelação
-     - Identificar padrões semanais/mensais
-   * [ ] Calcular estoque recomendado:
-     - Média da previsão + desvio padrão × safety factor
-     - Considerar lead time de fornecedores (se disponível)
-   * [ ] Gerar alertas inteligentes:
-     - "Demanda prevista acima do estoque atual"
-     - "Tendência de queda - revisar compras"
-     - "Sazonalidade detectada - preparar para pico"
+   * [x] Detectar tendência (crescente/estável/decrescente):
+     - Regressão linear nos últimos 3 meses ✅
+     - Classificar por inclinação da reta ✅
+   * [x] Detectar sazonalidade:
+     - Análise de autocorrelação ✅
+     - Identificar padrões semanais/mensais ✅
+   * [x] Calcular estoque recomendado:
+     - Média da previsão + desvio padrão × safety factor ✅
+     - ~~Considerar lead time de fornecedores (se disponível)~~ (não implementado)
+   * [x] Gerar alertas inteligentes:
+     - "Demanda prevista acima do estoque atual" ✅
+     - "Tendência de queda - revisar compras" ✅
+     - "Sazonalidade detectada - preparar para pico" ✅
 
 5. **Estrutura de Resposta JSON** ⭐
-   * [ ] Definir schema `DemandForecastResponse`:
+   * [x] Definir schema `DemandForecastResponse`:
      ```python
      {
        "product": {
@@ -496,17 +484,17 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
 **Tarefas:**
 
 1. **Instalar Dependências** ⭐
-   * [ ] Instalar Recharts:
+   * [x] Instalar Recharts:
      ```bash
      npm install recharts
      ```
-   * [ ] Instalar tipos TypeScript:
+   * [x] Instalar tipos TypeScript:
      ```bash
      npm install -D @types/recharts
      ```
 
 2. **Criar Hook de Data Fetching** ⭐
-   * [ ] Criar `useDemandForecast` hook:
+   * [x] Criar `useDemandForecast` hook:
      ```typescript
      // hooks/useDemandForecast.ts
      export function useDemandForecast(productId: number | null) {
@@ -537,12 +525,12 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
      ```
 
 3. **Atualizar ProductDetailsModal** ⭐⭐
-   * [ ] Importar hook `useDemandForecast`
-   * [ ] Adicionar chamada ao abrir modal:
+   * [x] Importar hook `useDemandForecast`
+   * [x] Adicionar chamada ao abrir modal:
      ```typescript
      const { data: forecast, loading, error } = useDemandForecast(product?.id);
      ```
-   * [ ] Adicionar nova aba "Previsão de Demanda":
+   * [x] Adicionar nova aba "Previsão de Demanda":
      ```tsx
      <Tabs defaultValue="details">
        <TabsList>
@@ -564,8 +552,8 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
      ```
 
 4. **Criar Componente DemandForecastView** ⭐⭐⭐
-   * [ ] Criar arquivo `components/product/DemandForecastView.tsx`
-   * [ ] Estrutura do componente:
+   * [x] Criar arquivo `components/product/DemandForecastView.tsx`
+   * [x] Estrutura do componente:
      ```tsx
      interface DemandForecastViewProps {
        data: DemandForecastResponse | null;
@@ -590,7 +578,7 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
      ```
 
 5. **Criar Cards de Insights** ⭐⭐
-   * [ ] Componente `InsightsCards`:
+   * [x] Componente `InsightsCards`:
      ```tsx
      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
        {/* Card 1: Previsão Próximas 4 Semanas */}
@@ -666,7 +654,7 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
      ```
 
 6. **Criar Gráfico de Previsão** ⭐⭐⭐
-   * [ ] Componente `ForecastChart` com Recharts:
+   * [x] Componente `ForecastChart` com Recharts:
      ```tsx
      import {
        LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -767,7 +755,7 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
      ```
 
 7. **Criar Lista de Alertas** ⭐
-   * [ ] Componente `AlertsList`:
+   * [x] Componente `AlertsList`:
      ```tsx
      export function AlertsList({ alerts }) {
        if (!alerts || alerts.length === 0) return null;
@@ -802,7 +790,7 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
      ```
 
 8. **Criar Card de Info do Modelo** ⭐
-   * [ ] Componente `ModelInfo` (colapsável):
+   * [x] Componente `ModelInfo` (colapsável):
      ```tsx
      export function ModelInfo({ modelInfo }) {
        const [isExpanded, setIsExpanded] = useState(false);
@@ -865,7 +853,7 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
      ```
 
 9. **Criar Estados de Loading/Error/Empty** ⭐
-   * [ ] `ForecastSkeleton`:
+   * [x] `ForecastSkeleton`:
      ```tsx
      export function ForecastSkeleton() {
        return (
@@ -880,7 +868,7 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
        );
      }
      ```
-   * [ ] `ErrorCard`:
+   * [x] `ErrorCard`:
      ```tsx
      export function ErrorCard({ error }) {
        return (
@@ -901,7 +889,7 @@ Implementar análise preditiva de séries temporais para prever a demanda futura
        );
      }
      ```
-   * [ ] `EmptyForecastState`:
+   * [x] `EmptyForecastState`:
      ```tsx
      export function EmptyForecastState() {
        return (
