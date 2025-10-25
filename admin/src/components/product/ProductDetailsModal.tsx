@@ -1,15 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Eye, Edit, Trash2, Package, DollarSign, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Eye, Edit, Trash2, Package, DollarSign, TrendingUp, AlertTriangle, CheckCircle, BarChart3 } from 'lucide-react';
 import { Product } from '@/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useDemandForecast } from '@/hooks/useDemandForecast';
+import { DemandForecastView } from './DemandForecastView';
 
 interface ProductDetailsModalProps {
   open: boolean;
@@ -28,6 +31,14 @@ export function ProductDetailsModal({
   onDelete,
   onAdjustStock
 }: ProductDetailsModalProps) {
+  const [activeTab, setActiveTab] = useState('details');
+
+  // Hook para carregar previsão de demanda
+  const { data: forecast, loading: forecastLoading, error: forecastError } = useDemandForecast(
+    product?.id || null,
+    { enabled: open && activeTab === 'forecast' }
+  );
+
   if (!product) return null;
 
   const formatCurrency = (value: number | undefined | null) => {
@@ -91,9 +102,21 @@ export function ProductDetailsModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Cabeçalho com nome e status */}
-          <div className="flex items-start justify-between p-4 bg-muted rounded-lg">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">
+              <Eye className="mr-2 h-4 w-4" />
+              Detalhes
+            </TabsTrigger>
+            <TabsTrigger value="forecast">
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Previsão de Demanda
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="space-y-6 mt-6">
+            {/* Cabeçalho com nome e status */}
+            <div className="flex items-start justify-between p-4 bg-muted rounded-lg">
             <div className="flex-1">
               <h2 className="text-2xl font-bold">{product.name}</h2>
               {product.sku && (
@@ -294,7 +317,16 @@ export function ProductDetailsModal({
               )}
             </div>
           </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="forecast" className="mt-6">
+            <DemandForecastView
+              data={forecast}
+              loading={forecastLoading}
+              error={forecastError}
+            />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
