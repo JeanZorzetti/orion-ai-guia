@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Date, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.database import Base
@@ -25,6 +25,9 @@ class Sale(Base):
     # Status and dates
     status = Column(String, default="pending", nullable=False)  # pending, completed, cancelled
     sale_date = Column(Date, default=datetime.utcnow, nullable=False)
+
+    # Additional info
+    notes = Column(Text, nullable=True)  # Campo para observações/notas
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
