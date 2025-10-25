@@ -171,38 +171,51 @@ class DemandForecaster:
 
         logger.info(f"Total de unidades vendidas: {df['quantity'].sum()}")
 
-        # Agrega por período
+        # Normaliza datas para o início do período ANTES de agrupar
         if granularity == 'daily':
-            df_grouped = df.groupby(df['date'].dt.date)['quantity'].sum()
+            df['period_start'] = df['date'].dt.normalize()
             freq = 'D'
         elif granularity == 'monthly':
-            df_grouped = df.groupby(df['date'].dt.to_period('M'))['quantity'].sum()
+            df['period_start'] = df['date'].dt.to_period('M').dt.to_timestamp()
             freq = 'M'
-        else:  # weekly (padrão)
-            df_grouped = df.groupby(df['date'].dt.to_period('W'))['quantity'].sum()
-            freq = 'W'
+        else:  # weekly (padrão) - normaliza para segunda-feira
+            # Subtrai dias até chegar na segunda-feira (weekday=0)
+            df['period_start'] = df['date'] - pd.to_timedelta(df['date'].dt.weekday, unit='D')
+            df['period_start'] = df['period_start'].dt.normalize()
+            freq = 'W-MON'
+
+        # Agrega por período normalizado
+        df_grouped = df.groupby('period_start')['quantity'].sum()
 
         logger.info(f"Após agregação por {granularity}: {len(df_grouped)} períodos, soma={df_grouped.sum()}")
-
-        # Converte índice para timestamp para facilitar merge
-        if granularity == 'daily':
-            df_grouped.index = pd.to_datetime(df_grouped.index)
-        elif granularity == 'monthly':
-            df_grouped.index = df_grouped.index.to_timestamp()
-        else:  # weekly
-            df_grouped.index = df_grouped.index.to_timestamp()
+        logger.info(f"Primeiras datas agregadas: {df_grouped.head().index.tolist()}")
 
         # Converte Series para DataFrame
         sales_df = df_grouped.reset_index()
         sales_df.columns = ['date', 'units_sold']
         sales_df['date'] = pd.to_datetime(sales_df['date'])
 
+        logger.info(f"Sales DF após conversão: {len(sales_df)} linhas, soma={sales_df['units_sold'].sum()}")
+
         # Cria série temporal completa com frequência correta
-        date_range = pd.date_range(start=start_date, end=end_date, freq=freq)
+        # Normaliza start_date para o início do período
+        if granularity == 'weekly':
+            period_start = start_date - timedelta(days=start_date.weekday())
+        elif granularity == 'monthly':
+            period_start = start_date.replace(day=1)
+        else:
+            period_start = start_date
+
+        date_range = pd.date_range(start=period_start, end=end_date, freq=freq)
+
+        logger.info(f"Date range: {len(date_range)} períodos, primeiro={date_range[0]}, último={date_range[-1]}")
 
         # DataFrame vazio com todas as datas
         result = pd.DataFrame({'date': date_range})
         result['date'] = pd.to_datetime(result['date'])
+
+        logger.info(f"Result antes do merge: {len(result)} linhas")
+        logger.info(f"Primeiras datas do result: {result['date'].head().tolist()}")
 
         # Faz merge mantendo todas as datas e preenchendo com 0
         result = result.merge(sales_df, on='date', how='left')
@@ -210,6 +223,8 @@ class DemandForecaster:
 
         # Garante que tipos estão corretos
         result['units_sold'] = result['units_sold'].astype(int)
+
+        logger.info(f"Result após merge: {len(result)} linhas, soma={result['units_sold'].sum()}")
 
         logger.info(f"Histórico processado: {len(result)} períodos, {result['units_sold'].sum()} unidades vendidas")
         logger.info(f"Períodos com vendas: {(result['units_sold'] > 0).sum()}")
