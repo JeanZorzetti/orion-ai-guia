@@ -81,10 +81,15 @@ def create_product(
     """
     Cria um novo produto no workspace do usuário
     """
-    # Verifica se SKU já existe (se fornecido)
-    if product.sku:
+    # Converter SKU vazio para None (PostgreSQL trata NULL de forma especial em UNIQUE constraints)
+    product_data = product.model_dump()
+    if product_data.get('sku') == '' or product_data.get('sku') is None:
+        product_data['sku'] = None
+
+    # Verifica se SKU já existe (se fornecido e não for None)
+    if product_data.get('sku'):
         existing = db.query(Product).filter(
-            Product.sku == product.sku,
+            Product.sku == product_data['sku'],
             Product.workspace_id == current_user.workspace_id
         ).first()
         if existing:
@@ -94,7 +99,7 @@ def create_product(
             )
 
     db_product = Product(
-        **product.model_dump(),
+        **product_data,
         workspace_id=current_user.workspace_id
     )
     db.add(db_product)
@@ -124,10 +129,17 @@ def update_product(
             detail="Produto não encontrado"
         )
 
+    # Atualiza apenas os campos fornecidos
+    update_data = product_update.model_dump(exclude_unset=True)
+
+    # Converter SKU vazio para None
+    if 'sku' in update_data and (update_data['sku'] == '' or update_data['sku'] is None):
+        update_data['sku'] = None
+
     # Verifica SKU duplicado se estiver sendo atualizado
-    if product_update.sku and product_update.sku != db_product.sku:
+    if 'sku' in update_data and update_data['sku'] and update_data['sku'] != db_product.sku:
         existing = db.query(Product).filter(
-            Product.sku == product_update.sku,
+            Product.sku == update_data['sku'],
             Product.workspace_id == current_user.workspace_id,
             Product.id != product_id
         ).first()
@@ -137,8 +149,6 @@ def update_product(
                 detail="SKU já existe neste workspace"
             )
 
-    # Atualiza apenas os campos fornecidos
-    update_data = product_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_product, field, value)
 

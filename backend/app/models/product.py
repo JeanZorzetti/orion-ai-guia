@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.database import Base
@@ -10,13 +10,17 @@ class Product(Base):
     Isolado por workspace (multi-tenant).
     """
     __tablename__ = "products"
+    __table_args__ = (
+        # SKU único por workspace (mas permite NULL/vazio)
+        UniqueConstraint('workspace_id', 'sku', name='uq_workspace_sku'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False, index=True)
 
     # Product details
     name = Column(String, nullable=False, index=True)
-    sku = Column(String, nullable=True, unique=True, index=True)
+    sku = Column(String, nullable=True, index=True)  # Removido unique=True
     description = Column(Text, nullable=True)
     category = Column(String, nullable=True, index=True)
 
