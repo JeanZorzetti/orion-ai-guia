@@ -14,7 +14,9 @@ import {
   Shield,
   LogOut,
   ShoppingCart,
-  Truck
+  Truck,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { User } from '@/types';
@@ -33,7 +35,7 @@ const navigation = [
     children: [
       {
         name: 'Contas a Pagar',
-        href: '/admin/financeiro/contas-a-pagar',
+        href: '/admin/financeiro',
         icon: FileText,
       },
       {
@@ -78,6 +80,7 @@ const supportNavigation = [
 const AdminSidebar: React.FC = () => {
   const pathname = usePathname();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     // Carregar usuário do localStorage
@@ -86,6 +89,27 @@ const AdminSidebar: React.FC = () => {
       setCurrentUser(JSON.parse(userStr));
     }
   }, []);
+
+  // Auto-expand menus based on current path
+  useEffect(() => {
+    const newExpanded: Record<string, boolean> = {};
+    navigation.forEach((item) => {
+      if (item.children) {
+        const shouldExpand = item.children.some((child) =>
+          pathname === child.href || pathname?.startsWith(child.href + '/')
+        );
+        newExpanded[item.name] = shouldExpand;
+      }
+    });
+    setExpandedMenus(newExpanded);
+  }, [pathname]);
+
+  const toggleMenu = (name: string) => {
+    setExpandedMenus((prev) => ({
+      ...prev,
+      [name]: !prev[name],
+    }));
+  };
 
   const isActive = (href: string) => {
     return pathname === href || pathname?.startsWith(href + '/');
@@ -135,18 +159,50 @@ const AdminSidebar: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
-        {navigation.map((item) => (
-          <div key={item.name}>
-            <NavItem item={item} />
-            {item.children && (
-              <div className="mt-1 space-y-1">
-                {item.children.map((child) => (
-                  <NavItem key={child.name} item={child} isChild />
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+        {navigation.map((item) => {
+          const hasChildren = item.children && item.children.length > 0;
+          const isExpanded = expandedMenus[item.name] || false;
+          const Icon = item.icon;
+          const active = hasChildren
+            ? item.children?.some((child) => isActive(child.href))
+            : isActive(item.href);
+
+          return (
+            <div key={item.name}>
+              {hasChildren ? (
+                <button
+                  onClick={() => toggleMenu(item.name)}
+                  className={cn(
+                    'w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    active
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className="h-4 w-4" />
+                    {item.name}
+                  </div>
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </button>
+              ) : (
+                <NavItem item={item} />
+              )}
+
+              {hasChildren && isExpanded && (
+                <div className="mt-1 space-y-1">
+                  {item.children!.map((child) => (
+                    <NavItem key={child.name} item={child} isChild />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       {/* Support Navigation */}
