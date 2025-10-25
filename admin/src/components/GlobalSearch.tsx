@@ -140,7 +140,7 @@ export default function GlobalSearch() {
           searchResults.push({
             id: sup.id,
             title: sup.name,
-            subtitle: sup.document || sup.email || '',
+            subtitle: sup.document || sup.email || undefined,
             type: 'supplier',
             url: '/admin/fornecedores',
           });
