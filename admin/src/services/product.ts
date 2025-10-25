@@ -58,4 +58,28 @@ export const productService = {
     );
     return response;
   },
+
+  // [DEBUG] Gerar vendas fake para teste
+  async generateFakeSales(productId: number, weeks: number = 12): Promise<{
+    success: boolean;
+    message: string;
+    product_id: number;
+    product_name: string;
+    weeks_generated: number;
+    total_sales: number;
+    date_range: { start: string; end: string };
+  }> {
+    const response = await api.post<{
+      success: boolean;
+      message: string;
+      product_id: number;
+      product_name: string;
+      weeks_generated: number;
+      total_sales: number;
+      date_range: { start: string; end: string };
+    }>(
+      `/products/${productId}/generate-fake-sales?weeks=${weeks}`
+    );
+    return response;
+  },
 };

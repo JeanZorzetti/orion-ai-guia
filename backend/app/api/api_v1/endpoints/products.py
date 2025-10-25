@@ -228,3 +228,93 @@ def get_demand_forecast(
 
     # Retorna resposta
     return result
+
+
+@router.post("/{product_id}/generate-fake-sales", status_code=status.HTTP_201_CREATED)
+def generate_fake_sales(
+    product_id: int,
+    weeks: int = Query(default=12, ge=4, le=52),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    [DEBUG/TESTE] Gera vendas fake para testar previsão de demanda
+
+    Cria vendas sintéticas para um produto que não tem histórico suficiente.
+    Útil para testar a funcionalidade de previsão sem precisar ter dados reais.
+
+    Args:
+        product_id: ID do produto
+        weeks: Número de semanas de histórico fake a gerar (min: 4, max: 52)
+
+    Returns:
+        Mensagem de sucesso com quantidade de vendas criadas
+    """
+    from datetime import datetime, timedelta
+    from app.models.sale import Sale
+    import random
+
+    # Verifica se o produto existe no workspace
+    product = db.query(Product).filter(
+        Product.id == product_id,
+        Product.workspace_id == current_user.workspace_id
+    ).first()
+
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Produto não encontrado"
+        )
+
+    # Apaga vendas fake antigas deste produto (para evitar duplicação em testes)
+    db.query(Sale).filter(
+        Sale.product_id == product_id,
+        Sale.workspace_id == current_user.workspace_id,
+        Sale.notes.like('%[FAKE DATA - TEST]%')
+    ).delete()
+
+    # Gera vendas fake
+    fake_sales = []
+    base_quantity = 10  # Quantidade base de vendas por semana
+    trend = 0.5  # Crescimento semanal (5%)
+
+    for week in range(weeks):
+        # Data da venda (semanas atrás)
+        sale_date = datetime.utcnow() - timedelta(weeks=weeks-week)
+
+        # Quantidade com tendência crescente + variação aleatória
+        quantity = int(base_quantity * (1 + trend * week / weeks) + random.randint(-3, 3))
+        quantity = max(1, quantity)  # Garantir pelo menos 1
+
+        # Preço com pequena variação
+        unit_price = product.sale_price * random.uniform(0.95, 1.05)
+
+        fake_sale = Sale(
+            workspace_id=current_user.workspace_id,
+            product_id=product_id,
+            customer_name=f"Cliente Teste {week + 1}",
+            quantity=quantity,
+            unit_price=unit_price,
+            total_value=quantity * unit_price,
+            sale_date=sale_date,
+            status="completed",
+            notes=f"[FAKE DATA - TEST] Venda gerada automaticamente para teste de previsão"
+        )
+        fake_sales.append(fake_sale)
+
+    # Salva no banco
+    db.add_all(fake_sales)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": f"Geradas {len(fake_sales)} vendas fake para o produto '{product.name}'",
+        "product_id": product_id,
+        "product_name": product.name,
+        "weeks_generated": weeks,
+        "total_sales": len(fake_sales),
+        "date_range": {
+            "start": fake_sales[0].sale_date.isoformat(),
+            "end": fake_sales[-1].sale_date.isoformat()
+        }
+    }

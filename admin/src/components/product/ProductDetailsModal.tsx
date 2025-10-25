@@ -34,7 +34,7 @@ export function ProductDetailsModal({
   const [activeTab, setActiveTab] = useState('details');
 
   // Hook para carregar previsão de demanda
-  const { data: forecast, loading: forecastLoading, error: forecastError } = useDemandForecast(
+  const { data: forecast, loading: forecastLoading, error: forecastError, refetch: refetchForecast } = useDemandForecast(
     product?.id || null,
     { enabled: open && activeTab === 'forecast' }
   );
@@ -321,9 +321,11 @@ export function ProductDetailsModal({
 
           <TabsContent value="forecast" className="mt-6">
             <DemandForecastView
+              productId={product.id}
               data={forecast}
               loading={forecastLoading}
               error={forecastError}
+              onDataGenerated={refetchForecast}
             />
           </TabsContent>
         </Tabs>

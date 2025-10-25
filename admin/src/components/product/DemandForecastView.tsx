@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import {
   LineChart,
   Line,
@@ -24,17 +25,43 @@ import {
   CheckCircle,
   BarChart3,
   Calendar,
-  Minus
+  Minus,
+  TestTube2,
+  Loader2
 } from 'lucide-react';
 import { DemandForecastResponse } from '@/types';
+import { productService } from '@/services/product';
+import { toast } from 'sonner';
 
 interface DemandForecastViewProps {
+  productId: number;
   data: DemandForecastResponse | null;
   loading: boolean;
   error: string | null;
+  onDataGenerated?: () => void;
 }
 
-export function DemandForecastView({ data, loading, error }: DemandForecastViewProps) {
+export function DemandForecastView({ productId, data, loading, error, onDataGenerated }: DemandForecastViewProps) {
+  const [generatingFakeData, setGeneratingFakeData] = useState(false);
+
+  const handleGenerateFakeData = async () => {
+    setGeneratingFakeData(true);
+    try {
+      const result = await productService.generateFakeSales(productId, 12);
+      toast.success(result.message);
+
+      // Recarrega a previsão
+      if (onDataGenerated) {
+        onDataGenerated();
+      }
+    } catch (err) {
+      const error = err as Error;
+      toast.error(error.message || 'Erro ao gerar dados de teste');
+    } finally {
+      setGeneratingFakeData(false);
+    }
+  };
+
   if (loading) {
     return <ForecastSkeleton />;
   }
@@ -51,13 +78,53 @@ export function DemandForecastView({ data, loading, error }: DemandForecastViewP
 
   if (!data || !data.success) {
     return (
-      <Alert>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Dados insuficientes</AlertTitle>
-        <AlertDescription>
-          {data?.error || 'Não há dados históricos suficientes para gerar uma previsão de demanda.'}
-        </AlertDescription>
-      </Alert>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+            Dados insuficientes
+          </CardTitle>
+          <CardDescription>
+            {data?.error || 'Não há dados históricos suficientes para gerar uma previsão de demanda.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center gap-4 py-8 text-center">
+            <div className="p-4 bg-blue-50 rounded-full">
+              <TestTube2 className="h-8 w-8 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Mínimo necessário: <strong>4 períodos</strong> de vendas
+              </p>
+              <p className="text-xs text-muted-foreground mb-6">
+                Para testar a funcionalidade, você pode gerar dados de teste automaticamente.
+              </p>
+            </div>
+            <Button
+              onClick={handleGenerateFakeData}
+              disabled={generatingFakeData}
+              variant="outline"
+              className="gap-2"
+            >
+              {generatingFakeData ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Gerando...
+                </>
+              ) : (
+                <>
+                  <TestTube2 className="h-4 w-4" />
+                  Gerar 12 Semanas de Dados de Teste
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">
+              Isso criará vendas sintéticas para demonstração
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
