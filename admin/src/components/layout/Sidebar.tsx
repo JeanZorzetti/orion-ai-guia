@@ -55,6 +55,18 @@ const Sidebar: React.FC = () => {
 
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(getInitialExpandedState());
 
+  // Update expanded state when pathname changes
+  React.useEffect(() => {
+    const newExpanded: Record<string, boolean> = {};
+    menuItems.forEach((item) => {
+      if (item.subItems) {
+        const isAnySubItemActive = item.subItems.some((subItem) => pathname === subItem.href);
+        newExpanded[item.label] = isAnySubItemActive;
+      }
+    });
+    setExpandedMenus(newExpanded);
+  }, [pathname]);
+
   const toggleMenu = (label: string) => {
     setExpandedMenus((prev) => ({
       ...prev,
