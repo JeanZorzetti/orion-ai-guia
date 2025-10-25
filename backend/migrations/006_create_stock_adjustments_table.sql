@@ -17,10 +17,7 @@ CREATE TABLE IF NOT EXISTS stock_adjustments (
     reason TEXT NOT NULL,
 
     -- Timestamp
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    -- Índices
-    CONSTRAINT stock_adjustments_pkey PRIMARY KEY (id)
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Criar índices para performance
