@@ -195,7 +195,7 @@ function InsightsCards({ insights }: InsightsCardsProps) {
           <Package className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{Math.round(insights.total_forecast_4weeks)}</div>
+          <div className="text-2xl font-bold">{Math.round(insights.total_forecast_4weeks ?? 0)}</div>
           <p className="text-xs text-muted-foreground mt-1">unidades estimadas</p>
         </CardContent>
       </Card>
@@ -219,7 +219,7 @@ function InsightsCards({ insights }: InsightsCardsProps) {
           <BarChart3 className="h-4 w-4 text-purple-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{insights.recommended_stock_level}</div>
+          <div className="text-2xl font-bold">{insights.recommended_stock_level ?? 0}</div>
           <p className="text-xs text-muted-foreground mt-1">unidades sugeridas</p>
         </CardContent>
       </Card>
@@ -382,19 +382,19 @@ function ModelInfo({ modelInfo }: ModelInfoProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
             <div className="text-muted-foreground">Modelo Usado</div>
-            <div className="font-medium">{modelInfo.model_used}</div>
+            <div className="font-medium">{modelInfo.model_used ?? 'N/A'}</div>
           </div>
           <div>
             <div className="text-muted-foreground">Pontos de Dados</div>
-            <div className="font-medium">{modelInfo.data_points}</div>
+            <div className="font-medium">{modelInfo.data_points ?? 0}</div>
           </div>
           <div>
             <div className="text-muted-foreground">MAPE (Erro %)</div>
-            <div className="font-medium">{modelInfo.mape.toFixed(1)}%</div>
+            <div className="font-medium">{modelInfo.mape ? modelInfo.mape.toFixed(1) : '0.0'}%</div>
           </div>
           <div>
             <div className="text-muted-foreground">Período de Treino</div>
-            <div className="font-medium">{modelInfo.training_period}</div>
+            <div className="font-medium">{modelInfo.training_period ?? 'N/A'}</div>
           </div>
         </div>
       </CardContent>
