@@ -66,6 +66,11 @@ class DemandForecaster:
             # Busca histórico de vendas
             historical_data = self._get_historical_sales(product_id, workspace_id, granularity)
 
+            logger.info(f"Dados históricos retornados: {len(historical_data)} períodos")
+            if len(historical_data) > 0:
+                logger.info(f"Soma total de vendas no histórico: {historical_data['units_sold'].sum()}")
+                logger.info(f"Primeiras 5 linhas:\n{historical_data.head()}")
+
             if len(historical_data) < self.min_data_points:
                 return {
                     'error': f'Dados insuficientes. Mínimo: {self.min_data_points} períodos',
@@ -129,7 +134,10 @@ class DemandForecaster:
         ).all()
 
         if not sales:
+            logger.warning(f"Nenhuma venda encontrada para produto {product_id}")
             return pd.DataFrame()
+
+        logger.info(f"Encontradas {len(sales)} vendas para produto {product_id}")
 
         # Converte para DataFrame
         data = []
@@ -142,6 +150,8 @@ class DemandForecaster:
         df = pd.DataFrame(data)
         df['date'] = pd.to_datetime(df['date'])
 
+        logger.info(f"Total de unidades vendidas: {df['quantity'].sum()}")
+
         # Agrega por período
         if granularity == 'daily':
             df_grouped = df.groupby(df['date'].dt.date)['quantity'].sum()
@@ -153,26 +163,37 @@ class DemandForecaster:
             df_grouped = df.groupby(df['date'].dt.to_period('W'))['quantity'].sum()
             freq = 'W'
 
-        # Cria série temporal completa (preenche períodos sem vendas com 0)
-        date_range = pd.date_range(start=start_date, end=end_date, freq=freq)
+        logger.info(f"Após agregação por {granularity}: {len(df_grouped)} períodos, soma={df_grouped.sum()}")
 
-        result = pd.DataFrame({
-            'date': date_range,
-            'units_sold': 0
-        })
-
-        # Mescla com dados reais
+        # Converte índice para timestamp para facilitar merge
         if granularity == 'daily':
             df_grouped.index = pd.to_datetime(df_grouped.index)
         elif granularity == 'monthly':
             df_grouped.index = df_grouped.index.to_timestamp()
-        else:
+        else:  # weekly
             df_grouped.index = df_grouped.index.to_timestamp()
 
-        for date, quantity in df_grouped.items():
-            mask = result['date'] == date
-            if mask.any():
-                result.loc[mask, 'units_sold'] = quantity
+        # Converte Series para DataFrame
+        sales_df = df_grouped.reset_index()
+        sales_df.columns = ['date', 'units_sold']
+        sales_df['date'] = pd.to_datetime(sales_df['date'])
+
+        # Cria série temporal completa com frequência correta
+        date_range = pd.date_range(start=start_date, end=end_date, freq=freq)
+
+        # DataFrame vazio com todas as datas
+        result = pd.DataFrame({'date': date_range})
+        result['date'] = pd.to_datetime(result['date'])
+
+        # Faz merge mantendo todas as datas e preenchendo com 0
+        result = result.merge(sales_df, on='date', how='left')
+        result['units_sold'] = result['units_sold'].fillna(0)
+
+        # Garante que tipos estão corretos
+        result['units_sold'] = result['units_sold'].astype(int)
+
+        logger.info(f"Histórico processado: {len(result)} períodos, {result['units_sold'].sum()} unidades vendidas")
+        logger.info(f"Períodos com vendas: {(result['units_sold'] > 0).sum()}")
 
         return result
 
