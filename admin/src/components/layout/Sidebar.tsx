@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -40,30 +40,22 @@ const menuItems: MenuItem[] = [
 
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
 
-  // Auto-expand menus based on current pathname
-  const getInitialExpandedState = () => {
-    const expanded: Record<string, boolean> = {};
-    menuItems.forEach((item) => {
-      if (item.subItems) {
-        const isAnySubItemActive = item.subItems.some((subItem) => pathname === subItem.href);
-        expanded[item.label] = isAnySubItemActive;
-      }
-    });
-    return expanded;
-  };
-
-  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(getInitialExpandedState());
-
-  // Update expanded state when pathname changes
-  React.useEffect(() => {
+  // Initialize and update expanded state based on current path
+  useEffect(() => {
     const newExpanded: Record<string, boolean> = {};
+
     menuItems.forEach((item) => {
       if (item.subItems) {
-        const isAnySubItemActive = item.subItems.some((subItem) => pathname === subItem.href);
-        newExpanded[item.label] = isAnySubItemActive;
+        // Auto-expand if any subitem matches current path
+        const shouldExpand = item.subItems.some((subItem) =>
+          pathname === subItem.href || pathname?.startsWith(subItem.href + '/')
+        );
+        newExpanded[item.label] = shouldExpand;
       }
     });
+
     setExpandedMenus(newExpanded);
   }, [pathname]);
 
@@ -88,7 +80,7 @@ const Sidebar: React.FC = () => {
         {menuItems.map((item) => {
           const isActive = isMenuActive(item);
           const hasSubItems = item.subItems && item.subItems.length > 0;
-          const isExpanded = expandedMenus[item.label];
+          const isExpanded = expandedMenus[item.label] || false;
 
           if (hasSubItems) {
             return (
