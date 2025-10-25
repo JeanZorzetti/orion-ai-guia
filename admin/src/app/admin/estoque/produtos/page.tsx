@@ -353,10 +353,11 @@ const ProdutosPage: React.FC = () => {
     }
   };
 
-  const totalProducts = products.length;
-  const lowStockProducts = products.filter(p => p.stock_quantity <= p.min_stock_level).length;
-  const criticalStockProducts = products.filter(p => p.stock_quantity === 0).length;
-  const okStockProducts = products.filter(p => p.stock_quantity > p.min_stock_level).length;
+  // Estatísticas - Usando produtos filtrados para refletir os filtros aplicados
+  const totalProducts = filteredAndSortedProducts.length;
+  const lowStockProducts = filteredAndSortedProducts.filter(p => p.stock_quantity <= p.min_stock_level).length;
+  const criticalStockProducts = filteredAndSortedProducts.filter(p => p.stock_quantity === 0).length;
+  const okStockProducts = filteredAndSortedProducts.filter(p => p.stock_quantity > p.min_stock_level).length;
 
   const estatisticas = [
     { label: 'Total de Produtos', valor: totalProducts, icon: Package, color: 'text-blue-500' },
