@@ -760,11 +760,11 @@ const ProdutosPage: React.FC = () => {
                       </td>
                       <td className="p-3 text-right">
                         <span className={`font-semibold ${product.stock_quantity <= product.min_stock_level ? 'text-red-600' : 'text-green-600'}`}>
-                          {product.stock_quantity} {product.unit}
+                          {product.stock_quantity} {product.unit || 'un'}
                         </span>
                       </td>
                       <td className="p-3 text-right">
-                        <span className="text-sm text-muted-foreground">{product.min_stock_level} {product.unit}</span>
+                        <span className="text-sm text-muted-foreground">{product.min_stock_level} {product.unit || 'un'}</span>
                       </td>
                       <td className="p-3 text-right">
                         <span className="font-semibold">

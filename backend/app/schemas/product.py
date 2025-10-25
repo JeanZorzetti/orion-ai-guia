@@ -104,6 +104,10 @@ class ModelInfo(BaseModel):
     rmse: float  # Root Mean Square Error
     last_updated: str
 
+    model_config = {
+        'protected_namespaces': ()  # Allow 'model_' prefix
+    }
+
 
 class DemandForecastResponse(BaseModel):
     """Response for demand forecast endpoint"""
@@ -115,3 +119,7 @@ class DemandForecastResponse(BaseModel):
     model_info: Optional[ModelInfo] = None
     error: Optional[str] = None
     data_points: Optional[int] = None
+
+    model_config = {
+        'protected_namespaces': ()  # Allow 'model_' prefix
+    }
