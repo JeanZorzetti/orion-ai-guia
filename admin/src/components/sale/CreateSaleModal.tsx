@@ -152,7 +152,7 @@ export function CreateSaleModal({ open, onOpenChange, onSuccess }: CreateSaleMod
               <SelectContent>
                 {products.map((product) => (
                   <SelectItem key={product.id} value={product.id.toString()}>
-                    {product.name} - Estoque: {product.stock_quantity} {product.unit}
+                    {product.name} - Estoque: {product.stock_quantity} {product.unit || 'un'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -165,7 +165,7 @@ export function CreateSaleModal({ open, onOpenChange, onSuccess }: CreateSaleMod
                 <Package className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">
                   Preço: R$ {selectedProduct.sale_price.toFixed(2)} |
-                  Estoque: {selectedProduct.stock_quantity} {selectedProduct.unit}
+                  Estoque: {selectedProduct.stock_quantity} {selectedProduct.unit || 'un'}
                 </span>
               </div>
             )}

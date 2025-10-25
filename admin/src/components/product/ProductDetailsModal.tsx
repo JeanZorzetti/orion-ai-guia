@@ -165,18 +165,18 @@ export function ProductDetailsModal({
                 <div>
                   <p className="text-sm text-muted-foreground">Quantidade Atual</p>
                   <p className="text-2xl font-bold">
-                    {product.stock_quantity} {product.unit}
+                    {product.stock_quantity} {product.unit || 'un'}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Estoque Mínimo</p>
                   <p className="text-2xl font-semibold text-orange-600">
-                    {product.min_stock_level} {product.unit}
+                    {product.min_stock_level} {product.unit || 'un'}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Unidade</p>
-                  <p className="text-2xl font-semibold uppercase">{product.unit}</p>
+                  <p className="text-2xl font-semibold uppercase">{product.unit || 'un'}</p>
                 </div>
               </div>
 

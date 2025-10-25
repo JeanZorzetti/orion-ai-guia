@@ -856,7 +856,7 @@ const ProdutosPage: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Estoque</span>
                         <span className={`text-sm font-semibold ${product.stock_quantity <= product.min_stock_level ? 'text-red-600' : 'text-green-600'}`}>
-                          {product.stock_quantity} {product.unit}
+                          {product.stock_quantity} {product.unit || 'un'}
                         </span>
                       </div>
 
@@ -864,7 +864,7 @@ const ProdutosPage: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">Mínimo</span>
                         <span className="text-xs text-muted-foreground">
-                          {product.min_stock_level} {product.unit}
+                          {product.min_stock_level} {product.unit || 'un'}
                         </span>
                       </div>
 
