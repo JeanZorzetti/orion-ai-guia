@@ -44,7 +44,6 @@ export type ProductUpdateFormData = z.infer<typeof productUpdateSchema>;
 
 // Schema específico para ajuste de estoque
 export const stockAdjustmentSchema = z.object({
-  product_id: z.number().positive(),
   adjustment_type: z.enum(['in', 'out', 'correction']),
   quantity: z.number().int().positive('Quantidade deve ser maior que zero'),
   reason: z.string().min(1, 'Motivo é obrigatório').max(500, 'Motivo muito longo'),
