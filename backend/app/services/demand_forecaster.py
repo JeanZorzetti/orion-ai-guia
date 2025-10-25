@@ -124,6 +124,10 @@ class DemandForecaster:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=365)
 
+        # DEBUG: Log dos parâmetros de busca
+        logger.info(f"🔍 Buscando vendas: product_id={product_id}, workspace_id={workspace_id}")
+        logger.info(f"📅 Período: {start_date.date()} até {end_date.date()}")
+
         # Busca vendas completadas
         sales = self.db.query(Sale).filter(
             Sale.product_id == product_id,
@@ -133,11 +137,26 @@ class DemandForecaster:
             Sale.sale_date <= end_date
         ).all()
 
+        # DEBUG: Verifica vendas sem filtro de workspace
+        all_sales_for_product = self.db.query(Sale).filter(
+            Sale.product_id == product_id,
+            Sale.status == 'completed'
+        ).count()
+        logger.info(f"🔍 Total de vendas deste produto (todos workspaces): {all_sales_for_product}")
+
+        # DEBUG: Verifica workspace das vendas
+        if all_sales_for_product > 0:
+            sample_sale = self.db.query(Sale).filter(
+                Sale.product_id == product_id,
+                Sale.status == 'completed'
+            ).first()
+            logger.info(f"🔍 Amostra: venda ID={sample_sale.id}, workspace_id={sample_sale.workspace_id}, data={sample_sale.sale_date}")
+
         if not sales:
-            logger.warning(f"Nenhuma venda encontrada para produto {product_id}")
+            logger.warning(f"❌ Nenhuma venda encontrada para produto {product_id} no workspace {workspace_id}")
             return pd.DataFrame()
 
-        logger.info(f"Encontradas {len(sales)} vendas para produto {product_id}")
+        logger.info(f"✅ Encontradas {len(sales)} vendas para produto {product_id}")
 
         # Converte para DataFrame
         data = []
