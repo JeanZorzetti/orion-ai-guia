@@ -82,4 +82,40 @@ export const productService = {
     );
     return response;
   },
+
+  // Ajustar estoque
+  async adjustStock(
+    productId: number,
+    data: {
+      adjustment_type: 'in' | 'out' | 'correction';
+      quantity: number;
+      reason: string;
+    }
+  ): Promise<{
+    success: boolean;
+    message: string;
+    product_id: number;
+    product_name: string;
+    adjustment_type: string;
+    quantity_adjusted: number;
+    previous_stock: number;
+    new_stock: number;
+    reason: string;
+  }> {
+    const response = await api.post<{
+      success: boolean;
+      message: string;
+      product_id: number;
+      product_name: string;
+      adjustment_type: string;
+      quantity_adjusted: number;
+      previous_stock: number;
+      new_stock: number;
+      reason: string;
+    }>(
+      `/products/${productId}/adjust-stock`,
+      data
+    );
+    return response;
+  },
 };

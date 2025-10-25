@@ -49,38 +49,14 @@ export function AdjustStockModal({ open, onOpenChange, product, onSuccess }: Adj
 
     setIsLoading(true);
     try {
-      // Calcular nova quantidade baseada no tipo de ajuste
-      let newStockQuantity = product.stock_quantity;
-
-      switch (data.adjustment_type) {
-        case 'in':
-          newStockQuantity += data.quantity;
-          break;
-        case 'out':
-          newStockQuantity -= data.quantity;
-          if (newStockQuantity < 0) {
-            toast.error('Quantidade insuficiente em estoque');
-            setIsLoading(false);
-            return;
-          }
-          break;
-        case 'correction':
-          newStockQuantity = data.quantity;
-          break;
-      }
-
-      // Atualizar o estoque do produto
-      await productService.update(product.id, {
-        stock_quantity: newStockQuantity,
+      // Chamar novo endpoint de ajuste de estoque
+      const result = await productService.adjustStock(product.id, {
+        adjustment_type: data.adjustment_type,
+        quantity: data.quantity,
+        reason: data.reason,
       });
 
-      const adjustmentMessages = {
-        in: 'Entrada registrada com sucesso!',
-        out: 'Saída registrada com sucesso!',
-        correction: 'Estoque corrigido com sucesso!',
-      };
-
-      toast.success(adjustmentMessages[data.adjustment_type]);
+      toast.success(result.message);
       reset();
       onOpenChange(false);
       if (onSuccess) {

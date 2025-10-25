@@ -62,7 +62,11 @@
       "Read(//c/Users/jeanz/OneDrive/Desktop/**)",
       "Bash(cat:*)",
       "Bash(python3:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(awk:*)",
+      "Bash(\"C:\\Users\\jeanz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" apply_migration_004.py)",
+      "Bash(/c/Users/jeanz/AppData/Local/Programs/Python/Python313/python.exe:*)",
+      "Bash(where:*)"
     ],
     "deny": [],
     "ask": []

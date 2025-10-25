@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.models.product import Product
+from app.models.stock_adjustment import StockAdjustment
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.schemas.product import (
@@ -15,6 +17,13 @@ from app.schemas.product import (
 from app.services.demand_forecaster import DemandForecaster
 
 router = APIRouter()
+
+
+# Schema for stock adjustment
+class StockAdjustmentCreate(BaseModel):
+    adjustment_type: str  # 'in', 'out', 'correction'
+    quantity: int
+    reason: str
 
 
 @router.get("/", response_model=List[ProductResponse])
@@ -180,6 +189,92 @@ def delete_product(
     db.delete(db_product)
     db.commit()
     return None
+
+
+@router.post("/{product_id}/adjust-stock", status_code=status.HTTP_200_OK)
+def adjust_stock(
+    product_id: int,
+    adjustment: StockAdjustmentCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Ajusta o estoque de um produto (entrada, saída ou correção)
+
+    Registra o ajuste no histórico e atualiza a quantidade em estoque.
+    """
+    # Verifica se o produto existe no workspace
+    product = db.query(Product).filter(
+        Product.id == product_id,
+        Product.workspace_id == current_user.workspace_id
+    ).first()
+
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Produto não encontrado"
+        )
+
+    # Valida tipo de ajuste
+    if adjustment.adjustment_type not in ['in', 'out', 'correction']:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tipo de ajuste inválido. Use 'in', 'out' ou 'correction'"
+        )
+
+    # Valida quantidade
+    if adjustment.quantity <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Quantidade deve ser maior que zero"
+        )
+
+    # Armazena quantidade anterior
+    previous_quantity = product.stock_quantity
+
+    # Calcula nova quantidade baseada no tipo de ajuste
+    if adjustment.adjustment_type == 'in':
+        new_quantity = previous_quantity + adjustment.quantity
+    elif adjustment.adjustment_type == 'out':
+        new_quantity = previous_quantity - adjustment.quantity
+        if new_quantity < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Estoque insuficiente. Disponível: {previous_quantity}"
+            )
+    else:  # correction
+        new_quantity = adjustment.quantity
+
+    # Cria registro de ajuste no histórico
+    stock_adjustment = StockAdjustment(
+        workspace_id=current_user.workspace_id,
+        product_id=product_id,
+        user_id=current_user.id,
+        adjustment_type=adjustment.adjustment_type,
+        quantity=adjustment.quantity,
+        previous_quantity=previous_quantity,
+        new_quantity=new_quantity,
+        reason=adjustment.reason
+    )
+    db.add(stock_adjustment)
+
+    # Atualiza estoque do produto
+    product.stock_quantity = new_quantity
+
+    db.commit()
+    db.refresh(product)
+
+    return {
+        "success": True,
+        "message": "Estoque ajustado com sucesso",
+        "product_id": product_id,
+        "product_name": product.name,
+        "adjustment_type": adjustment.adjustment_type,
+        "quantity_adjusted": adjustment.quantity,
+        "previous_stock": previous_quantity,
+        "new_stock": new_quantity,
+        "reason": adjustment.reason
+    }
 
 
 @router.get("/{product_id}/demand-forecast", response_model=DemandForecastResponse)
