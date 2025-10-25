@@ -27,7 +27,8 @@ import {
   Calendar,
   Minus,
   TestTube2,
-  Loader2
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { DemandForecastResponse } from '@/types';
 import { productService } from '@/services/product';
@@ -39,10 +40,12 @@ interface DemandForecastViewProps {
   loading: boolean;
   error: string | null;
   onDataGenerated?: () => void;
+  onRefresh?: () => void;
 }
 
-export function DemandForecastView({ productId, data, loading, error, onDataGenerated }: DemandForecastViewProps) {
+export function DemandForecastView({ productId, data, loading, error, onDataGenerated, onRefresh }: DemandForecastViewProps) {
   const [generatingFakeData, setGeneratingFakeData] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleGenerateFakeData = async () => {
     setGeneratingFakeData(true);
@@ -59,6 +62,21 @@ export function DemandForecastView({ productId, data, loading, error, onDataGene
       toast.error(error.message || 'Erro ao gerar dados de teste');
     } finally {
       setGeneratingFakeData(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (!onRefresh) return;
+
+    setRefreshing(true);
+    try {
+      await onRefresh();
+      toast.success('Previsão atualizada com sucesso!');
+    } catch (err) {
+      const error = err as Error;
+      toast.error(error.message || 'Erro ao atualizar previsão');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -142,6 +160,49 @@ export function DemandForecastView({ productId, data, loading, error, onDataGene
 
   return (
     <div className="space-y-6">
+      {/* Header com botão de refresh */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Previsão de Demanda</h3>
+          <p className="text-sm text-muted-foreground">
+            Atualizado em {new Date(data.model_info.last_updated).toLocaleString('pt-BR')}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {onRefresh && (
+            <Button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Atualizando...' : 'Atualizar Previsão'}
+            </Button>
+          )}
+          <Button
+            onClick={handleGenerateFakeData}
+            disabled={generatingFakeData}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            {generatingFakeData ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Gerando...
+              </>
+            ) : (
+              <>
+                <TestTube2 className="h-4 w-4" />
+                Gerar Mais Dados
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
       {/* Cards de Insights */}
       <InsightsCards insights={data.insights} />
 

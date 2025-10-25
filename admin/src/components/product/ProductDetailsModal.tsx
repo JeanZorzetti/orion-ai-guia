@@ -326,6 +326,7 @@ export function ProductDetailsModal({
               loading={forecastLoading}
               error={forecastError}
               onDataGenerated={refetchForecast}
+              onRefresh={refetchForecast}
             />
           </TabsContent>
         </Tabs>
