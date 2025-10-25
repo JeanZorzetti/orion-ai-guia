@@ -230,6 +230,12 @@ def get_demand_forecast(
     return result
 
 
+@router.options("/{product_id}/generate-fake-sales")
+async def generate_fake_sales_options(product_id: int):
+    """Handle CORS preflight for generate-fake-sales endpoint"""
+    return {"status": "ok"}
+
+
 @router.post("/{product_id}/generate-fake-sales", status_code=status.HTTP_201_CREATED)
 def generate_fake_sales(
     product_id: int,
