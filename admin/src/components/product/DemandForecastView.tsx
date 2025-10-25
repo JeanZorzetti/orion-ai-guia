@@ -164,9 +164,11 @@ export function DemandForecastView({ productId, data, loading, error, onDataGene
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Previsão de Demanda</h3>
-          <p className="text-sm text-muted-foreground">
-            Atualizado em {new Date(data.model_info.last_updated).toLocaleString('pt-BR')}
-          </p>
+          {data.model_info?.last_updated && (
+            <p className="text-sm text-muted-foreground">
+              Atualizado em {new Date(data.model_info.last_updated).toLocaleString('pt-BR')}
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           {onRefresh && (
