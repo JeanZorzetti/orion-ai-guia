@@ -338,6 +338,21 @@ const ProdutosPage: React.FC = () => {
     setAdjustStockModalOpen(true);
   };
 
+  const handleAdjustStockSuccess = async () => {
+    // Recarrega lista de produtos
+    await loadProducts();
+
+    // Se tem produto selecionado, recarrega seus dados atualizados
+    if (selectedProduct) {
+      try {
+        const updatedProduct = await productService.getById(selectedProduct.id);
+        setSelectedProduct(updatedProduct);
+      } catch (err) {
+        console.error('Erro ao atualizar produto:', err);
+      }
+    }
+  };
+
   const totalProducts = products.length;
   const lowStockProducts = products.filter(p => p.stock_quantity <= p.min_stock_level).length;
   const criticalStockProducts = products.filter(p => p.stock_quantity === 0).length;
@@ -978,7 +993,7 @@ const ProdutosPage: React.FC = () => {
         open={adjustStockModalOpen}
         onOpenChange={setAdjustStockModalOpen}
         product={selectedProduct}
-        onSuccess={loadProducts}
+        onSuccess={handleAdjustStockSuccess}
       />
 
       {ConfirmDialog}
