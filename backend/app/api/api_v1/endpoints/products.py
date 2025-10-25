@@ -374,34 +374,96 @@ def generate_fake_sales(
         Sale.notes.like('%[FAKE DATA - TEST]%')
     ).delete()
 
-    # Gera vendas fake
+    # Gera vendas fake com padrões realistas
     fake_sales = []
     base_quantity = 10  # Quantidade base de vendas por semana
-    trend = 0.5  # Crescimento semanal (5%)
+
+    # Parâmetros de padrões realistas
+    trend_rate = 0.3  # Crescimento de 30% ao longo do período
+    seasonal_amplitude = 0.25  # Sazonalidade com variação de ±25%
+    noise_level = 0.15  # Ruído aleatório de ±15%
+
+    # Adiciona pico ocasional (ex: Black Friday, Natal)
+    spike_weeks = [weeks // 3, 2 * weeks // 3] if weeks >= 8 else []
 
     for week in range(weeks):
         # Data da venda (semanas atrás)
         sale_date = datetime.utcnow() - timedelta(weeks=weeks-week)
 
-        # Quantidade com tendência crescente + variação aleatória
-        quantity = int(base_quantity * (1 + trend * week / weeks) + random.randint(-3, 3))
-        quantity = max(1, quantity)  # Garantir pelo menos 1
+        # Progresso normalizado (0 a 1)
+        progress = week / max(weeks - 1, 1)
 
-        # Preço com pequena variação
-        unit_price = product.sale_price * random.uniform(0.95, 1.05)
+        # 1. Componente de tendência (crescimento linear)
+        trend_component = 1 + (trend_rate * progress)
 
-        fake_sale = Sale(
-            workspace_id=current_user.workspace_id,
-            product_id=product_id,
-            customer_name=f"Cliente Teste {week + 1}",
-            quantity=quantity,
-            unit_price=unit_price,
-            total_value=quantity * unit_price,
-            sale_date=sale_date,
-            status="completed",
-            notes=f"[FAKE DATA - TEST] Venda gerada automaticamente para teste de previsão"
-        )
-        fake_sales.append(fake_sale)
+        # 2. Componente sazonal (padrão mensal de 4 semanas)
+        seasonal_phase = (week % 4) / 4 * 2 * 3.14159  # Ciclo de 4 semanas
+        seasonal_component = 1 + (seasonal_amplitude * random.uniform(0.7, 1.3) *
+                                   (0.5 + 0.5 * ((week % 4) / 2 - 1)))
+
+        # 3. Ruído aleatório
+        noise = 1 + random.uniform(-noise_level, noise_level)
+
+        # 4. Picos ocasionais
+        spike_multiplier = 1.0
+        if week in spike_weeks:
+            spike_multiplier = random.uniform(1.8, 2.5)  # Pico de 80-150%
+
+        # Combina todos os componentes
+        quantity_float = (base_quantity * trend_component *
+                         seasonal_component * noise * spike_multiplier)
+        quantity = max(1, int(quantity_float))
+
+        # Gera múltiplas vendas por semana (2-5 vendas) para dados mais realistas
+        num_sales = random.randint(2, 5)
+        qty_per_sale = max(1, quantity // num_sales)
+        remaining_qty = quantity
+
+        for sale_num in range(num_sales):
+            # Última venda pega o resto
+            if sale_num == num_sales - 1:
+                sale_quantity = remaining_qty
+            else:
+                # Variação na quantidade por venda (±30%)
+                sale_quantity = max(1, int(qty_per_sale * random.uniform(0.7, 1.3)))
+                remaining_qty -= sale_quantity
+
+            if sale_quantity <= 0:
+                continue
+
+            # Data aleatória dentro da semana
+            days_offset = random.randint(0, 6)
+            actual_sale_date = sale_date + timedelta(days=days_offset)
+
+            # Preço com variação (descontos, promoções)
+            price_variation = random.uniform(0.85, 1.05)
+            # Picos têm preços mais estáveis (menos desconto)
+            if week in spike_weeks:
+                price_variation = random.uniform(0.95, 1.0)
+
+            unit_price = product.sale_price * price_variation
+
+            # Nomes de clientes variados
+            customer_types = [
+                f"Cliente Corporativo {random.randint(1, 20)}",
+                f"Empresa {random.randint(100, 999)} Ltda",
+                f"Cliente Varejo {random.randint(1, 50)}",
+                f"Revendedor {random.randint(1, 15)}",
+                f"Cliente Final {random.randint(1, 100)}"
+            ]
+
+            fake_sale = Sale(
+                workspace_id=current_user.workspace_id,
+                product_id=product_id,
+                customer_name=random.choice(customer_types),
+                quantity=sale_quantity,
+                unit_price=unit_price,
+                total_value=sale_quantity * unit_price,
+                sale_date=actual_sale_date,
+                status="completed",
+                notes=f"[FAKE DATA - TEST] Venda sintética com padrões realistas (tendência + sazonalidade + ruído)"
+            )
+            fake_sales.append(fake_sale)
 
     # Salva no banco
     db.add_all(fake_sales)
