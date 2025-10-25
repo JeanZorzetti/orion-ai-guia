@@ -7,6 +7,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   LineChart,
   Line,
   XAxis,
@@ -28,7 +35,8 @@ import {
   Minus,
   TestTube2,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  ChevronDown
 } from 'lucide-react';
 import { DemandForecastResponse } from '@/types';
 import { productService } from '@/services/product';
@@ -41,11 +49,29 @@ interface DemandForecastViewProps {
   error: string | null;
   onDataGenerated?: () => void;
   onRefresh?: () => void;
+  period?: '2_weeks' | '4_weeks' | '8_weeks' | '12_weeks';
+  onPeriodChange?: (period: '2_weeks' | '4_weeks' | '8_weeks' | '12_weeks') => void;
 }
 
-export function DemandForecastView({ productId, data, loading, error, onDataGenerated, onRefresh }: DemandForecastViewProps) {
+export function DemandForecastView({
+  productId,
+  data,
+  loading,
+  error,
+  onDataGenerated,
+  onRefresh,
+  period = '4_weeks',
+  onPeriodChange
+}: DemandForecastViewProps) {
   const [generatingFakeData, setGeneratingFakeData] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const periodLabels = {
+    '2_weeks': '2 Semanas',
+    '4_weeks': '4 Semanas',
+    '8_weeks': '8 Semanas',
+    '12_weeks': '12 Semanas'
+  };
 
   const handleGenerateFakeData = async () => {
     setGeneratingFakeData(true);
@@ -160,7 +186,7 @@ export function DemandForecastView({ productId, data, loading, error, onDataGene
 
   return (
     <div className="space-y-6">
-      {/* Header com botão de refresh */}
+      {/* Header com seletor de período e botões */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Previsão de Demanda</h3>
@@ -170,7 +196,21 @@ export function DemandForecastView({ productId, data, loading, error, onDataGene
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Seletor de Período */}
+          {onPeriodChange && (
+            <Select value={period} onValueChange={onPeriodChange}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2_weeks">{periodLabels['2_weeks']}</SelectItem>
+                <SelectItem value="4_weeks">{periodLabels['4_weeks']}</SelectItem>
+                <SelectItem value="8_weeks">{periodLabels['8_weeks']}</SelectItem>
+                <SelectItem value="12_weeks">{periodLabels['12_weeks']}</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           {onRefresh && (
             <Button
               onClick={handleRefresh}
@@ -503,31 +543,72 @@ interface ModelInfoProps {
 }
 
 function ModelInfo({ modelInfo }: ModelInfoProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Badge para MAPE
+  const getMapeQuality = (mape: number) => {
+    if (mape < 15) return { label: 'Ótimo', variant: 'default' as const };
+    if (mape < 25) return { label: 'Bom', variant: 'secondary' as const };
+    return { label: 'Regular', variant: 'outline' as const };
+  };
+
+  const mapeQuality = modelInfo.mape ? getMapeQuality(modelInfo.mape) : null;
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">Informações do Modelo de IA</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <div className="text-muted-foreground">Modelo Usado</div>
-            <div className="font-medium">{modelInfo.model_used ?? 'N/A'}</div>
-          </div>
-          <div>
-            <div className="text-muted-foreground">Pontos de Dados</div>
-            <div className="font-medium">{modelInfo.data_points ?? 0}</div>
-          </div>
-          <div>
-            <div className="text-muted-foreground">MAPE (Erro %)</div>
-            <div className="font-medium">{modelInfo.mape ? modelInfo.mape.toFixed(1) : '0.0'}%</div>
-          </div>
-          <div>
-            <div className="text-muted-foreground">Período de Treino</div>
-            <div className="font-medium">{modelInfo.training_period ?? 'N/A'}</div>
-          </div>
+      <CardHeader
+        className="cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium">Informações do Modelo de IA</CardTitle>
+          <ChevronDown
+            className={`h-4 w-4 transition-transform duration-200 ${
+              isExpanded ? 'rotate-180' : ''
+            }`}
+          />
         </div>
-      </CardContent>
+      </CardHeader>
+
+      {isExpanded && (
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <div className="text-muted-foreground">Modelo Usado</div>
+              <div className="font-medium capitalize">
+                {modelInfo.model_used?.replace(/_/g, ' ') ?? 'N/A'}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Pontos de Dados</div>
+              <div className="font-medium">{modelInfo.data_points ?? 0}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">MAPE (Erro %)</div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">
+                  {modelInfo.mape ? modelInfo.mape.toFixed(1) : '0.0'}%
+                </span>
+                {mapeQuality && (
+                  <Badge variant={mapeQuality.variant} className="text-xs">
+                    {mapeQuality.label}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Período de Treino</div>
+              <div className="font-medium text-xs">{modelInfo.training_period ?? 'N/A'}</div>
+            </div>
+          </div>
+
+          {modelInfo.last_updated && (
+            <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+              Última atualização: {new Date(modelInfo.last_updated).toLocaleString('pt-BR')}
+            </div>
+          )}
+        </CardContent>
+      )}
     </Card>
   );
 }

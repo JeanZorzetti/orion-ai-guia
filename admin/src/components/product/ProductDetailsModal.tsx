@@ -32,11 +32,15 @@ export function ProductDetailsModal({
   onAdjustStock
 }: ProductDetailsModalProps) {
   const [activeTab, setActiveTab] = useState('details');
+  const [forecastPeriod, setForecastPeriod] = useState<'2_weeks' | '4_weeks' | '8_weeks' | '12_weeks'>('4_weeks');
 
   // Hook para carregar previsão de demanda
   const { data: forecast, loading: forecastLoading, error: forecastError, refetch: refetchForecast } = useDemandForecast(
     product?.id || null,
-    { enabled: open && activeTab === 'forecast' }
+    {
+      enabled: open && activeTab === 'forecast',
+      period: forecastPeriod
+    }
   );
 
   if (!product) return null;
@@ -327,6 +331,8 @@ export function ProductDetailsModal({
               error={forecastError}
               onDataGenerated={refetchForecast}
               onRefresh={refetchForecast}
+              period={forecastPeriod}
+              onPeriodChange={setForecastPeriod}
             />
           </TabsContent>
         </Tabs>

@@ -66,11 +66,6 @@ class DemandForecaster:
             # Busca histórico de vendas
             historical_data = self._get_historical_sales(product_id, workspace_id, granularity)
 
-            logger.info(f"Dados históricos retornados: {len(historical_data)} períodos")
-            if len(historical_data) > 0:
-                logger.info(f"Soma total de vendas no histórico: {historical_data['units_sold'].sum()}")
-                logger.info(f"Primeiras 5 linhas:\n{historical_data.head()}")
-
             if len(historical_data) < self.min_data_points:
                 return {
                     'error': f'Dados insuficientes. Mínimo: {self.min_data_points} períodos',
@@ -124,10 +119,6 @@ class DemandForecaster:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=365)
 
-        # DEBUG: Log dos parâmetros de busca
-        logger.info(f"🔍 Buscando vendas: product_id={product_id}, workspace_id={workspace_id}")
-        logger.info(f"📅 Período: {start_date.date()} até {end_date.date()}")
-
         # Busca vendas completadas
         sales = self.db.query(Sale).filter(
             Sale.product_id == product_id,
@@ -137,26 +128,11 @@ class DemandForecaster:
             Sale.sale_date <= end_date
         ).all()
 
-        # DEBUG: Verifica vendas sem filtro de workspace
-        all_sales_for_product = self.db.query(Sale).filter(
-            Sale.product_id == product_id,
-            Sale.status == 'completed'
-        ).count()
-        logger.info(f"🔍 Total de vendas deste produto (todos workspaces): {all_sales_for_product}")
-
-        # DEBUG: Verifica workspace das vendas
-        if all_sales_for_product > 0:
-            sample_sale = self.db.query(Sale).filter(
-                Sale.product_id == product_id,
-                Sale.status == 'completed'
-            ).first()
-            logger.info(f"🔍 Amostra: venda ID={sample_sale.id}, workspace_id={sample_sale.workspace_id}, data={sample_sale.sale_date}")
-
         if not sales:
-            logger.warning(f"❌ Nenhuma venda encontrada para produto {product_id} no workspace {workspace_id}")
+            logger.warning(f"Nenhuma venda encontrada para produto {product_id}")
             return pd.DataFrame()
 
-        logger.info(f"✅ Encontradas {len(sales)} vendas para produto {product_id}")
+        logger.info(f"Encontradas {len(sales)} vendas para produto {product_id}")
 
         # Converte para DataFrame
         data = []
@@ -168,8 +144,6 @@ class DemandForecaster:
 
         df = pd.DataFrame(data)
         df['date'] = pd.to_datetime(df['date'])
-
-        logger.info(f"Total de unidades vendidas: {df['quantity'].sum()}")
 
         # Normaliza datas para o início do período ANTES de agrupar
         if granularity == 'daily':
@@ -187,15 +161,10 @@ class DemandForecaster:
         # Agrega por período normalizado
         df_grouped = df.groupby('period_start')['quantity'].sum()
 
-        logger.info(f"Após agregação por {granularity}: {len(df_grouped)} períodos, soma={df_grouped.sum()}")
-        logger.info(f"Primeiras datas agregadas: {df_grouped.head().index.tolist()}")
-
         # Converte Series para DataFrame
         sales_df = df_grouped.reset_index()
         sales_df.columns = ['date', 'units_sold']
         sales_df['date'] = pd.to_datetime(sales_df['date'])
-
-        logger.info(f"Sales DF após conversão: {len(sales_df)} linhas, soma={sales_df['units_sold'].sum()}")
 
         # Cria série temporal completa com frequência correta
         # Normaliza start_date para o início do período E para meia-noite
@@ -209,14 +178,9 @@ class DemandForecaster:
 
         date_range = pd.date_range(start=period_start, end=end_date, freq=freq)
 
-        logger.info(f"Date range: {len(date_range)} períodos, primeiro={date_range[0]}, último={date_range[-1]}")
-
         # DataFrame vazio com todas as datas - NORMALIZA PARA MEIA-NOITE
         result = pd.DataFrame({'date': date_range})
         result['date'] = pd.to_datetime(result['date']).dt.normalize()
-
-        logger.info(f"Result antes do merge: {len(result)} linhas")
-        logger.info(f"Primeiras datas do result: {result['date'].head().tolist()}")
 
         # Faz merge mantendo todas as datas e preenchendo com 0
         result = result.merge(sales_df, on='date', how='left')
@@ -225,10 +189,7 @@ class DemandForecaster:
         # Garante que tipos estão corretos
         result['units_sold'] = result['units_sold'].astype(int)
 
-        logger.info(f"Result após merge: {len(result)} linhas, soma={result['units_sold'].sum()}")
-
         logger.info(f"Histórico processado: {len(result)} períodos, {result['units_sold'].sum()} unidades vendidas")
-        logger.info(f"Períodos com vendas: {(result['units_sold'] > 0).sum()}")
 
         return result
 
