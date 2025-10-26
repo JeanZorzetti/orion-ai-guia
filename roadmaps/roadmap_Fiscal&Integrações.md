@@ -147,13 +147,13 @@ Módulo de Produtos (/admin/estoque/produtos):
 
 Módulo de Vendas (/admin/vendas):
 
-[ ] Atualizar a tabela de Vendas para incluir:
+[x] Atualizar a tabela de Vendas para incluir:
 
 Uma coluna "Status NF-e" (Pendente, Emitida, Rejeitada).
 
 Uma coluna de "Ações" com um botão "Emitir NF-e" (habilitado se status == 'pending').
 
-[ ] Implementar a lógica do botão:
+[x] Implementar a lógica do botão:
 
 Chama POST /api/v1/sales/{sale_id}/issue-nfe.
 
@@ -162,6 +162,8 @@ Exibe um loading state.
 Se sucesso: exibe um toast de sucesso e atualiza a linha da tabela (ex: status muda para "Emitida" e o botão se torna "Ver DANFE").
 
 Se erro: exibe um toast de erro com o nfe_rejection_reason.
+
+✅ **COMPLETO** - Commit 62b9c464: Componente NFEActions implementado com badge de status, botões de emissão/cancelamento/downloads (DANFE/XML), dialog de cancelamento com validação de justificativa (15 chars min), loading states, toasts. Integrado na página de vendas com nova coluna NF-e.
 
 Parte 2: Módulo de Integração (Hub de Pedidos - MVP)
 O Módulo Fiscal é inútil se os pedidos forem inseridos manualmente. Precisamos importar pedidos dos canais de venda do cliente.
