@@ -280,7 +280,7 @@ const ConfiguracoesPage: React.FC = () => {
                 Configure os dados fiscais da empresa, escolha seu parceiro de emissão
                 de NF-e (PlugNotas ou FocusNFe) e gerencie certificados digitais.
               </p>
-              <Link href="/admin/financeiro/fiscal">
+              <Link href="/admin/configuracoes/fiscal">
                 <Button className="w-full" variant="outline">
                   Acessar Configurações Fiscais
                   <ArrowRight className="ml-2 h-4 w-4" />
