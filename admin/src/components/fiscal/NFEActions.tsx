@@ -92,23 +92,28 @@ export function NFEActions({ sale, onUpdate }: NFEActionsProps) {
       cancelled: { label: 'Cancelada', variant: 'outline' },
     };
 
-    const status = statusMap[sale.nfe_status];
+    // Default para 'pending' se nfe_status não estiver definido
+    const nfeStatus = sale.nfe_status || 'pending';
+    const status = statusMap[nfeStatus];
 
     return (
       <Badge variant={status.variant} className="flex items-center gap-1">
-        {sale.nfe_status === 'issued' && <CheckCircle className="h-3 w-3" />}
-        {sale.nfe_status === 'rejected' && <AlertTriangle className="h-3 w-3" />}
-        {sale.nfe_status === 'processing' && <Loader2 className="h-3 w-3 animate-spin" />}
+        {nfeStatus === 'issued' && <CheckCircle className="h-3 w-3" />}
+        {nfeStatus === 'rejected' && <AlertTriangle className="h-3 w-3" />}
+        {nfeStatus === 'processing' && <Loader2 className="h-3 w-3 animate-spin" />}
         {status.label}
       </Badge>
     );
   }
 
+  // Default para 'pending' se não estiver definido
+  const nfeStatus = sale.nfe_status || 'pending';
+
   return (
     <div className="flex items-center gap-2">
       {renderStatusBadge()}
 
-      {sale.nfe_status === 'pending' && (
+      {(nfeStatus === 'pending' || !sale.nfe_status) && (
         <Button
           size="sm"
           onClick={handleIssue}
@@ -129,7 +134,7 @@ export function NFEActions({ sale, onUpdate }: NFEActionsProps) {
         </Button>
       )}
 
-      {sale.nfe_status === 'issued' && (
+      {nfeStatus === 'issued' && (
         <>
           <Button
             size="sm"
@@ -161,7 +166,7 @@ export function NFEActions({ sale, onUpdate }: NFEActionsProps) {
         </>
       )}
 
-      {sale.nfe_status === 'rejected' && (
+      {nfeStatus === 'rejected' && (
         <div className="flex items-center gap-2">
           <p className="text-sm text-muted-foreground max-w-xs truncate">
             {sale.nfe_rejection_reason}
@@ -177,7 +182,7 @@ export function NFEActions({ sale, onUpdate }: NFEActionsProps) {
         </div>
       )}
 
-      {sale.nfe_status === 'cancelled' && sale.nfe_cancelled_at && (
+      {nfeStatus === 'cancelled' && sale.nfe_cancelled_at && (
         <p className="text-sm text-muted-foreground">
           Cancelada em {new Date(sale.nfe_cancelled_at).toLocaleDateString('pt-BR')}
         </p>
