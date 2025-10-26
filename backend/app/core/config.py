@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # Encryption - Field-level encryption for sensitive data (fiscal API keys, etc.)
+    ENCRYPTION_KEY: str = "your-encryption-key-here-run-encryption-py-to-generate"
+
     class Config:
         case_sensitive = True
         env_file = ".env"
