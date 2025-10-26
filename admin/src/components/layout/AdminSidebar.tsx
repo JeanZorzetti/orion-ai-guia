@@ -16,7 +16,8 @@ import {
   ShoppingCart,
   Truck,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Plug
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { User } from '@/types';
@@ -75,6 +76,11 @@ const supportNavigation = [
         href: '/admin/configuracoes/fiscal',
         icon: Shield,
       },
+      {
+        name: 'Integrações',
+        href: '/admin/integracoes',
+        icon: Plug,
+      },
     ],
   },
   {
@@ -100,6 +106,8 @@ const AdminSidebar: React.FC = () => {
   // Auto-expand menus based on current path
   useEffect(() => {
     const newExpanded: Record<string, boolean> = {};
+
+    // Check navigation items
     navigation.forEach((item) => {
       if (item.children) {
         const shouldExpand = item.children.some((child) =>
@@ -108,6 +116,17 @@ const AdminSidebar: React.FC = () => {
         newExpanded[item.name] = shouldExpand;
       }
     });
+
+    // Check support navigation items
+    supportNavigation.forEach((item) => {
+      if (item.children) {
+        const shouldExpand = item.children.some((child) =>
+          pathname === child.href || pathname?.startsWith(child.href + '/')
+        );
+        newExpanded[item.name] = shouldExpand;
+      }
+    });
+
     setExpandedMenus(newExpanded);
   }, [pathname]);
 
@@ -229,9 +248,62 @@ const AdminSidebar: React.FC = () => {
 
       {/* Support Navigation */}
       <div className="p-4 border-t border-sidebar-border space-y-1">
-        {supportNavigation.map((item) => (
-          <NavItem key={item.name} item={item} />
-        ))}
+        {supportNavigation.map((item) => {
+          const hasChildren = item.children && item.children.length > 0;
+          const isExpanded = expandedMenus[item.name] || false;
+          const Icon = item.icon;
+          const active = hasChildren
+            ? pathname === item.href
+            : isActive(item.href);
+
+          return (
+            <div key={item.name}>
+              {hasChildren ? (
+                <div className="relative">
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2 pr-10 rounded-lg text-sm font-medium transition-colors',
+                      active
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.name}
+                  </Link>
+
+                  <button
+                    onClick={() => toggleMenu(item.name)}
+                    className={cn(
+                      'absolute right-0 top-0 h-full px-3 rounded-r-lg transition-colors',
+                      active
+                        ? 'text-primary-foreground hover:bg-primary/90'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                    )}
+                    aria-label={isExpanded ? 'Recolher submenu' : 'Expandir submenu'}
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <NavItem item={item} />
+              )}
+
+              {hasChildren && isExpanded && (
+                <div className="mt-1 space-y-1">
+                  {item.children!.map((child) => (
+                    <NavItem key={child.name} item={child} isChild />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {/* Super Admin Link - só aparece para super admins */}
         {isSuperAdmin && (
