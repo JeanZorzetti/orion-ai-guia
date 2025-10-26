@@ -197,7 +197,7 @@ MVP (Piso Operacional): Focar em uma integração (ex: Shopify) com sincronizaç
 2.1: Tarefas de Backend (FastAPI)
 Gerenciamento de Credenciais:
 
-[ ] Model (/models/workspace.py):
+[x] Model (/models/workspace.py):
 
 Atualizar Workspaces  para incluir:
 
@@ -208,11 +208,13 @@ integration_shopify_api_key (String, Criptografada, Nullable).
 
 integration_shopify_last_sync (DateTime, Nullable).
 
+✅ **COMPLETO** - Campos já existentes na migration 007
+
 Serviço de Importação (/services/integration_service.py):
 
-[ ] Criar o IntegrationService.
+[x] Criar o IntegrationService.
 
-[ ] Implementar async def sync_shopify_orders(workspace: Workspace):
+[x] Implementar async def sync_shopify_orders(workspace: Workspace):
 
 Conecta à API da Shopify usando as credenciais do Workspace.
 
@@ -228,38 +230,72 @@ Se não, ignora ou marca para revisão (para o MVP, vamos ignorar).
 
 Atualiza integration_shopify_last_sync no Workspace com o now().
 
+✅ **COMPLETO** - Commit 973a0da4: ShopifyIntegrationService com sync_orders(), test_connection(), mapeamento completo
+
 Endpoints (API):
 
-[ ] Criar endpoint POST /api/v1/integrations/shopify/config:
+[x] Criar endpoint POST /api/v1/integrations/shopify/config:
 
 Salva as credenciais da Shopify no Workspace.
 
-[ ] Criar endpoint POST /api/v1/integrations/shopify/sync-orders:
+[x] Criar endpoint POST /api/v1/integrations/shopify/sync-orders:
 
 Chama o IntegrationService.sync_shopify_orders().
 
 Retorna um resumo (ex: {"new_orders_imported": 15}).
 
+✅ **COMPLETO** - Commit 973a0da4: 5 endpoints (config POST/GET, test-connection, sync-orders, DELETE config)
+
 2.2: Tarefas de Frontend (Next.js)
 Configuração (Nova Página):
 
-[ ] Criar a página /admin/integracoes.
+[x] Criar a página /admin/integracoes.
 
-[ ] Adicionar um Card "Shopify".
+[x] Adicionar um Card "Shopify".
 
-[ ] Formulário para o usuário inserir "URL da Loja" e "API Key".
+[x] Formulário para o usuário inserir "URL da Loja" e "API Key".
 
-[ ] Botão "Salvar e Testar Conexão".
+[x] Botão "Salvar e Testar Conexão".
+
+✅ **COMPLETO** - Commit fc68ddec: Página /admin/integracoes com Card Shopify, badges de status, instruções
 
 Módulo de Vendas (/admin/vendas):
 
-[ ] Adicionar um botão no header da página: "Sincronizar Pedidos (Shopify)".
+[x] Adicionar um botão no header da página: "Sincronizar Pedidos (Shopify)".
 
-[ ] Ao clicar, chamar POST /api/v1/integrations/shopify/sync-orders.
+[x] Ao clicar, chamar POST /api/v1/integrations/shopify/sync-orders.
 
-[ ] Exibir um loading state no botão.
+[x] Exibir um loading state no botão.
 
-[ ] Ao concluir, exibir um toast (ex: "15 novos pedidos importados") e recarregar a tabela de vendas.
+[x] Ao concluir, exibir um toast (ex: "15 novos pedidos importados") e recarregar a tabela de vendas.
+
+✅ **COMPLETO** - Commit fc68ddec: Botão "Sincronizar Shopify" com loading state, toasts detalhados
+
+---
+
+## 🎉 PARTE 2: INTEGRAÇÃO SHOPIFY - 100% COMPLETO
+
+Sincronização de pedidos Shopify implementada e funcional:
+
+- ✅ Backend: IntegrationService, 5 endpoints de API (100%)
+- ✅ Frontend: Página de Integrações, Botão de Sync (100%)
+- ✅ Mapeamento: Pedidos Shopify → Sales por SKU (100%)
+
+**Commits principais:**
+
+- `973a0da4` - Backend completo com IntegrationService e endpoints
+- `fc68ddec` - Frontend completo com página e botão de sincronização
+
+**Features:**
+
+- Importa pedidos PAGOS desde última sync
+- Mapeia produtos pelo SKU
+- Pula pedidos já importados
+- Criptografia de credenciais
+- Teste de conexão antes de sincronizar
+- Estatísticas detalhadas de importação
+
+**Status:** ✅ Pronto para uso em produção (após configurar loja Shopify)
 
 ---
 
