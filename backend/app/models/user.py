@@ -22,7 +22,11 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
-    workspace = relationship("Workspace", back_populates="users")
+    workspace = relationship(
+        "Workspace",
+        back_populates="users",
+        foreign_keys=[workspace_id]
+    )
 
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', workspace_id={self.workspace_id})>"
