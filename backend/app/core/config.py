@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     # Encryption - Field-level encryption for sensitive data (fiscal API keys, etc.)
     ENCRYPTION_KEY: str = "your-encryption-key-here-run-encryption-py-to-generate"
 
+    # Mercado Livre OAuth
+    MERCADOLIVRE_CLIENT_ID: str = ""
+    MERCADOLIVRE_CLIENT_SECRET: str = ""
+    MERCADOLIVRE_REDIRECT_URI: str = "http://localhost:3000/admin/integracoes/mercadolivre/callback"
+
     class Config:
         case_sensitive = True
         env_file = ".env"
