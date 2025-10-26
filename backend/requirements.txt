@@ -15,6 +15,10 @@ python-jose[cryptography]==3.3.0
 bcrypt==4.1.2
 passlib==1.7.4
 
+# Fiscal & HTTP Client
+httpx==0.25.2
+cryptography==41.0.7
+
 # Environment & Config
 python-dotenv==1.0.0
 
