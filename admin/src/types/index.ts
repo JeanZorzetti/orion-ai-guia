@@ -184,15 +184,37 @@ export interface Sale {
   workspace_id: number;
   product_id: number;
   customer_name: string;
-  customer_document?: string;
+  customer_cpf_cnpj?: string;
+  customer_email?: string;
+  customer_phone?: string;
+
+  // Endereço do Cliente
+  customer_cep?: string;
+  customer_logradouro?: string;
+  customer_numero?: string;
+  customer_complemento?: string;
+  customer_bairro?: string;
+  customer_cidade?: string;
+  customer_uf?: string;
+  customer_codigo_municipio?: string;
+
   quantity: number;
   unit_price: number;
   total_value: number;
   status: 'pending' | 'completed' | 'cancelled';
   sale_date: string;
+
+  // Campos fiscais
+  natureza_operacao?: string;
+  cfop?: string;
+  origin_channel?: string;
+  origin_order_id?: string;
+  notes?: string;
+
   created_at: string;
   updated_at: string;
   product?: Product;
+
   // Campos NF-e
   nfe_status: 'pending' | 'processing' | 'issued' | 'rejected' | 'cancelled';
   nfe_chave?: string;
@@ -207,22 +229,62 @@ export interface Sale {
 export interface SaleCreate {
   product_id: number;
   customer_name: string;
-  customer_document?: string;
+  customer_cpf_cnpj?: string | null;
+  customer_email?: string | null;
+  customer_phone?: string | null;
+
+  // Endereço do Cliente
+  customer_cep?: string | null;
+  customer_logradouro?: string | null;
+  customer_numero?: string | null;
+  customer_complemento?: string | null;
+  customer_bairro?: string | null;
+  customer_cidade?: string | null;
+  customer_uf?: string | null;
+  customer_codigo_municipio?: string | null;
+
   quantity: number;
   unit_price: number;
   total_value: number;
   sale_date: string;
+
+  // Campos fiscais
+  natureza_operacao?: string | null;
+  cfop?: string | null;
+  origin_channel?: string | null;
+  origin_order_id?: string | null;
+  notes?: string | null;
 }
 
 export interface SaleUpdate {
   product_id?: number;
   customer_name?: string;
-  customer_document?: string;
+  customer_cpf_cnpj?: string | null;
+  customer_email?: string | null;
+  customer_phone?: string | null;
+
+  // Endereço do Cliente
+  customer_cep?: string | null;
+  customer_logradouro?: string | null;
+  customer_numero?: string | null;
+  customer_complemento?: string | null;
+  customer_bairro?: string | null;
+  customer_cidade?: string | null;
+  customer_uf?: string | null;
+  customer_codigo_municipio?: string | null;
+
   quantity?: number;
   unit_price?: number;
   total_value?: number;
   status?: 'pending' | 'completed' | 'cancelled';
   sale_date?: string;
+
+  // Campos fiscais
+  natureza_operacao?: string | null;
+  cfop?: string | null;
+  origin_channel?: string | null;
+  origin_order_id?: string | null;
+  notes?: string | null;
 }
 
 // Tipos de API Response

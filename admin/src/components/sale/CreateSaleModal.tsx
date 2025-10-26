@@ -87,10 +87,26 @@ export function CreateSaleModal({ open, onOpenChange, onSuccess }: CreateSaleMod
       await saleService.create({
         product_id: data.product_id,
         customer_name: data.customer_name,
+        customer_cpf_cnpj: data.customer_cpf_cnpj || null,
+        customer_email: data.customer_email || null,
+        customer_phone: data.customer_phone || null,
+        customer_cep: data.customer_cep || null,
+        customer_logradouro: data.customer_logradouro || null,
+        customer_numero: data.customer_numero || null,
+        customer_complemento: data.customer_complemento || null,
+        customer_bairro: data.customer_bairro || null,
+        customer_cidade: data.customer_cidade || null,
+        customer_uf: data.customer_uf || null,
+        customer_codigo_municipio: data.customer_codigo_municipio || null,
         quantity: data.quantity,
         unit_price: data.unit_price,
         total_value: data.total_value,
         sale_date: data.sale_date,
+        natureza_operacao: data.natureza_operacao || 'Venda de mercadoria',
+        cfop: data.cfop || '5102',
+        origin_channel: data.origin_channel || 'manual',
+        origin_order_id: data.origin_order_id || null,
+        notes: data.notes || null,
       });
 
       toast.success('Venda criada com sucesso!');
