@@ -10,7 +10,8 @@ from app.api.api_v1.endpoints import (
     sales,
     super_admin,
     admin_reset,
-    fiscal
+    fiscal,
+    integrations
 )
 
 api_router = APIRouter()
@@ -23,5 +24,6 @@ api_router.include_router(invoices.router, prefix="/invoices", tags=["invoices"]
 api_router.include_router(products.router, prefix="/products", tags=["products"])
 api_router.include_router(sales.router, prefix="/sales", tags=["sales"])
 api_router.include_router(fiscal.router, prefix="/fiscal", tags=["fiscal"])
+api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
 api_router.include_router(super_admin.router, prefix="/super-admin", tags=["super-admin"])
 api_router.include_router(admin_reset.router, prefix="/admin-utils", tags=["admin-utils"])
