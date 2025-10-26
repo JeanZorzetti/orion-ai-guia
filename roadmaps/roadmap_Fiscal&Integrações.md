@@ -143,7 +143,9 @@ Configuração (Nova Página):
 
 Módulo de Produtos (/admin/estoque/produtos):
 
-[ ] Atualizar os modais CreateProductModal e EditProductModal (Fase 6) para incluir os campos fiscais obrigatórios (NCM, Origem).
+[x] Atualizar os modais CreateProductModal e EditProductModal (Fase 6) para incluir os campos fiscais obrigatórios (NCM, Origem).
+
+✅ **COMPLETO** - Commit 297815a8: Nova seção "Dados Fiscais (NF-e)" em ambos os modais com campos NCM (8 dígitos, obrigatório, com link para consulta), Origem da Mercadoria (select 9 opções), CEST (7 dígitos, opcional), Descrição Fiscal (opcional). Validação Zod completa, tipos atualizados, campos enviados no create/update.
 
 Módulo de Vendas (/admin/vendas):
 
