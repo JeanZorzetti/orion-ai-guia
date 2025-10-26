@@ -8,7 +8,7 @@ import type {
   NFEStatusResponse,
 } from '@/types/fiscal';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 class FiscalService {
   private async getAuthHeaders(): Promise<HeadersInit> {
@@ -24,7 +24,7 @@ class FiscalService {
    */
   async getConfig(): Promise<FiscalConfigResponse> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/v1/fiscal/workspaces/config/fiscal`, {
+    const response = await fetch(`${API_URL}/fiscal/workspaces/config/fiscal`, {
       headers,
     });
 
@@ -41,7 +41,7 @@ class FiscalService {
    */
   async updateConfig(config: FiscalConfig): Promise<{ success: boolean; message: string }> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/v1/fiscal/workspaces/config/fiscal`, {
+    const response = await fetch(`${API_URL}/fiscal/workspaces/config/fiscal`, {
       method: 'POST',
       headers,
       body: JSON.stringify(config),
@@ -60,7 +60,7 @@ class FiscalService {
    */
   async issueNFe(saleId: number): Promise<IssueNFeResponse> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/v1/fiscal/sales/${saleId}/issue-nfe`, {
+    const response = await fetch(`${API_URL}/fiscal/sales/${saleId}/issue-nfe`, {
       method: 'POST',
       headers,
     });
@@ -79,7 +79,7 @@ class FiscalService {
    */
   async cancelNFe(saleId: number, reason: string): Promise<CancelNFeResponse> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/v1/fiscal/sales/${saleId}/cancel-nfe`, {
+    const response = await fetch(`${API_URL}/fiscal/sales/${saleId}/cancel-nfe`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ reason }),
@@ -99,7 +99,7 @@ class FiscalService {
    */
   async getNFeStatus(saleId: number): Promise<NFEStatusResponse> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/v1/fiscal/sales/${saleId}/nfe-status`, {
+    const response = await fetch(`${API_URL}/fiscal/sales/${saleId}/nfe-status`, {
       headers,
     });
 
@@ -116,7 +116,7 @@ class FiscalService {
    */
   async uploadCertificate(formData: FormData): Promise<{ success: boolean; message: string }> {
     const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_URL}/api/v1/fiscal/workspaces/certificate/upload`, {
+    const response = await fetch(`${API_URL}/fiscal/workspaces/certificate/upload`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
