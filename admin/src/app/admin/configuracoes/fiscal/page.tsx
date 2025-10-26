@@ -50,8 +50,24 @@ export default function FiscalConfigPage() {
       setLoadingPage(true);
       const data = await fiscalService.getConfig();
       setConfig({
-        ...data,
+        cnpj: data.cnpj || '',
+        razao_social: data.razao_social || '',
+        nome_fantasia: data.nome_fantasia || '',
+        inscricao_estadual: data.inscricao_estadual || '',
+        inscricao_municipal: data.inscricao_municipal || '',
+        regime_tributario: data.regime_tributario || 1,
+        fiscal_cep: data.fiscal_cep || '',
+        fiscal_logradouro: data.fiscal_logradouro || '',
+        fiscal_numero: data.fiscal_numero || '',
+        fiscal_complemento: data.fiscal_complemento || '',
+        fiscal_bairro: data.fiscal_bairro || '',
+        fiscal_cidade: data.fiscal_cidade || '',
+        fiscal_uf: data.fiscal_uf || '',
+        fiscal_codigo_municipio: data.fiscal_codigo_municipio || '',
+        fiscal_partner: data.fiscal_partner || 'plugnotas',
         fiscal_partner_api_key: '', // Nunca retorna a API key por segurança
+        nfe_serie: data.nfe_serie || 1,
+        nfe_ambiente: data.nfe_ambiente || 2,
       });
       setCertificateStatus(data.certificate_status || 'not_uploaded');
       setCertificateExpiresAt(data.certificate_expires_at);
@@ -221,7 +237,7 @@ export default function FiscalConfigPage() {
                 <div>
                   <Label htmlFor="regime">Regime Tributário *</Label>
                   <Select
-                    value={config.regime_tributario.toString()}
+                    value={config.regime_tributario?.toString() || '1'}
                     onValueChange={(v) => setConfig({ ...config, regime_tributario: parseInt(v) as 1 | 2 | 3 })}
                   >
                     <SelectTrigger>
@@ -381,7 +397,7 @@ export default function FiscalConfigPage() {
                   <div>
                     <Label>Ambiente</Label>
                     <Select
-                      value={config.nfe_ambiente.toString()}
+                      value={config.nfe_ambiente?.toString() || '2'}
                       onValueChange={(v) => setConfig({ ...config, nfe_ambiente: parseInt(v) as 1 | 2 })}
                     >
                       <SelectTrigger>
