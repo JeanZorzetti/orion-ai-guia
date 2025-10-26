@@ -170,25 +170,39 @@ const AdminSidebar: React.FC = () => {
           return (
             <div key={item.name}>
               {hasChildren ? (
-                <button
-                  onClick={() => toggleMenu(item.name)}
-                  className={cn(
-                    'w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    active
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                  )}
-                >
-                  <div className="flex items-center gap-3">
+                <div className="relative">
+                  {/* Área de navegação - clica no link */}
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2 pr-10 rounded-lg text-sm font-medium transition-colors',
+                      active
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                    )}
+                  >
                     <Icon className="h-4 w-4" />
                     {item.name}
-                  </div>
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                </button>
+                  </Link>
+
+                  {/* Botão de toggle separado - só expande/colapsa */}
+                  <button
+                    onClick={() => toggleMenu(item.name)}
+                    className={cn(
+                      'absolute right-0 top-0 h-full px-3 rounded-r-lg transition-colors',
+                      active
+                        ? 'text-primary-foreground hover:bg-primary/90'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                    )}
+                    aria-label={isExpanded ? 'Recolher submenu' : 'Expandir submenu'}
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               ) : (
                 <NavItem item={item} />
               )}
