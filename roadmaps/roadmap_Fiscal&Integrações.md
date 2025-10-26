@@ -70,6 +70,8 @@ Criar migração para adicionar campos fiscais ao banco de dados.
 
 ✅ **COMPLETO** - Commit 59409913: Script SQL completo com ALTER TABLE (workspaces, products, sales) e CREATE TABLE fiscal_audit_log. Renomeia customer_document → customer_cpf_cnpj
 
+✅ **VERIFICADO** - Commit cb50db83: Migration 007 executada com sucesso via pgweb. Todos os 27 campos fiscais criados em workspaces (screenshot confirmado). Relatório completo em MIGRATION_007_VERIFICATION_REPORT.md
+
 [x] Encryption Module (app/core/encryption.py):
 
 Criar módulo de criptografia para proteger credenciais fiscais.
