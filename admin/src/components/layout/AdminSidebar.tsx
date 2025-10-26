@@ -69,6 +69,13 @@ const supportNavigation = [
     name: 'Configurações',
     href: '/admin/configuracoes',
     icon: Settings,
+    children: [
+      {
+        name: 'Configurações Fiscais',
+        href: '/admin/configuracoes/fiscal',
+        icon: Shield,
+      },
+    ],
   },
   {
     name: 'Ajuda',
