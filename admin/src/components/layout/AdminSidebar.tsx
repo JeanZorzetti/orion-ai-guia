@@ -35,7 +35,7 @@ const navigation = [
     children: [
       {
         name: 'Contas a Pagar',
-        href: '/admin/financeiro',
+        href: '/admin/financeiro/contas-a-pagar',
         icon: FileText,
       },
       {
@@ -163,8 +163,9 @@ const AdminSidebar: React.FC = () => {
           const hasChildren = item.children && item.children.length > 0;
           const isExpanded = expandedMenus[item.name] || false;
           const Icon = item.icon;
+          // Para itens com children, só marca como ativo se a URL for EXATAMENTE a do item pai
           const active = hasChildren
-            ? item.children?.some((child) => isActive(child.href))
+            ? pathname === item.href
             : isActive(item.href);
 
           return (
