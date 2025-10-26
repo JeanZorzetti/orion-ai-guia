@@ -104,7 +104,7 @@ Atualiza o status da Sales no nosso DB com as URLs (DANFE/XML) ou o motivo da re
 
 Endpoints (API):
 
-[ ] Criar endpoint POST /api/v1/sales/{sale_id}/issue-nfe:
+[x] Criar endpoint POST /api/v1/sales/{sale_id}/issue-nfe:
 
 Protegido por autenticação (JWT).
 
@@ -112,11 +112,19 @@ Injeta o workspace_id.
 
 Chama o FiscalService.issue_nfe().
 
-[ ] Criar endpoint POST /api/v1/workspaces/config/fiscal:
+[x] Criar endpoint POST /api/v1/workspaces/config/fiscal:
 
 Permite ao usuário salvar suas configurações fiscais (CNPJ, IE, etc.).
 
-[ ] Criar endpoint (proxy) para upload do Certificado A1 para o parceiro.
+[x] Criar endpoints adicionais:
+
+POST /fiscal/sales/{id}/cancel-nfe - Cancelamento de NF-e
+GET /fiscal/sales/{id}/nfe-status - Status da NF-e
+GET /fiscal/workspaces/config/fiscal - Buscar configuração
+
+✅ **COMPLETO** - Commit a10c419d: 5 endpoints criados com schemas Pydantic completos, validação de dados, criptografia de API key, multi-tenant isolation, audit logging, tratamento de erros. Router registrado em api.py
+
+[ ] Criar endpoint (proxy) para upload do Certificado A1 para o parceiro - OPCIONAL (pode ser feito via frontend direto para API do parceiro)
 
 1.2: Tarefas de Frontend (Next.js)
 Configuração (Nova Página):
