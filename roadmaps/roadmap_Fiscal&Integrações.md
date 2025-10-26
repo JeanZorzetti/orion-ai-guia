@@ -84,9 +84,9 @@ Criar validador para prevenir rejeições SEFAZ.
 
 Serviço de Emissão (/services/fiscal_service.py):
 
-[ ] Criar o FiscalService (wrapper da API do parceiro).
+[x] Criar o FiscalService (wrapper da API do parceiro).
 
-[ ] Implementar async def issue_nfe(sale_id: int, workspace: Workspace):
+[x] Implementar async def issue_nfe(sale_id: int, workspace: Workspace):
 
 Busca a Venda (Sales), o Produto (Products) e o Cliente (vamos precisar de um Customers ou dados do cliente na venda).
 
@@ -99,6 +99,8 @@ Envia a requisição para a API parceira.
 Recebe a resposta (sucesso ou erro).
 
 Atualiza o status da Sales no nosso DB com as URLs (DANFE/XML) ou o motivo da rejeição.
+
+✅ **COMPLETO** - Commit b1fb4020: FiscalService completo com issue_nfe(), cancel_nfe(), _build_nfe_payload(), _log_audit(). Suporte multi-parceiro (PlugNotas/FocusNFe/NFe.io), validação pré-emissão, tratamento de erros, auditoria completa, status tracking (pending→processing→issued/rejected/cancelled)
 
 Endpoints (API):
 
