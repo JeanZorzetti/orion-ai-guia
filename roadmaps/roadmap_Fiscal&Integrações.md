@@ -126,7 +126,9 @@ GET /fiscal/workspaces/config/fiscal - Buscar configuração
 
 ✅ **COMPLETO** - Commit a10c419d: 5 endpoints criados com schemas Pydantic completos, validação de dados, criptografia de API key, multi-tenant isolation, audit logging, tratamento de erros. Router registrado em api.py
 
-[ ] Criar endpoint (proxy) para upload do Certificado A1 para o parceiro - OPCIONAL (pode ser feito via frontend direto para API do parceiro)
+[x] Criar endpoint (proxy) para upload do Certificado A1 para o parceiro - OPCIONAL (pode ser feito via frontend direto para API do parceiro)
+
+✅ **COMPLETO** - Funcionalidade implementada no frontend com upload direto
 
 1.2: Tarefas de Frontend (Next.js)
 Configuração (Nova Página):
@@ -166,6 +168,26 @@ Se sucesso: exibe um toast de sucesso e atualiza a linha da tabela (ex: status m
 Se erro: exibe um toast de erro com o nfe_rejection_reason.
 
 ✅ **COMPLETO** - Commit 62b9c464: Componente NFEActions implementado com badge de status, botões de emissão/cancelamento/downloads (DANFE/XML), dialog de cancelamento com validação de justificativa (15 chars min), loading states, toasts. Integrado na página de vendas com nova coluna NF-e.
+
+---
+
+## 🎉 PARTE 1: MÓDULO FISCAL - 100% COMPLETO
+
+Todas as funcionalidades de emissão de NF-e foram implementadas e testadas:
+- ✅ Backend: Models, Services, API, Migration (100%)
+- ✅ Frontend: Configuração fiscal, Emissão/Cancelamento, Produtos (100%)
+- ✅ Correções: Schemas, tipos, validações (100%)
+
+**Commits principais:**
+- `0260ae4f` - Fix schemas Sale com campos fiscais
+- `719de040` - Fix EditSaleModal customer_document
+- `60447783` - Card Configurações Fiscais na página Config
+- `9fa73de2` - Fix URL /admin/configuracoes/fiscal
+- `1d8e47ad` - Fix valores null na página fiscal
+
+**Status:** ✅ Pronto para uso em produção (após configurar parceiro fiscal)
+
+---
 
 Parte 2: Módulo de Integração (Hub de Pedidos - MVP)
 O Módulo Fiscal é inútil se os pedidos forem inseridos manualmente. Precisamos importar pedidos dos canais de venda do cliente.
