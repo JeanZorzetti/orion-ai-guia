@@ -44,7 +44,7 @@ export function EditSaleModal({ open, onOpenChange, sale, onSuccess }: EditSaleM
       setValue('total_value', sale.total_value);
       setValue('sale_date', sale.sale_date.split('T')[0]);
       setValue('status', sale.status);
-      setValue('notes', sale.customer_document);
+      setValue('notes', sale.notes || '');
     }
   }, [sale, open, setValue]);
 
