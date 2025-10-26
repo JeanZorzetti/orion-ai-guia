@@ -176,9 +176,10 @@ const VendasPage: React.FC = () => {
           description: result.errors[0] || 'Erro desconhecido',
         });
       }
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast.error('Erro ao sincronizar pedidos Shopify', {
-        description: error.message,
+        description: errorMessage,
       });
     } finally {
       setSyncing(false);

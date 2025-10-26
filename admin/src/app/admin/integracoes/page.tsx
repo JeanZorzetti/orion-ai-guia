@@ -67,8 +67,9 @@ export default function IntegracoesPage() {
       toast.success('Configurações Shopify salvas com sucesso!');
       await loadConfigs();
       setConnectionStatus('connected');
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao salvar configurações');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao salvar configurações';
+      toast.error(errorMessage);
       setConnectionStatus('error');
     } finally {
       setLoading(false);
@@ -97,9 +98,10 @@ export default function IntegracoesPage() {
         });
         setConnectionStatus('error');
       }
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao testar conexão';
       toast.error('Erro ao testar conexão', {
-        description: error.message,
+        description: errorMessage,
       });
       setConnectionStatus('error');
     } finally {
@@ -120,8 +122,9 @@ export default function IntegracoesPage() {
       setShopifyConfig({ store_url: '', api_key: '' });
       setHasShopifyConfig(false);
       setConnectionStatus('disconnected');
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao remover integração');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao remover integração';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
