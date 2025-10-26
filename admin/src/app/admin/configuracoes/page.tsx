@@ -12,11 +12,14 @@ import {
   RotateCcw,
   Upload,
   Image as ImageIcon,
+  FileText,
+  ArrowRight,
 } from 'lucide-react';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useTheme } from '@/hooks/useTheme';
+import Link from 'next/link';
 
 const ConfiguracoesPage: React.FC = () => {
   const { settings, updateSettings, resetSettings, loading } = useCompanySettings();
@@ -252,6 +255,37 @@ const ConfiguracoesPage: React.FC = () => {
                 </p>
               </div>
               <ThemeToggle theme={theme} onThemeChange={setTheme} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Configurações Fiscais */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950/20">
+                <FileText className="h-5 w-5 text-orange-500" />
+              </div>
+              <div>
+                <CardTitle>Configurações Fiscais</CardTitle>
+                <CardDescription>
+                  Configure NF-e, parceiros fiscais e dados da empresa
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Configure os dados fiscais da empresa, escolha seu parceiro de emissão
+                de NF-e (PlugNotas ou FocusNFe) e gerencie certificados digitais.
+              </p>
+              <Link href="/admin/financeiro/fiscal">
+                <Button className="w-full" variant="outline">
+                  Acessar Configurações Fiscais
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
