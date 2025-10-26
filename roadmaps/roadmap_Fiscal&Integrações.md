@@ -131,13 +131,15 @@ GET /fiscal/workspaces/config/fiscal - Buscar configuração
 1.2: Tarefas de Frontend (Next.js)
 Configuração (Nova Página):
 
-[ ] Criar a página /admin/configuracoes/fiscal.
+[x] Criar a página /admin/configuracoes/fiscal.
 
-[ ] Formulário para o usuário inserir os dados da empresa (CNPJ, IE, Razão Social).
+[x] Formulário para o usuário inserir os dados da empresa (CNPJ, IE, Razão Social).
 
-[ ] Formulário para o usuário inserir a "API Key" (se o parceiro exigir uma por cliente).
+[x] Formulário para o usuário inserir a "API Key" (se o parceiro exigir uma por cliente).
 
-[ ] Componente de Upload Seguro para o Certificado Digital A1 (com instruções claras).
+[x] Componente de Upload Seguro para o Certificado Digital A1 (com instruções claras).
+
+✅ **COMPLETO** - Commit d9aea5c1: Página completa com 3 abas (Dados da Empresa, Integração Fiscal, Certificado Digital), validação de CNPJ, formatação automática, badge de status do certificado. Types TypeScript e fiscalService implementados.
 
 Módulo de Produtos (/admin/estoque/produtos):
 
