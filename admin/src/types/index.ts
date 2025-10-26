@@ -136,6 +136,11 @@ export interface Product {
   active: boolean;
   created_at: string;
   updated_at: string;
+  // Campos Fiscais
+  ncm_code?: string;
+  cest_code?: string;
+  origin?: number;
+  fiscal_description?: string;
 }
 
 export interface ProductCreate {
@@ -148,6 +153,11 @@ export interface ProductCreate {
   stock_quantity?: number;
   min_stock_level?: number;
   unit?: string;
+  // Campos Fiscais
+  ncm_code?: string;
+  cest_code?: string;
+  origin?: number;
+  fiscal_description?: string;
 }
 
 export interface ProductUpdate {
@@ -161,6 +171,11 @@ export interface ProductUpdate {
   min_stock_level?: number;
   unit?: string;
   active?: boolean;
+  // Campos Fiscais
+  ncm_code?: string;
+  cest_code?: string;
+  origin?: number;
+  fiscal_description?: string;
 }
 
 // Tipos de Venda

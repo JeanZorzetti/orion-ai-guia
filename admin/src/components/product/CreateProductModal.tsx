@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Plus, TrendingUp } from 'lucide-react';
+import { Loader2, Plus, TrendingUp, Shield } from 'lucide-react';
 import { productSchema, type ProductFormData } from '@/lib/validations/product';
 import { productService } from '@/services/product';
 
@@ -38,6 +39,7 @@ export function CreateProductModal({ open, onOpenChange, onSuccess }: CreateProd
       stock_quantity: 0,
       min_stock_level: 0,
       unit: 'un',
+      origin: 0, // Nacional
     },
   });
 
@@ -67,6 +69,11 @@ export function CreateProductModal({ open, onOpenChange, onSuccess }: CreateProd
         stock_quantity: data.stock_quantity,
         min_stock_level: data.min_stock_level,
         unit: data.unit,
+        // Campos fiscais
+        ncm_code: data.ncm_code,
+        origin: data.origin,
+        cest_code: data.cest_code,
+        fiscal_description: data.fiscal_description,
       });
 
       toast.success('Produto criado com sucesso!');
@@ -262,6 +269,100 @@ export function CreateProductModal({ open, onOpenChange, onSuccess }: CreateProd
                 <p className="text-xs text-muted-foreground">
                   Você será alertado quando o estoque atingir este nível
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Dados Fiscais */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <h3 className="font-semibold text-sm text-muted-foreground">Dados Fiscais (NF-e)</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ncm_code">
+                  NCM (Código) <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="ncm_code"
+                  {...register('ncm_code')}
+                  placeholder="Ex: 84713012"
+                  maxLength={8}
+                />
+                {errors.ncm_code && (
+                  <p className="text-sm text-destructive">{errors.ncm_code.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  8 dígitos. Obrigatório para emissão de NF-e.
+                  <a
+                    href="https://www.gov.br/receitafederal/pt-br/assuntos/aduana-e-comercio-exterior/manuais/ncm"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-1 text-primary hover:underline"
+                  >
+                    Consultar NCM
+                  </a>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="origin">
+                  Origem da Mercadoria <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={watch('origin')?.toString() || '0'}
+                  onValueChange={(value) => setValue('origin', parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0 - Nacional</SelectItem>
+                    <SelectItem value="1">1 - Estrangeira (importação direta)</SelectItem>
+                    <SelectItem value="2">2 - Estrangeira (adquirida no mercado interno)</SelectItem>
+                    <SelectItem value="3">3 - Nacional com &gt;40% de conteúdo estrangeiro</SelectItem>
+                    <SelectItem value="4">4 - Nacional conforme processos produtivos básicos</SelectItem>
+                    <SelectItem value="5">5 - Nacional com &lt;40% de conteúdo estrangeiro</SelectItem>
+                    <SelectItem value="6">6 - Estrangeira (importação direta) sem similar nacional</SelectItem>
+                    <SelectItem value="7">7 - Estrangeira (mercado interno) sem similar nacional</SelectItem>
+                    <SelectItem value="8">8 - Nacional com &gt;70% de conteúdo estrangeiro</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.origin && (
+                  <p className="text-sm text-destructive">{errors.origin.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cest_code">CEST (opcional)</Label>
+                <Input
+                  id="cest_code"
+                  {...register('cest_code')}
+                  placeholder="Ex: 0100100"
+                  maxLength={7}
+                />
+                {errors.cest_code && (
+                  <p className="text-sm text-destructive">{errors.cest_code.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  7 dígitos. Obrigatório para produtos sujeitos à ST.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fiscal_description">Descrição Fiscal (opcional)</Label>
+                <Input
+                  id="fiscal_description"
+                  {...register('fiscal_description')}
+                  placeholder="Descrição para NF-e (se diferente)"
+                />
+                {errors.fiscal_description && (
+                  <p className="text-sm text-destructive">{errors.fiscal_description.message}</p>
+                )}
               </div>
             </div>
           </div>

@@ -28,6 +28,25 @@ export const productSchema = z.object({
   unit: z.string().optional(),
 
   active: z.boolean(),
+
+  // Campos Fiscais
+  ncm_code: z.string()
+    .length(8, 'NCM deve ter exatamente 8 dígitos')
+    .regex(/^\d{8}$/, 'NCM deve conter apenas dígitos')
+    .optional(),
+
+  cest_code: z.string()
+    .length(7, 'CEST deve ter exatamente 7 dígitos')
+    .regex(/^\d{7}$/, 'CEST deve conter apenas dígitos')
+    .optional(),
+
+  origin: z.number()
+    .int()
+    .min(0, 'Origem deve estar entre 0 e 8')
+    .max(8, 'Origem deve estar entre 0 e 8')
+    .optional(),
+
+  fiscal_description: z.string().max(500, 'Descrição fiscal muito longa').optional(),
 }).refine(
   (data) => data.sale_price >= data.cost_price,
   {
