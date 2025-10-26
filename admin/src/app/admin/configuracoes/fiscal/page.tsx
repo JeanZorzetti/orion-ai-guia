@@ -55,7 +55,7 @@ export default function FiscalConfigPage() {
       });
       setCertificateStatus(data.certificate_status || 'not_uploaded');
       setCertificateExpiresAt(data.certificate_expires_at);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao carregar configurações:', error);
       // Não mostrar toast de erro no carregamento inicial (pode não ter config ainda)
     } finally {
@@ -83,8 +83,9 @@ export default function FiscalConfigPage() {
       await fiscalService.updateConfig(config);
       toast.success('Configurações fiscais salvas com sucesso!');
       await loadConfig(); // Recarregar para pegar status atualizado
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao salvar configurações');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao salvar configurações';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -99,8 +100,9 @@ export default function FiscalConfigPage() {
       await fiscalService.uploadCertificate(formData);
       toast.success('Certificado enviado com sucesso!');
       await loadConfig(); // Recarregar status
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao enviar certificado');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao enviar certificado';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
