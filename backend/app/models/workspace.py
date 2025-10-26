@@ -61,7 +61,17 @@ class Workspace(Base):
     integration_shopify_last_sync = Column(DateTime, nullable=True)
 
     # Relationships
-    users = relationship("User", back_populates="workspace", cascade="all, delete-orphan")
+    users = relationship(
+        "User",
+        back_populates="workspace",
+        foreign_keys="[User.workspace_id]",
+        cascade="all, delete-orphan"
+    )
+    fiscal_config_updated_by_user = relationship(
+        "User",
+        foreign_keys=[fiscal_config_updated_by],
+        uselist=False
+    )
     suppliers = relationship("Supplier", back_populates="workspace", cascade="all, delete-orphan")
     invoices = relationship("Invoice", back_populates="workspace", cascade="all, delete-orphan")
     products = relationship("Product", back_populates="workspace", cascade="all, delete-orphan")
