@@ -178,6 +178,15 @@ export interface Sale {
   created_at: string;
   updated_at: string;
   product?: Product;
+  // Campos NF-e
+  nfe_status: 'pending' | 'processing' | 'issued' | 'rejected' | 'cancelled';
+  nfe_chave?: string;
+  nfe_danfe_url?: string;
+  nfe_xml_url?: string;
+  nfe_rejection_reason?: string;
+  nfe_issued_at?: string;
+  nfe_cancelled_at?: string;
+  nfe_cancellation_reason?: string;
 }
 
 export interface SaleCreate {

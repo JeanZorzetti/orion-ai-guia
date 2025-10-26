@@ -24,6 +24,7 @@ import { Sale } from '@/types';
 import { CreateSaleModal } from '@/components/sale/CreateSaleModal';
 import { EditSaleModal } from '@/components/sale/EditSaleModal';
 import { SaleDetailsModal } from '@/components/sale/SaleDetailsModal';
+import { NFEActions } from '@/components/fiscal/NFEActions';
 import { useConfirm } from '@/hooks/useConfirm';
 import { toast } from 'sonner';
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from '@/lib/export';
@@ -349,6 +350,7 @@ const VendasPage: React.FC = () => {
                     <th className="text-right p-3 font-semibold text-sm">Valor Unit.</th>
                     <th className="text-right p-3 font-semibold text-sm">Total</th>
                     <th className="text-center p-3 font-semibold text-sm">Status</th>
+                    <th className="text-left p-3 font-semibold text-sm">NF-e</th>
                     <th className="text-center p-3 font-semibold text-sm">Ações</th>
                   </tr>
                 </thead>
@@ -383,6 +385,9 @@ const VendasPage: React.FC = () => {
                       </td>
                       <td className="p-3 text-center">
                         {getStatusBadge(sale.status)}
+                      </td>
+                      <td className="p-3">
+                        <NFEActions sale={sale} onUpdate={loadSales} />
                       </td>
                       <td className="p-3">
                         <div className="flex items-center justify-center gap-2">
