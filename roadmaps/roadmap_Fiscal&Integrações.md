@@ -64,6 +64,24 @@ Criar tabela de auditoria fiscal para compliance SEFAZ (5 anos).
 
 ✅ **COMPLETO** - Commit 778f46e6: Criado FiscalAuditLog com action, request/response payloads (JSON), error tracking, IP/user_agent, timestamps
 
+[x] Migration SQL (apply_migration_007_fiscal_fields.py):
+
+Criar migração para adicionar campos fiscais ao banco de dados.
+
+✅ **COMPLETO** - Commit 59409913: Script SQL completo com ALTER TABLE (workspaces, products, sales) e CREATE TABLE fiscal_audit_log. Renomeia customer_document → customer_cpf_cnpj
+
+[x] Encryption Module (app/core/encryption.py):
+
+Criar módulo de criptografia para proteger credenciais fiscais.
+
+✅ **COMPLETO** - Commit 59409913: FieldEncryption class com Fernet (AES 128), encrypt/decrypt methods, generate_encryption_key(), ENCRYPTION_KEY em config.py
+
+[x] FiscalValidator Service (app/services/fiscal_validator.py):
+
+Criar validador para prevenir rejeições SEFAZ.
+
+✅ **COMPLETO** - Commit 613a4758: Validação completa de Workspace (empresa), Product (fiscal), Customer (dados + endereço), Sale Values (valores). Métodos validate_cnpj() e validate_cpf()
+
 Serviço de Emissão (/services/fiscal_service.py):
 
 [ ] Criar o FiscalService (wrapper da API do parceiro).
