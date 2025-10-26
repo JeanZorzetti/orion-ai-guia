@@ -17,9 +17,11 @@ import {
   Trash2,
   Package,
   Download,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 import { saleService } from '@/services/sale';
+import { integrationService } from '@/services/integration';
 import { Sale } from '@/types';
 import { CreateSaleModal } from '@/components/sale/CreateSaleModal';
 import { EditSaleModal } from '@/components/sale/EditSaleModal';
@@ -39,6 +41,7 @@ type StatusFilter = 'pending' | 'completed' | 'cancelled' | 'all';
 const VendasPage: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -148,6 +151,40 @@ const VendasPage: React.FC = () => {
     }
   };
 
+  const handleSyncShopify = async () => {
+    setSyncing(true);
+    try {
+      const result = await integrationService.syncShopifyOrders(250);
+
+      if (result.success) {
+        if (result.new_orders_imported > 0) {
+          toast.success(`${result.new_orders_imported} pedido(s) Shopify importado(s)!`, {
+            description: result.message,
+          });
+          loadSales(); // Recarregar vendas
+        } else {
+          toast.info(result.message);
+        }
+
+        if (result.errors.length > 0) {
+          toast.warning('Alguns pedidos tiveram erros', {
+            description: `${result.errors.length} erro(s) encontrado(s)`,
+          });
+        }
+      } else {
+        toast.error('Erro na sincronização', {
+          description: result.errors[0] || 'Erro desconhecido',
+        });
+      }
+    } catch (error: any) {
+      toast.error('Erro ao sincronizar pedidos Shopify', {
+        description: error.message,
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   // Estatísticas
   const totalSales = sales.length;
   const totalRevenue = sales
@@ -211,6 +248,23 @@ const VendasPage: React.FC = () => {
               </p>
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleSyncShopify}
+                disabled={syncing}
+              >
+                {syncing ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Sincronizando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Sincronizar Shopify
+                  </>
+                )}
+              </Button>
               <Button
                 variant="outline"
                 onClick={handleExport}
