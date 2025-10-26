@@ -60,6 +60,13 @@ class Workspace(Base):
     integration_shopify_api_key = Column(String(500), nullable=True)  # ENCRYPTED
     integration_shopify_last_sync = Column(DateTime, nullable=True)
 
+    # Integração Mercado Livre
+    integration_mercadolivre_access_token = Column(String(500), nullable=True)  # ENCRYPTED
+    integration_mercadolivre_refresh_token = Column(String(500), nullable=True)  # ENCRYPTED
+    integration_mercadolivre_user_id = Column(String(50), nullable=True)
+    integration_mercadolivre_last_sync = Column(DateTime, nullable=True)
+    integration_mercadolivre_token_expires_at = Column(DateTime, nullable=True)
+
     # Relationships
     users = relationship(
         "User",

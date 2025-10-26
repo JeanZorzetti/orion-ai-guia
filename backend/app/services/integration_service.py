@@ -319,3 +319,186 @@ class ShopifyIntegrationService:
 
         logger.warning(f"Código de província inválido: {province_code}")
         return ''
+
+
+class MercadoLivreIntegrationService:
+    """
+    Serviço de integração com Mercado Livre para sincronização de pedidos
+    Usa OAuth 2.0 para autenticação
+    """
+
+    def __init__(self, workspace: Workspace, db: Session):
+        self.workspace = workspace
+        self.db = db
+        self.api_base_url = "https://api.mercadolibre.com"
+
+        if not workspace.integration_mercadolivre_access_token:
+            raise ValueError("Mercado Livre não está conectado. Faça a autenticação OAuth primeiro.")
+
+        # Descriptografar access token
+        try:
+            encryption = FieldEncryption(key=settings.ENCRYPTION_KEY)
+            self.access_token = encryption.decrypt(workspace.integration_mercadolivre_access_token)
+        except:
+            self.access_token = workspace.integration_mercadolivre_access_token
+
+    async def test_connection(self) -> Dict[str, Any]:
+        """Testa conexão com Mercado Livre"""
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    f"{self.api_base_url}/users/me",
+                    headers={"Authorization": f"Bearer {self.access_token}"}
+                )
+
+            if response.status_code == 200:
+                user_data = response.json()
+                return {
+                    "success": True,
+                    "user_id": user_data.get('id'),
+                    "nickname": user_data.get('nickname')
+                }
+            else:
+                return {"success": False, "error": "Token inválido ou expirado"}
+        except Exception as e:
+            logger.error(f"Erro ao testar conexão ML: {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    async def sync_orders(self, limit: int = 50) -> Dict[str, Any]:
+        """Sincroniza pedidos do Mercado Livre"""
+        stats = {
+            "success": True,
+            "new_orders_imported": 0,
+            "skipped_orders": 0,
+            "errors": []
+        }
+
+        try:
+            since_date = self.workspace.integration_mercadolivre_last_sync
+
+            # Buscar pedidos
+            params = {
+                "seller": self.workspace.integration_mercadolivre_user_id,
+                "sort": "date_desc",
+                "limit": limit
+            }
+
+            if since_date:
+                params["order.date_created.from"] = since_date.isoformat()
+
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.get(
+                    f"{self.api_base_url}/orders/search",
+                    params=params,
+                    headers={"Authorization": f"Bearer {self.access_token}"}
+                )
+
+            if response.status_code != 200:
+                stats["success"] = False
+                stats["errors"].append(f"Erro ML API: {response.status_code}")
+                return stats
+
+            orders = response.json().get('results', [])
+
+            for ml_order in orders:
+                try:
+                    # Verificar se já foi importado
+                    existing = self.db.query(Sale).filter(
+                        Sale.workspace_id == self.workspace.id,
+                        Sale.origin_channel == 'mercadolivre',
+                        Sale.origin_order_id == str(ml_order['id'])
+                    ).first()
+
+                    if existing:
+                        stats['skipped_orders'] += 1
+                        continue
+
+                    # Mapear e criar venda
+                    sale = self._map_order_to_sale(ml_order)
+
+                    if sale:
+                        self.db.add(sale)
+                        self.db.flush()
+                        stats['new_orders_imported'] += 1
+                    else:
+                        stats['skipped_orders'] += 1
+
+                except Exception as e:
+                    logger.error(f"Erro ao importar pedido ML {ml_order.get('id')}: {str(e)}")
+                    stats['errors'].append(f"Pedido {ml_order.get('id')}: {str(e)}")
+
+            # Atualizar última sync
+            self.workspace.integration_mercadolivre_last_sync = datetime.utcnow()
+            self.db.commit()
+
+            stats['message'] = f"{stats['new_orders_imported']} novos pedidos importados!" if stats['new_orders_imported'] > 0 else "Nenhum pedido novo encontrado"
+            return stats
+
+        except Exception as e:
+            logger.error(f"Erro na sincronização ML: {str(e)}")
+            self.db.rollback()
+            stats["success"] = False
+            stats["errors"].append(str(e))
+            return stats
+
+    def _map_order_to_sale(self, ml_order: Dict) -> Optional[Sale]:
+        """Mapeia pedido ML para Sale"""
+        try:
+            # Buscar primeiro item do pedido
+            items = ml_order.get('order_items', [])
+            if not items:
+                return None
+
+            first_item = items[0]
+            item_data = first_item.get('item', {})
+            sku = item_data.get('seller_custom_field')
+
+            if not sku:
+                logger.warning(f"Pedido ML {ml_order['id']} sem SKU")
+                return None
+
+            # Buscar produto
+            product = self.db.query(Product).filter(
+                Product.workspace_id == self.workspace.id,
+                Product.sku == sku
+            ).first()
+
+            if not product:
+                logger.warning(f"SKU {sku} não encontrado")
+                return None
+
+            # Dados do comprador
+            buyer = ml_order.get('buyer', {})
+            shipping = ml_order.get('shipping', {})
+            receiver_address = shipping.get('receiver_address', {})
+
+            sale = Sale(
+                workspace_id=self.workspace.id,
+                origin_channel='mercadolivre',
+                origin_order_id=str(ml_order['id']),
+                product_id=product.id,
+                customer_name=f"{buyer.get('first_name', '')} {buyer.get('last_name', '')}".strip() or 'Cliente ML',
+                customer_email=buyer.get('email'),
+                customer_phone=buyer.get('phone', {}).get('number'),
+                customer_cpf_cnpj='',
+                customer_cep=receiver_address.get('zip_code', '').replace('-', ''),
+                customer_logradouro=receiver_address.get('street_name'),
+                customer_numero=receiver_address.get('street_number'),
+                customer_complemento=receiver_address.get('comment'),
+                customer_bairro=receiver_address.get('neighborhood', {}).get('name'),
+                customer_cidade=receiver_address.get('city', {}).get('name'),
+                customer_uf=receiver_address.get('state', {}).get('id'),
+                quantity=first_item.get('quantity', 1),
+                unit_price=float(first_item.get('unit_price', 0)),
+                total_value=float(ml_order.get('total_amount', 0)),
+                status='completed',
+                sale_date=datetime.fromisoformat(ml_order['date_created'].replace('Z', '+00:00')).date(),
+                notes=f"Pedido Mercado Livre #{ml_order['id']}",
+                created_at=datetime.fromisoformat(ml_order['date_created'].replace('Z', '+00:00'))
+            )
+
+            return sale
+
+        except Exception as e:
+            logger.error(f"Erro ao mapear pedido ML: {str(e)}")
+            return None
