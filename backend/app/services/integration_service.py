@@ -939,3 +939,221 @@ class MagaluIntegrationService:
         except Exception as e:
             logger.error(f"Erro ao mapear pedido Magalu: {str(e)}")
             return None
+
+
+class TikTokShopIntegrationService:
+    """
+    Serviço de integração com TikTok Shop para sincronização de pedidos
+    Usa OAuth 2.0 para autenticação
+    """
+
+    def __init__(self, workspace: Workspace, db: Session):
+        self.workspace = workspace
+        self.db = db
+        self.api_base_url = "https://open-api.tiktokglobalshop.com"
+
+        if not workspace.integration_tiktokshop_access_token:
+            raise ValueError("TikTok Shop não está conectado. Faça a autenticação OAuth primeiro.")
+
+        # Descriptografar access token
+        try:
+            encryption = FieldEncryption(key=settings.ENCRYPTION_KEY)
+            self.access_token = encryption.decrypt(workspace.integration_tiktokshop_access_token)
+        except:
+            self.access_token = workspace.integration_tiktokshop_access_token
+
+    async def test_connection(self) -> Dict[str, Any]:
+        """Testa conexão com TikTok Shop"""
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    f"{self.api_base_url}/api/shop/get_authorized_shop",
+                    headers={
+                        "x-tts-access-token": self.access_token,
+                        "Content-Type": "application/json"
+                    }
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    shop_info = data.get('data', {})
+                    return {
+                        'success': True,
+                        'message': 'Conexão com TikTok Shop estabelecida com sucesso',
+                        'shop_name': shop_info.get('shop_name', 'TikTok Shop'),
+                        'shop_id': self.workspace.integration_tiktokshop_shop_id
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'message': f'Erro ao conectar: {response.status_code}'
+                    }
+
+        except Exception as e:
+            logger.error(f"Erro ao testar conexão TikTok Shop: {str(e)}")
+            return {
+                'success': False,
+                'message': f'Erro ao testar conexão: {str(e)}'
+            }
+
+    async def sync_orders(self, limit: int = 50) -> Dict[str, Any]:
+        """
+        Sincroniza pedidos do TikTok Shop
+
+        Args:
+            limit: Número máximo de pedidos a processar
+
+        Returns:
+            Estatísticas da sincronização
+        """
+        try:
+            # Timestamp de busca
+            from_time = int(self.workspace.integration_tiktokshop_last_sync.timestamp()) if self.workspace.integration_tiktokshop_last_sync else 0
+
+            params = {
+                'page_size': limit,
+                'order_status': 'PAID,SHIPPING',  # Apenas pedidos pagos
+                'create_time_from': from_time,
+                'sort_by': 'create_time',
+                'sort_type': 'DESC'
+            }
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.api_base_url}/api/orders/search",
+                    headers={
+                        "x-tts-access-token": self.access_token,
+                        "Content-Type": "application/json"
+                    },
+                    params=params
+                )
+
+                if response.status_code != 200:
+                    raise Exception(f"Erro na API TikTok Shop: {response.status_code}")
+
+                result = response.json()
+                tiktok_orders = result.get('data', {}).get('orders', [])
+
+            logger.info(f"Encontrados {len(tiktok_orders)} pedidos TikTok Shop")
+
+            new_orders_count = 0
+            skipped_orders_count = 0
+            errors = []
+
+            for tiktok_order in tiktok_orders:
+                try:
+                    order_id = tiktok_order.get('order_id', '')
+
+                    # Verificar se pedido já foi importado
+                    existing_sale = self.db.query(Sale).filter(
+                        Sale.workspace_id == self.workspace.id,
+                        Sale.notes.contains(f"TikTok Shop #{order_id}")
+                    ).first()
+
+                    if existing_sale:
+                        skipped_orders_count += 1
+                        continue
+
+                    # Mapear pedido para Sale
+                    sale = self._map_order_to_sale(tiktok_order)
+
+                    if sale:
+                        self.db.add(sale)
+                        self.db.commit()
+                        new_orders_count += 1
+                        logger.info(f"Pedido TikTok Shop #{order_id} importado com sucesso")
+                    else:
+                        skipped_orders_count += 1
+
+                except Exception as e:
+                    error_msg = f"Erro ao processar pedido #{tiktok_order.get('order_id', 'unknown')}: {str(e)}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+                    self.db.rollback()
+
+            # Atualizar timestamp de última sincronização
+            self.workspace.integration_tiktokshop_last_sync = datetime.utcnow()
+            self.db.commit()
+
+            return {
+                'success': True,
+                'new_orders_imported': new_orders_count,
+                'orders_skipped': skipped_orders_count,
+                'errors': errors
+            }
+
+        except Exception as e:
+            logger.error(f"Erro ao sincronizar pedidos TikTok Shop: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e),
+                'new_orders_imported': 0,
+                'orders_skipped': 0,
+                'errors': [str(e)]
+            }
+
+    def _map_order_to_sale(self, tiktok_order: Dict) -> Optional[Sale]:
+        """
+        Mapeia um pedido do TikTok Shop para um objeto Sale
+
+        Args:
+            tiktok_order: Dados do pedido TikTok Shop
+
+        Returns:
+            Objeto Sale ou None se não foi possível mapear
+        """
+        try:
+            # Extrair itens do pedido
+            item_list = tiktok_order.get('item_list', [])
+            if not item_list:
+                logger.warning(f"Pedido TikTok Shop #{tiktok_order.get('order_id')} sem itens")
+                return None
+
+            first_item = item_list[0]
+
+            # Tentar encontrar produto por SKU
+            product_sku = first_item.get('seller_sku', '')
+            product = None
+
+            if product_sku:
+                product = self.db.query(Product).filter(
+                    Product.workspace_id == self.workspace.id,
+                    Product.sku == product_sku
+                ).first()
+
+            if not product:
+                logger.warning(f"Produto com SKU '{product_sku}' não encontrado no workspace")
+                return None
+
+            # Extrair dados do cliente e endereço
+            recipient_address = tiktok_order.get('recipient_address', {})
+
+            # Criar objeto Sale
+            sale = Sale(
+                workspace_id=self.workspace.id,
+                product_id=product.id,
+                customer_name=recipient_address.get('name', 'Cliente TikTok Shop'),
+                customer_email='',
+                customer_phone=recipient_address.get('phone', ''),
+                customer_cpf_cnpj='',
+                customer_cep=recipient_address.get('zipcode', '').replace('-', ''),
+                customer_logradouro=recipient_address.get('address_line_1'),
+                customer_numero='',
+                customer_complemento=recipient_address.get('address_line_2'),
+                customer_bairro=recipient_address.get('district'),
+                customer_cidade=recipient_address.get('city'),
+                customer_uf=recipient_address.get('state'),
+                quantity=first_item.get('quantity', 1),
+                unit_price=float(first_item.get('sku_original_price', 0)),
+                total_value=float(tiktok_order.get('payment', {}).get('total_amount', 0)),
+                status='completed',
+                sale_date=datetime.fromtimestamp(tiktok_order.get('create_time', 0)).date(),
+                notes=f"Pedido TikTok Shop #{tiktok_order['order_id']} - Status: {tiktok_order.get('order_status', 'unknown')}",
+                created_at=datetime.fromtimestamp(tiktok_order.get('create_time', 0))
+            )
+
+            return sale
+
+        except Exception as e:
+            logger.error(f"Erro ao mapear pedido TikTok Shop: {str(e)}")
+            return None
