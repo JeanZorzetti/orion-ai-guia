@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { integrationService } from '@/services/integration';
 
-export default function MercadoLivreCallbackPage() {
+function MercadoLivreCallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -84,5 +84,27 @@ export default function MercadoLivreCallbackPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function MercadoLivreCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Conectando...
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Processando autenticação...</p>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <MercadoLivreCallbackContent />
+    </Suspense>
   );
 }
