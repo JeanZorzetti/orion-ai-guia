@@ -14,6 +14,13 @@ export default function MercadoLivreCallbackPage() {
 
   useEffect(() => {
     async function handleCallback() {
+      if (!searchParams) {
+        setStatus('error');
+        setMessage('Parâmetros de URL inválidos');
+        setTimeout(() => router.push('/admin/integracoes'), 3000);
+        return;
+      }
+
       const code = searchParams.get('code');
       const error = searchParams.get('error');
 
