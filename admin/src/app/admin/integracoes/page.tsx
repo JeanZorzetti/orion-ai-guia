@@ -10,9 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Plug, CheckCircle, AlertTriangle, Loader2, ShoppingBag, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { integrationService, type ShopifyConfig } from '@/services/integration';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
-function IntegracoesContent() {
+export default function IntegracoesPage() {
   const [loading, setLoading] = useState(false);
   const [loadingPage, setLoadingPage] = useState(true);
   const [testing, setTesting] = useState(false);
@@ -36,14 +35,6 @@ function IntegracoesContent() {
   }, []);
 
   async function loadConfigs() {
-    // Verificar se há token antes de tentar carregar
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.warn('Nenhum token encontrado. Faça login para acessar as integrações.');
-      setLoadingPage(false);
-      return;
-    }
-
     try {
       setLoadingPage(true);
 
@@ -451,13 +442,5 @@ function IntegracoesContent() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-export default function IntegracoesPage() {
-  return (
-    <ProtectedRoute>
-      <IntegracoesContent />
-    </ProtectedRoute>
   );
 }

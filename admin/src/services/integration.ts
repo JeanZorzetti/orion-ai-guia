@@ -41,20 +41,6 @@ class IntegrationService {
   }
 
   private async handleResponse(response: Response) {
-    // Se receber 401, significa que o token expirou
-    if (response.status === 401) {
-      // Limpar token e redirecionar para login (apenas se não estivermos já no login)
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-
-      // Evitar loop infinito - não redirecionar se já estivermos na página de login
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-      }
-
-      throw new Error('Sessão expirada. Faça login novamente.');
-    }
-
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Erro desconhecido' }));
       throw new Error(error.detail || `Erro HTTP ${response.status}`);
