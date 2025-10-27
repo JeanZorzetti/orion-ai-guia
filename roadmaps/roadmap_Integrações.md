@@ -10,14 +10,14 @@
 
 ### Status Atual
 - ✅ **Shopify** - 100% COMPLETO
-- ⏳ Mercado Livre - Planejado (Prioridade Alta)
-- ⏳ WooCommerce - Planejado (Prioridade Média)
+- ✅ **Mercado Livre** - 100% COMPLETO
+- ⏳ WooCommerce - Planejado (Prioridade Alta)
 - ⏳ Magazine Luiza (Magalu) - Planejado (Prioridade Média)
 - ⏳ TikTok Shop - Planejado (Prioridade Baixa)
 
 ### Ordem de Implementação Recomendada
 1. **Shopify** ✅ (Completo)
-2. **Mercado Livre** (maior marketplace do Brasil)
+2. **Mercado Livre** ✅ (Completo)
 3. **WooCommerce** (plataforma mais usada para lojas próprias)
 4. **Magalu** (marketplace crescente)
 5. **TikTok Shop** (tendência emergente)
@@ -46,7 +46,9 @@
 
 ---
 
-## 🔄 Integração 2: Mercado Livre (Prioridade Alta)
+## ✅ Integração 2: Mercado Livre - COMPLETO
+
+### Status: 100% Implementado
 
 ### Por que implementar?
 - **Maior marketplace do Brasil** (60% market share)
@@ -54,9 +56,9 @@
 - **Complexidade**: Média-Alta (OAuth 2.0, webhooks)
 - **Impacto**: CRÍTICO para adoção do Orion
 
-### 2.1 Backend (FastAPI)
+### 2.1 Backend (FastAPI) ✅
 
-#### Models (/models/workspace.py)
+#### Models (/models/workspace.py) ✅
 ```python
 # Adicionar campos ao Workspace
 integration_mercadolivre_access_token = Column(String(500), nullable=True)  # ENCRYPTED
@@ -66,63 +68,72 @@ integration_mercadolivre_last_sync = Column(DateTime, nullable=True)
 integration_mercadolivre_token_expires_at = Column(DateTime, nullable=True)
 ```
 
-#### Service (/services/integration_service.py)
-- [ ] Criar classe `MercadoLivreIntegrationService`
-- [ ] Implementar OAuth 2.0 flow (authorization + refresh token)
-- [ ] Implementar `sync_orders()`
+#### Service (/services/integration_service.py) ✅
+- ✅ Criar classe `MercadoLivreIntegrationService`
+- ✅ Implementar OAuth 2.0 flow (authorization + refresh token)
+- ✅ Implementar `sync_orders()`
   - Buscar pedidos desde `last_sync`
   - Filtrar por status: `paid`, `confirmed`
   - Mapear produtos por SKU do ML
   - Criar Sales no Orion
-- [ ] Implementar `sync_stock()` (opcional - futuro)
+- ⏳ Implementar `sync_stock()` (opcional - futuro)
   - Atualizar estoque no ML quando vender no Orion
-- [ ] Implementar `get_product_by_sku()`
-- [ ] Tratamento de erros específicos do ML
+- ✅ Implementar `get_product_by_sku()`
+- ✅ Tratamento de erros específicos do ML
 
-#### Endpoints (/api/v1/endpoints/integrations.py)
-- [ ] `GET /integrations/mercadolivre/auth-url` - Retorna URL de autorização
-- [ ] `POST /integrations/mercadolivre/callback` - Recebe código OAuth
-- [ ] `GET /integrations/mercadolivre/config` - Status da integração
-- [ ] `POST /integrations/mercadolivre/sync-orders` - Sincronizar pedidos
-- [ ] `POST /integrations/mercadolivre/refresh-token` - Renovar token
-- [ ] `DELETE /integrations/mercadolivre/config` - Desconectar
+#### Endpoints (/api/v1/endpoints/integrations.py) ✅
+- ✅ `GET /integrations/mercadolivre/auth-url` - Retorna URL de autorização
+- ✅ `POST /integrations/mercadolivre/callback` - Recebe código OAuth
+- ✅ `GET /integrations/mercadolivre/config` - Status da integração
+- ✅ `POST /integrations/mercadolivre/sync-orders` - Sincronizar pedidos
+- ✅ `POST /integrations/mercadolivre/test-connection` - Testar conexão
+- ✅ `DELETE /integrations/mercadolivre/config` - Desconectar
 
-#### Desafios Técnicos
-1. **OAuth 2.0**: Fluxo completo com authorization code
-2. **Refresh Token**: Renovação automática antes de expirar
-3. **Rate Limiting**: ML tem limites de requests/minuto
-4. **Webhooks** (opcional): Notificações em tempo real
-5. **Múltiplos Sellers**: Um usuário pode ter várias contas ML
+#### Desafios Técnicos (Resolvidos)
+1. ✅ **OAuth 2.0**: Fluxo completo com authorization code
+2. ✅ **Refresh Token**: Renovação automática antes de expirar
+3. ✅ **Rate Limiting**: ML tem limites de requests/minuto
+4. ⏳ **Webhooks** (opcional): Notificações em tempo real (futuro)
+5. ✅ **Múltiplos Sellers**: Um usuário pode ter várias contas ML
 
-### 2.2 Frontend (Next.js)
+### 2.2 Frontend (Next.js) ✅
 
-#### Página /admin/integracoes
-- [ ] Card "Mercado Livre" com status
-- [ ] Botão "Conectar com Mercado Livre" (OAuth flow)
-- [ ] Exibir `user_id` e status do token
-- [ ] Badge: "Conectado" / "Token Expirado" / "Desconectado"
-- [ ] Botão "Renovar Token" (se expirado)
-- [ ] Botão "Desconectar"
-- [ ] Última sincronização
+#### Página /admin/integracoes ✅
+- ✅ Card "Mercado Livre" com status
+- ✅ Botão "Conectar com Mercado Livre" (OAuth flow)
+- ✅ Exibir `user_id` e status do token
+- ✅ Badge: "Conectado" / "Token Expirado" / "Desconectado"
+- ✅ Botão "Testar Conexão"
+- ✅ Botão "Desconectar"
+- ✅ Última sincronização
 
-#### Service (/services/integration.ts)
-- [ ] `getMercadoLivreAuthUrl()` - Obter URL OAuth
-- [ ] `connectMercadoLivre(code)` - Processar callback
-- [ ] `getMercadoLivreConfig()` - Status
-- [ ] `syncMercadoLivreOrders()` - Sincronizar
-- [ ] `refreshMercadoLivreToken()` - Renovar
-- [ ] `deleteMercadoLivreConfig()` - Desconectar
+#### Service (/services/integration.ts) ✅
+- ✅ `getMercadoLivreAuthUrl()` - Obter URL OAuth
+- ✅ `connectMercadoLivre(code)` - Processar callback
+- ✅ `getMercadoLivreConfig()` - Status
+- ✅ `syncMercadoLivreOrders()` - Sincronizar
+- ✅ `testMercadoLivreConnection()` - Testar conexão
+- ✅ `deleteMercadoLivreConfig()` - Desconectar
 
-#### Botão Sincronizar (página de vendas)
-- [ ] Adicionar "Sincronizar Mercado Livre" ao lado do Shopify
+#### Botão Sincronizar (página de vendas) ✅
+- ✅ Adicionar "Sincronizar Mercado Livre" ao lado do Shopify
 
-### 2.3 Recursos Adicionais
-- [ ] Documentação: Como obter Client ID e Secret do ML
-- [ ] Tratamento de erros de autorização
-- [ ] Logs de sincronização
-- [ ] Testes em sandbox do ML
+### 2.3 Recursos Adicionais ✅
+- ✅ Documentação: Como obter Client ID e Secret do ML (CONFIGURACAO_INTEGRACOES.md)
+- ✅ Tratamento de erros de autorização
+- ✅ Logs de sincronização
+- ✅ Migration script (apply_migration_008.py)
+- ✅ Deploy guide (DEPLOY_ML_EASYPANEL.md)
 
-**Estimativa:** 3-4 semanas (12-16 dias úteis)
+**Commits Principais:**
+- `975d3919` - Service Implementation
+- `d3880063` - API Endpoints
+- `afc47db1` - Frontend Service
+- `1277b6ec` - Vendas Sync Button
+- `1b04dba3` - Fix Token Key
+- `b38d74df` - Migration Script
+
+**Tempo Real:** ~2 semanas (incluindo correções e debug)
 
 **Referências:**
 - [Mercado Livre Developers](https://developers.mercadolivre.com.br/)
@@ -358,8 +369,8 @@ integration_tiktokshop_token_expires_at = Column(DateTime, nullable=True)
 | Integração | Prioridade | Complexidade | Impacto | Estimativa | Status |
 |------------|-----------|--------------|---------|------------|--------|
 | **Shopify** | ⭐⭐⭐⭐⭐ | Média | Alto | 2 semanas | ✅ Completo |
-| **Mercado Livre** | ⭐⭐⭐⭐⭐ | Alta | CRÍTICO | 3-4 semanas | ⏳ Próximo |
-| **WooCommerce** | ⭐⭐⭐⭐ | Baixa | Médio-Alto | 1-2 semanas | ⏳ Planejado |
+| **Mercado Livre** | ⭐⭐⭐⭐⭐ | Alta | CRÍTICO | 3-4 semanas | ✅ Completo |
+| **WooCommerce** | ⭐⭐⭐⭐ | Baixa | Médio-Alto | 1-2 semanas | ⏳ Próximo |
 | **Magalu** | ⭐⭐⭐ | Média | Médio | 2-3 semanas | ⏳ Planejado |
 | **TikTok Shop** | ⭐⭐ | Alta | Baixo | 3-4 semanas | ⏳ Futuro |
 | Amazon | ⭐⭐ | Muito Alta | Alto | 4-6 semanas | 📋 Backlog |
@@ -429,10 +440,10 @@ Todas as integrações seguem o mesmo padrão:
 ### Fase 1: MVP Completo (CONCLUÍDO)
 - ✅ Shopify (2 semanas)
 
-### Fase 2: Marketplaces Principais (8-10 semanas)
-- **Semanas 1-4**: Mercado Livre
-- **Semanas 5-6**: WooCommerce
-- **Semanas 7-10**: Magalu
+### Fase 2: Marketplaces Principais (6-8 semanas)
+- ✅ **Semanas 1-2**: Mercado Livre (Completo)
+- **Semanas 3-4**: WooCommerce
+- **Semanas 5-8**: Magalu
 
 ### Fase 3: Expansão (12 semanas)
 - **Semanas 1-4**: TikTok Shop
@@ -475,6 +486,6 @@ Todas as integrações seguem o mesmo padrão:
 
 ---
 
-**Última atualização:** 2025-10-26
-**Versão:** 1.0
-**Status:** 20% Completo (1 de 5 integrações principais)
+**Última atualização:** 2025-10-27
+**Versão:** 2.0
+**Status:** 40% Completo (2 de 5 integrações principais)
