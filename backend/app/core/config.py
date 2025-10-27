@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     MERCADOLIVRE_CLIENT_SECRET: str = ""
     MERCADOLIVRE_REDIRECT_URI: str = "http://localhost:3000/admin/integracoes/mercadolivre/callback"
 
+    # TikTok Shop OAuth
+    TIKTOKSHOP_APP_KEY: str = ""
+    TIKTOKSHOP_APP_SECRET: str = ""
+    TIKTOKSHOP_REDIRECT_URI: str = "http://localhost:3000/admin/integracoes/tiktokshop/callback"
+
     class Config:
         case_sensitive = True
         env_file = ".env"

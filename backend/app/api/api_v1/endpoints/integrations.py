@@ -12,7 +12,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.workspace import Workspace
-from app.services.integration_service import ShopifyIntegrationService, MercadoLivreIntegrationService, WooCommerceIntegrationService, MagaluIntegrationService
+from app.services.integration_service import ShopifyIntegrationService, MercadoLivreIntegrationService, WooCommerceIntegrationService, MagaluIntegrationService, TikTokShopIntegrationService
 from app.core.encryption import FieldEncryption
 from app.core.config import settings
 import logging
@@ -890,6 +890,273 @@ async def delete_magalu_config(
 
     except Exception as e:
         logger.error(f"Erro ao remover Magalu: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao remover integração: {str(e)}"
+        )
+
+
+# ============================================================================
+# TIKTOK SHOP INTEGRATION ENDPOINTS
+# ============================================================================
+
+class TikTokShopOAuthRequest(BaseModel):
+    """Schema para iniciar fluxo OAuth do TikTok Shop"""
+    shop_id: str = Field(..., description="Shop ID do TikTok Shop")
+
+
+class TikTokShopCallbackRequest(BaseModel):
+    """Schema para processar callback OAuth"""
+    code: str = Field(..., description="Authorization code retornado pelo TikTok Shop")
+    shop_id: str = Field(..., description="Shop ID do TikTok Shop")
+
+
+class TikTokShopConfigResponse(BaseModel):
+    """Schema de resposta da configuração TikTok Shop"""
+    shop_id: Optional[str] = None
+    last_sync: Optional[datetime] = None
+    connected: bool = False
+    token_expires_at: Optional[datetime] = None
+
+
+@router.get("/tiktokshop/auth-url")
+async def get_tiktokshop_auth_url(
+    shop_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Gera URL de autorização OAuth para TikTok Shop
+    """
+    if not settings.TIKTOKSHOP_APP_KEY or not settings.TIKTOKSHOP_APP_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="TikTok Shop não está configurado no servidor"
+        )
+
+    # URL de autorização do TikTok Shop
+    auth_url = (
+        f"https://services.tiktokshop.com/open/authorize?"
+        f"app_key={settings.TIKTOKSHOP_APP_KEY}"
+        f"&state={shop_id}"  # Podemos usar o shop_id como state
+    )
+
+    return {
+        "auth_url": auth_url,
+        "shop_id": shop_id
+    }
+
+
+@router.post("/tiktokshop/callback")
+async def handle_tiktokshop_callback(
+    request: TikTokShopCallbackRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Processa callback OAuth do TikTok Shop e obtém tokens
+    """
+    workspace = current_user.workspace
+
+    if not settings.TIKTOKSHOP_APP_KEY or not settings.TIKTOKSHOP_APP_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="TikTok Shop não está configurado no servidor"
+        )
+
+    try:
+        import httpx
+
+        # Trocar authorization code por access token
+        token_url = "https://auth.tiktok-shops.com/api/v2/token/get"
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                token_url,
+                json={
+                    "app_key": settings.TIKTOKSHOP_APP_KEY,
+                    "app_secret": settings.TIKTOKSHOP_APP_SECRET,
+                    "auth_code": request.code,
+                    "grant_type": "authorized_code"
+                }
+            )
+
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Erro ao obter tokens: {response.text}"
+                )
+
+            data = response.json()
+
+            if data.get("code") != 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Erro TikTok Shop: {data.get('message', 'Unknown error')}"
+                )
+
+            token_data = data.get("data", {})
+            access_token = token_data.get("access_token")
+            refresh_token = token_data.get("refresh_token")
+            expires_in = token_data.get("access_token_expire_in", 0)
+
+            if not access_token:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Access token não retornado pelo TikTok Shop"
+                )
+
+            # Criptografar tokens
+            encryptor = FieldEncryption()
+            encrypted_access = encryptor.encrypt(access_token)
+            encrypted_refresh = encryptor.encrypt(refresh_token) if refresh_token else None
+
+            # Salvar no workspace
+            workspace.integration_tiktokshop_access_token = encrypted_access
+            workspace.integration_tiktokshop_refresh_token = encrypted_refresh
+            workspace.integration_tiktokshop_shop_id = request.shop_id
+            workspace.integration_tiktokshop_token_expires_at = datetime.now() + timedelta(seconds=expires_in)
+
+            db.commit()
+
+            logger.info(f"TikTok Shop conectado ao workspace {workspace.id}")
+
+            return {
+                "success": True,
+                "message": "TikTok Shop conectado com sucesso",
+                "shop_id": request.shop_id,
+                "expires_at": workspace.integration_tiktokshop_token_expires_at
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao processar callback TikTok Shop: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao conectar com TikTok Shop: {str(e)}"
+        )
+
+
+@router.get("/tiktokshop/config", response_model=TikTokShopConfigResponse)
+async def get_tiktokshop_config(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna a configuração atual do TikTok Shop
+    """
+    workspace = current_user.workspace
+
+    return {
+        "shop_id": workspace.integration_tiktokshop_shop_id,
+        "last_sync": workspace.integration_tiktokshop_last_sync,
+        "connected": bool(workspace.integration_tiktokshop_access_token),
+        "token_expires_at": workspace.integration_tiktokshop_token_expires_at
+    }
+
+
+@router.post("/tiktokshop/test-connection")
+async def test_tiktokshop_connection(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Testa a conexão com TikTok Shop
+    """
+    workspace = current_user.workspace
+
+    if not workspace.integration_tiktokshop_access_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="TikTok Shop não está configurado"
+        )
+
+    try:
+        service = TikTokShopIntegrationService(workspace, db)
+        result = await service.test_connection()
+
+        return result
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Erro ao testar TikTok Shop: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao testar conexão: {str(e)}"
+        )
+
+
+@router.post("/tiktokshop/sync-orders")
+async def sync_tiktokshop_orders(
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Sincroniza pedidos do TikTok Shop
+    """
+    workspace = current_user.workspace
+
+    if not workspace.integration_tiktokshop_access_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="TikTok Shop não está configurado"
+        )
+
+    try:
+        service = TikTokShopIntegrationService(workspace, db)
+        result = await service.sync_orders(limit=limit)
+
+        return result
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Erro ao sincronizar pedidos TikTok Shop: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao sincronizar pedidos: {str(e)}"
+        )
+
+
+@router.delete("/tiktokshop/config")
+async def delete_tiktokshop_config(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Remove a configuração de integração com TikTok Shop
+    """
+    workspace = current_user.workspace
+
+    try:
+        workspace.integration_tiktokshop_access_token = None
+        workspace.integration_tiktokshop_refresh_token = None
+        workspace.integration_tiktokshop_shop_id = None
+        workspace.integration_tiktokshop_token_expires_at = None
+        workspace.integration_tiktokshop_last_sync = None
+
+        db.commit()
+
+        logger.info(f"TikTok Shop desconectado do workspace {workspace.id}")
+
+        return {
+            "success": True,
+            "message": "Integração TikTok Shop removida com sucesso"
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao remover TikTok Shop: {str(e)}")
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
