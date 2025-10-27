@@ -67,6 +67,12 @@ class Workspace(Base):
     integration_mercadolivre_last_sync = Column(DateTime, nullable=True)
     integration_mercadolivre_token_expires_at = Column(DateTime, nullable=True)
 
+    # Integração WooCommerce
+    integration_woocommerce_store_url = Column(String(255), nullable=True)
+    integration_woocommerce_consumer_key = Column(String(500), nullable=True)  # ENCRYPTED
+    integration_woocommerce_consumer_secret = Column(String(500), nullable=True)  # ENCRYPTED
+    integration_woocommerce_last_sync = Column(DateTime, nullable=True)
+
     # Relationships
     users = relationship(
         "User",

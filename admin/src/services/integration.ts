@@ -171,6 +171,70 @@ class IntegrationService {
 
     return this.handleResponse(response);
   }
+
+  // ============================================================================
+  // WOOCOMMERCE METHODS
+  // ============================================================================
+
+  async saveWooCommerceConfig(
+    store_url: string,
+    consumer_key: string,
+    consumer_secret: string
+  ): Promise<{ success: boolean; message: string; store_url: string }> {
+    const response = await fetch(`${API_URL}/integrations/woocommerce/config`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ store_url, consumer_key, consumer_secret }),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async getWooCommerceConfig(): Promise<{
+    connected: boolean;
+    store_url: string | null;
+    last_sync: string | null;
+  }> {
+    const response = await fetch(`${API_URL}/integrations/woocommerce/config`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async testWooCommerceConnection(): Promise<{
+    success: boolean;
+    message: string;
+    store_name?: string;
+    wc_version?: string;
+  }> {
+    const response = await fetch(`${API_URL}/integrations/woocommerce/test-connection`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async syncWooCommerceOrders(limit: number = 50): Promise<ShopifySyncResult> {
+    const response = await fetch(`${API_URL}/integrations/woocommerce/sync-orders`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ limit }),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async deleteWooCommerceConfig(): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_URL}/integrations/woocommerce/config`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+
+    return this.handleResponse(response);
+  }
 }
 
 export const integrationService = new IntegrationService();

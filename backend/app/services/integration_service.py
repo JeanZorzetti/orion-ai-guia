@@ -502,3 +502,221 @@ class MercadoLivreIntegrationService:
         except Exception as e:
             logger.error(f"Erro ao mapear pedido ML: {str(e)}")
             return None
+
+
+class WooCommerceIntegrationService:
+    """
+    Serviço de integração com WooCommerce para sincronização de pedidos
+    Usa autenticação via Consumer Key + Consumer Secret
+    """
+
+    def __init__(self, workspace: Workspace, db: Session):
+        self.workspace = workspace
+        self.db = db
+
+        if not workspace.integration_woocommerce_store_url:
+            raise ValueError("WooCommerce não está configurado. Configure a URL da loja primeiro.")
+
+        # Remove trailing slash da URL
+        self.store_url = workspace.integration_woocommerce_store_url.rstrip('/')
+        self.api_base_url = f"{self.store_url}/wp-json/wc/v3"
+
+        # Descriptografar consumer key e secret
+        try:
+            encryption = FieldEncryption(key=settings.ENCRYPTION_KEY)
+            self.consumer_key = encryption.decrypt(workspace.integration_woocommerce_consumer_key)
+            self.consumer_secret = encryption.decrypt(workspace.integration_woocommerce_consumer_secret)
+        except:
+            self.consumer_key = workspace.integration_woocommerce_consumer_key
+            self.consumer_secret = workspace.integration_woocommerce_consumer_secret
+
+    async def test_connection(self) -> Dict[str, Any]:
+        """Testa conexão com WooCommerce"""
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    f"{self.api_base_url}/system_status",
+                    auth=(self.consumer_key, self.consumer_secret)
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    return {
+                        'success': True,
+                        'message': 'Conexão com WooCommerce estabelecida com sucesso',
+                        'store_name': data.get('settings', {}).get('site_title', 'Loja WooCommerce'),
+                        'wc_version': data.get('environment', {}).get('version', 'Unknown')
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'message': f'Erro ao conectar: {response.status_code}'
+                    }
+
+        except Exception as e:
+            logger.error(f"Erro ao testar conexão WooCommerce: {str(e)}")
+            return {
+                'success': False,
+                'message': f'Erro ao testar conexão: {str(e)}'
+            }
+
+    async def sync_orders(self, limit: int = 50) -> Dict[str, Any]:
+        """
+        Sincroniza pedidos do WooCommerce
+
+        Args:
+            limit: Número máximo de pedidos a processar
+
+        Returns:
+            Estatísticas da sincronização
+        """
+        try:
+            # Buscar pedidos desde a última sincronização
+            params = {
+                'per_page': limit,
+                'status': 'processing,completed',  # Apenas pedidos pagos
+                'orderby': 'date',
+                'order': 'desc'
+            }
+
+            # Se houver sincronização anterior, filtrar por data
+            if self.workspace.integration_woocommerce_last_sync:
+                params['after'] = self.workspace.integration_woocommerce_last_sync.isoformat()
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.api_base_url}/orders",
+                    auth=(self.consumer_key, self.consumer_secret),
+                    params=params
+                )
+
+                if response.status_code != 200:
+                    raise Exception(f"Erro na API WooCommerce: {response.status_code}")
+
+                wc_orders = response.json()
+
+            logger.info(f"Encontrados {len(wc_orders)} pedidos WooCommerce")
+
+            new_orders_count = 0
+            skipped_orders_count = 0
+            errors = []
+
+            for wc_order in wc_orders:
+                try:
+                    # Verificar se pedido já foi importado
+                    existing_sale = self.db.query(Sale).filter(
+                        Sale.workspace_id == self.workspace.id,
+                        Sale.notes.contains(f"WooCommerce #{wc_order['id']}")
+                    ).first()
+
+                    if existing_sale:
+                        skipped_orders_count += 1
+                        continue
+
+                    # Mapear pedido para Sale
+                    sale = self._map_order_to_sale(wc_order)
+
+                    if sale:
+                        self.db.add(sale)
+                        self.db.commit()
+                        new_orders_count += 1
+                        logger.info(f"Pedido WooCommerce #{wc_order['id']} importado com sucesso")
+                    else:
+                        skipped_orders_count += 1
+
+                except Exception as e:
+                    error_msg = f"Erro ao processar pedido #{wc_order.get('id', 'unknown')}: {str(e)}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+                    self.db.rollback()
+
+            # Atualizar timestamp de última sincronização
+            self.workspace.integration_woocommerce_last_sync = datetime.utcnow()
+            self.db.commit()
+
+            return {
+                'success': True,
+                'new_orders_imported': new_orders_count,
+                'orders_skipped': skipped_orders_count,
+                'errors': errors
+            }
+
+        except Exception as e:
+            logger.error(f"Erro ao sincronizar pedidos WooCommerce: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e),
+                'new_orders_imported': 0,
+                'orders_skipped': 0,
+                'errors': [str(e)]
+            }
+
+    def _map_order_to_sale(self, wc_order: Dict) -> Optional[Sale]:
+        """
+        Mapeia um pedido do WooCommerce para um objeto Sale
+
+        Args:
+            wc_order: Dados do pedido WooCommerce
+
+        Returns:
+            Objeto Sale ou None se não foi possível mapear
+        """
+        try:
+            # Extrair primeiro item do pedido
+            line_items = wc_order.get('line_items', [])
+            if not line_items:
+                logger.warning(f"Pedido WooCommerce #{wc_order['id']} sem itens")
+                return None
+
+            first_item = line_items[0]
+
+            # Tentar encontrar produto por SKU
+            product_sku = first_item.get('sku', '')
+            product = None
+
+            if product_sku:
+                product = self.db.query(Product).filter(
+                    Product.workspace_id == self.workspace.id,
+                    Product.sku == product_sku
+                ).first()
+
+            if not product:
+                logger.warning(f"Produto com SKU '{product_sku}' não encontrado no workspace")
+                return None
+
+            # Extrair dados do cliente
+            billing = wc_order.get('billing', {})
+            shipping = wc_order.get('shipping', {})
+
+            # Usar endereço de envio, se não houver usar billing
+            address = shipping if shipping.get('address_1') else billing
+
+            # Criar objeto Sale
+            sale = Sale(
+                workspace_id=self.workspace.id,
+                product_id=product.id,
+                customer_name=f"{billing.get('first_name', '')} {billing.get('last_name', '')}".strip() or 'Cliente WooCommerce',
+                customer_email=billing.get('email'),
+                customer_phone=billing.get('phone'),
+                customer_cpf_cnpj='',
+                customer_cep=address.get('postcode', '').replace('-', ''),
+                customer_logradouro=address.get('address_1'),
+                customer_numero='',
+                customer_complemento=address.get('address_2'),
+                customer_bairro='',
+                customer_cidade=address.get('city'),
+                customer_uf=address.get('state'),
+                quantity=first_item.get('quantity', 1),
+                unit_price=float(first_item.get('price', 0)),
+                total_value=float(wc_order.get('total', 0)),
+                status='completed',
+                sale_date=datetime.fromisoformat(wc_order['date_created']).date(),
+                notes=f"Pedido WooCommerce #{wc_order['id']} - {wc_order.get('status', 'unknown')}",
+                created_at=datetime.fromisoformat(wc_order['date_created'])
+            )
+
+            return sale
+
+        except Exception as e:
+            logger.error(f"Erro ao mapear pedido WooCommerce: {str(e)}")
+            return None

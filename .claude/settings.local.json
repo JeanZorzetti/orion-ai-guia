@@ -66,7 +66,12 @@
       "Bash(awk:*)",
       "Bash(\"C:\\Users\\jeanz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" apply_migration_004.py)",
       "Bash(/c/Users/jeanz/AppData/Local/Programs/Python/Python313/python.exe:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(\"C:\\Users\\jeanz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" apply_migration_006.py)",
+      "Bash(\"C:\\Users\\jeanz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" -c:*)",
+      "Bash(\"C:\\Users\\jeanz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" -m alembic revision --autogenerate -m \"add_fiscal_fields_to_workspace_product_sale_and_create_fiscal_audit_log\")",
+      "Bash(\"C:\\Users\\jeanz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" -m pip install httpx==0.25.2 cryptography==41.0.7)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

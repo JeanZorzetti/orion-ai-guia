@@ -114,13 +114,13 @@ export const OrionFooter = () => {
 
         {/* Bottom Section */}
         <div className="pt-8 border-t border-orion-nebula flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="text-space-light/60">
+          <p className="text-space-light/60">
             © 2024 Orion ERP. Todos os direitos reservados.
-          </div>
-          
+          </p>
+
           <div className="flex items-center gap-6 text-sm text-space-light/60">
             <span className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span className="w-2 h-2 bg-green-400 rounded-full block"></span>
               Sistema Online
             </span>
             <span>ISO 27001 Certificado</span>

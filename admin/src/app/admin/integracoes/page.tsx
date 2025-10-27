@@ -30,6 +30,13 @@ export default function IntegracoesPage() {
   const [mlLastSync, setMlLastSync] = useState<string | undefined>();
   const [mlConnectionStatus, setMlConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
 
+  // WooCommerce
+  const [wcStoreUrl, setWcStoreUrl] = useState('');
+  const [wcConsumerKey, setWcConsumerKey] = useState('');
+  const [wcConsumerSecret, setWcConsumerSecret] = useState('');
+  const [wcLastSync, setWcLastSync] = useState<string | undefined>();
+  const [wcConnectionStatus, setWcConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
+
   useEffect(() => {
     loadConfigs();
   }, []);
@@ -56,6 +63,14 @@ export default function IntegracoesPage() {
       setMlLastSync(mlConfig.last_sync);
       if (mlConfig.has_token) {
         setMlConnectionStatus('connected');
+      }
+
+      // Carregar WooCommerce
+      const wcConfig = await integrationService.getWooCommerceConfig();
+      setWcStoreUrl(wcConfig.store_url || '');
+      setWcLastSync(wcConfig.last_sync || undefined);
+      if (wcConfig.connected) {
+        setWcConnectionStatus('connected');
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
@@ -185,6 +200,74 @@ export default function IntegracoesPage() {
       toast.success('Mercado Livre desconectado');
       setMlUserId(undefined);
       setMlConnectionStatus('disconnected');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao desconectar';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ========== WOOCOMMERCE ==========
+
+  async function handleSaveWooCommerce(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!wcStoreUrl || !wcConsumerKey || !wcConsumerSecret) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await integrationService.saveWooCommerceConfig(wcStoreUrl, wcConsumerKey, wcConsumerSecret);
+      toast.success('WooCommerce configurado com sucesso!');
+      setWcConsumerKey('');
+      setWcConsumerSecret('');
+      await loadConfigs();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao configurar WooCommerce';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleTestWooCommerce() {
+    setTesting(true);
+    try {
+      const result = await integrationService.testWooCommerceConnection();
+      if (result.success) {
+        toast.success('Conexão bem-sucedida!', {
+          description: `Loja: ${result.store_name || 'WooCommerce'} (v${result.wc_version || 'Unknown'})`,
+        });
+        setWcConnectionStatus('connected');
+      } else {
+        toast.error(result.message);
+        setWcConnectionStatus('error');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao testar conexão';
+      toast.error(errorMessage);
+      setWcConnectionStatus('error');
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function handleDeleteWooCommerce() {
+    if (!confirm('Tem certeza que deseja desconectar o WooCommerce?')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await integrationService.deleteWooCommerceConfig();
+      toast.success('WooCommerce desconectado');
+      setWcStoreUrl('');
+      setWcConsumerKey('');
+      setWcConsumerSecret('');
+      setWcConnectionStatus('disconnected');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao desconectar';
       toast.error(errorMessage);
@@ -434,6 +517,149 @@ export default function IntegracoesPage() {
                     <li>Você será redirecionado para o site do Mercado Livre</li>
                     <li>Faça login e autorize o acesso</li>
                     <li>Será redirecionado de volta automaticamente</li>
+                  </ol>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* WooCommerce Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <ShoppingBag className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <CardTitle>WooCommerce</CardTitle>
+                <CardDescription>Plataforma de e-commerce WordPress</CardDescription>
+              </div>
+            </div>
+            {wcConnectionStatus === 'connected' && (
+              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                <CheckCircle className="mr-1 h-3 w-3" />
+                Conectado
+              </Badge>
+            )}
+            {wcConnectionStatus === 'error' && (
+              <Badge variant="destructive">
+                <AlertTriangle className="mr-1 h-3 w-3" />
+                Erro
+              </Badge>
+            )}
+            {wcConnectionStatus === 'disconnected' && (
+              <Badge variant="secondary">Desconectado</Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {wcConnectionStatus === 'connected' ? (
+              <>
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    WooCommerce conectado com sucesso
+                    {wcStoreUrl && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Loja: {wcStoreUrl}
+                      </div>
+                    )}
+                    {wcLastSync && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Última sincronização: {new Date(wcLastSync).toLocaleString('pt-BR')}
+                      </div>
+                    )}
+                  </AlertDescription>
+                </Alert>
+
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTestWooCommerce}
+                    disabled={testing}
+                  >
+                    {testing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Testar Conexão
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDeleteWooCommerce}
+                    disabled={loading}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Desconectar
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <form onSubmit={handleSaveWooCommerce} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="wc_store_url">
+                      URL da Loja <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="wc_store_url"
+                      type="url"
+                      value={wcStoreUrl}
+                      onChange={(e) => setWcStoreUrl(e.target.value)}
+                      placeholder="https://minhaloja.com.br"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      URL completa da sua loja WooCommerce
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="wc_consumer_key">
+                      Consumer Key <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="wc_consumer_key"
+                      type="text"
+                      value={wcConsumerKey}
+                      onChange={(e) => setWcConsumerKey(e.target.value)}
+                      placeholder="ck_..."
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="wc_consumer_secret">
+                      Consumer Secret <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="wc_consumer_secret"
+                      type="password"
+                      value={wcConsumerSecret}
+                      onChange={(e) => setWcConsumerSecret(e.target.value)}
+                      placeholder="cs_..."
+                      required
+                    />
+                  </div>
+
+                  <Button type="submit" disabled={loading} className="w-full">
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Salvar e Conectar
+                  </Button>
+                </form>
+
+                <div className="p-4 bg-muted rounded-lg">
+                  <h4 className="font-semibold mb-2 text-sm">Como obter as credenciais:</h4>
+                  <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>Acesse o painel admin do WordPress</li>
+                    <li>Vá em WooCommerce {'>'} Configurações {'>'} Avançado {'>'} REST API</li>
+                    <li>Clique em &quot;Adicionar chave&quot;</li>
+                    <li>Defina permissões como &quot;Leitura/Escrita&quot;</li>
+                    <li>Copie a Consumer Key e Consumer Secret geradas</li>
                   </ol>
                 </div>
               </>

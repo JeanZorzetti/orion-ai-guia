@@ -509,7 +509,7 @@ function FinanceiroPageContent() {
 
                   {invoice.items.length > 0 && (
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {invoice.items.length} item(s): {invoice.items.slice(0, 3).map(item => item.description).join(', ')}
+                      {invoice.items.length} item(s): {invoice.items.slice(0, 3).map(item => item.description || 'Sem descrição').join(', ')}
                       {invoice.items.length > 3 && ` e mais ${invoice.items.length - 3}...`}
                     </div>
                   )}

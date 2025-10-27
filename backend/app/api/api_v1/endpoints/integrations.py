@@ -12,7 +12,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.workspace import Workspace
-from app.services.integration_service import ShopifyIntegrationService, MercadoLivreIntegrationService
+from app.services.integration_service import ShopifyIntegrationService, MercadoLivreIntegrationService, WooCommerceIntegrationService
 from app.core.encryption import FieldEncryption
 from app.core.config import settings
 import logging
@@ -539,6 +539,183 @@ async def delete_mercadolivre_config(
 
     except Exception as e:
         logger.error(f"Erro ao remover ML: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao remover integração: {str(e)}"
+        )
+
+
+# ============================================================================
+# WOOCOMMERCE INTEGRATION ENDPOINTS
+# ============================================================================
+
+class WooCommerceConfigRequest(BaseModel):
+    """Schema para configuração de integração WooCommerce"""
+    store_url: str = Field(..., description="URL da loja WooCommerce (ex: https://minhaloja.com.br)")
+    consumer_key: str = Field(..., description="Consumer Key da API WooCommerce")
+    consumer_secret: str = Field(..., description="Consumer Secret da API WooCommerce")
+
+
+@router.post("/woocommerce/config")
+async def save_woocommerce_config(
+    config: WooCommerceConfigRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Salva configuração de integração com WooCommerce
+    """
+    workspace = current_user.workspace
+
+    try:
+        encryption = FieldEncryption(key=settings.ENCRYPTION_KEY)
+
+        # Criptografar credenciais
+        workspace.integration_woocommerce_store_url = config.store_url.rstrip('/')
+        workspace.integration_woocommerce_consumer_key = encryption.encrypt(config.consumer_key)
+        workspace.integration_woocommerce_consumer_secret = encryption.encrypt(config.consumer_secret)
+
+        db.commit()
+
+        logger.info(f"WooCommerce configurado para workspace {workspace.id}")
+
+        return {
+            "success": True,
+            "message": "Integração WooCommerce configurada com sucesso",
+            "store_url": workspace.integration_woocommerce_store_url
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao configurar WooCommerce: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao configurar integração: {str(e)}"
+        )
+
+
+@router.get("/woocommerce/config")
+async def get_woocommerce_config(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna configuração atual de integração com WooCommerce
+    """
+    workspace = current_user.workspace
+
+    if not workspace.integration_woocommerce_store_url:
+        return {
+            "connected": False,
+            "store_url": None,
+            "last_sync": None
+        }
+
+    return {
+        "connected": True,
+        "store_url": workspace.integration_woocommerce_store_url,
+        "last_sync": workspace.integration_woocommerce_last_sync.isoformat() if workspace.integration_woocommerce_last_sync else None
+    }
+
+
+@router.post("/woocommerce/test-connection")
+async def test_woocommerce_connection(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Testa conexão com WooCommerce
+    """
+    workspace = current_user.workspace
+
+    if not workspace.integration_woocommerce_store_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="WooCommerce não está configurado"
+        )
+
+    try:
+        service = WooCommerceIntegrationService(workspace, db)
+        result = await service.test_connection()
+
+        return result
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Erro ao testar conexão WooCommerce: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao testar conexão: {str(e)}"
+        )
+
+
+@router.post("/woocommerce/sync-orders")
+async def sync_woocommerce_orders(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    limit: int = 50
+):
+    """
+    Sincroniza pedidos do WooCommerce
+    """
+    workspace = current_user.workspace
+
+    if not workspace.integration_woocommerce_store_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="WooCommerce não está configurado"
+        )
+
+    try:
+        service = WooCommerceIntegrationService(workspace, db)
+        result = await service.sync_orders(limit=limit)
+
+        return result
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Erro ao sincronizar pedidos WooCommerce: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao sincronizar pedidos: {str(e)}"
+        )
+
+
+@router.delete("/woocommerce/config")
+async def delete_woocommerce_config(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Remove a configuração de integração com WooCommerce
+    """
+    workspace = current_user.workspace
+
+    try:
+        workspace.integration_woocommerce_store_url = None
+        workspace.integration_woocommerce_consumer_key = None
+        workspace.integration_woocommerce_consumer_secret = None
+        workspace.integration_woocommerce_last_sync = None
+
+        db.commit()
+
+        logger.info(f"WooCommerce desconectado do workspace {workspace.id}")
+
+        return {
+            "success": True,
+            "message": "Integração WooCommerce removida com sucesso"
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao remover WooCommerce: {str(e)}")
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

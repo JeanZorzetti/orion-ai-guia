@@ -43,6 +43,7 @@ const VendasPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncingML, setSyncingML] = useState(false);
+  const [syncingWC, setSyncingWC] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -222,6 +223,39 @@ const VendasPage: React.FC = () => {
     }
   };
 
+  const handleSyncWooCommerce = async () => {
+    setSyncingWC(true);
+    try {
+      const result = await integrationService.syncWooCommerceOrders(50);
+
+      if (result.success) {
+        if (result.new_orders_imported > 0) {
+          toast.success(`${result.new_orders_imported} pedido(s) WooCommerce importado(s)!`);
+          loadSales();
+        } else {
+          toast.info('Nenhum pedido novo encontrado');
+        }
+
+        if (result.errors && result.errors.length > 0) {
+          toast.warning('Alguns pedidos tiveram erros', {
+            description: `${result.errors.length} erro(s) encontrado(s)`,
+          });
+        }
+      } else {
+        toast.error('Erro na sincronização', {
+          description: result.errors && result.errors[0] || 'Erro desconhecido',
+        });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error('Erro ao sincronizar pedidos WooCommerce', {
+        description: errorMessage,
+      });
+    } finally {
+      setSyncingWC(false);
+    }
+  };
+
   // Estatísticas
   const totalSales = sales.length;
   const totalRevenue = sales
@@ -316,6 +350,23 @@ const VendasPage: React.FC = () => {
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Sincronizar ML
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleSyncWooCommerce}
+                disabled={syncingWC}
+              >
+                {syncingWC ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Sincronizando WC...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Sincronizar WC
                   </>
                 )}
               </Button>
