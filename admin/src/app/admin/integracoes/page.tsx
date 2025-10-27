@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Plug, CheckCircle, AlertTriangle, Loader2, ShoppingBag, Trash2, Store } from 'lucide-react';
+import { Plug, CheckCircle, AlertTriangle, Loader2, ShoppingBag, Trash2, Store, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { integrationService, type ShopifyConfig } from '@/services/integration';
 
@@ -42,6 +42,12 @@ export default function IntegracoesPage() {
   const [magaluApiKey, setMagaluApiKey] = useState('');
   const [magaluLastSync, setMagaluLastSync] = useState<string | undefined>();
   const [magaluConnectionStatus, setMagaluConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
+
+  // TikTok Shop
+  const [tiktokShopId, setTiktokShopId] = useState('');
+  const [tiktokLastSync, setTiktokLastSync] = useState<string | undefined>();
+  const [tiktokConnectionStatus, setTiktokConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
+  const [tiktokTokenExpires, setTiktokTokenExpires] = useState<string | undefined>();
 
   useEffect(() => {
     loadConfigs();
@@ -85,6 +91,15 @@ export default function IntegracoesPage() {
       setMagaluLastSync(magaluConfig.last_sync || undefined);
       if (magaluConfig.connected) {
         setMagaluConnectionStatus('connected');
+      }
+
+      // Carregar TikTok Shop
+      const tiktokConfig = await integrationService.getTikTokShopConfig();
+      setTiktokShopId(tiktokConfig.shop_id || '');
+      setTiktokLastSync(tiktokConfig.last_sync || undefined);
+      setTiktokTokenExpires(tiktokConfig.token_expires_at || undefined);
+      if (tiktokConfig.connected) {
+        setTiktokConnectionStatus('connected');
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
@@ -348,6 +363,68 @@ export default function IntegracoesPage() {
       setMagaluSellerId('');
       setMagaluApiKey('');
       setMagaluConnectionStatus('disconnected');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao desconectar';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ========== TIKTOK SHOP ==========
+
+  async function handleConnectTikTok() {
+    if (!tiktokShopId) {
+      toast.error('Digite o Shop ID');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await integrationService.getTikTokShopAuthUrl(tiktokShopId);
+      // Redirecionar para a URL de autorização OAuth
+      window.location.href = result.auth_url;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao conectar';
+      toast.error(errorMessage);
+      setLoading(false);
+    }
+  }
+
+  async function handleTestTikTok() {
+    setTesting(true);
+    try {
+      const result = await integrationService.testTikTokShopConnection();
+      if (result.success) {
+        toast.success('Conexão bem-sucedida!', {
+          description: result.shop_name ? `Loja: ${result.shop_name}` : 'TikTok Shop conectado',
+        });
+        setTiktokConnectionStatus('connected');
+      } else {
+        toast.error(result.message);
+        setTiktokConnectionStatus('error');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao testar conexão';
+      toast.error(errorMessage);
+      setTiktokConnectionStatus('error');
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function handleDeleteTikTok() {
+    if (!confirm('Tem certeza que deseja desconectar o TikTok Shop?')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await integrationService.deleteTikTokShopConfig();
+      toast.success('TikTok Shop desconectado');
+      setTiktokShopId('');
+      setTiktokConnectionStatus('disconnected');
+      setTiktokTokenExpires(undefined);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao desconectar';
       toast.error(errorMessage);
@@ -872,6 +949,130 @@ export default function IntegracoesPage() {
                     <li>Gere uma nova API Key</li>
                     <li>Anote o Seller ID e a API Key</li>
                     <li>Cole as credenciais nos campos acima</li>
+                  </ol>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* TikTok Shop Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-pink-100 rounded-lg">
+              <Video className="h-6 w-6 text-pink-600" />
+            </div>
+            <CardTitle>TikTok Shop</CardTitle>
+          </div>
+          <CardDescription>Conecte sua loja TikTok Shop via OAuth 2.0</CardDescription>
+          <div className="mt-2 flex gap-2">
+            {tiktokConnectionStatus === 'connected' && (
+              <Badge variant="default" className="bg-green-600">
+                <CheckCircle className="mr-1 h-3 w-3" />
+                Conectado
+              </Badge>
+            )}
+            {tiktokConnectionStatus === 'error' && (
+              <Badge variant="destructive">
+                <AlertTriangle className="mr-1 h-3 w-3" />
+                Erro
+              </Badge>
+            )}
+            {tiktokConnectionStatus === 'disconnected' && (
+              <Badge variant="secondary">Desconectado</Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {tiktokConnectionStatus === 'connected' ? (
+              <>
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    TikTok Shop conectado com sucesso
+                    {tiktokShopId && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Shop ID: {tiktokShopId}
+                      </div>
+                    )}
+                    {tiktokLastSync && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Última sincronização: {new Date(tiktokLastSync).toLocaleString('pt-BR')}
+                      </div>
+                    )}
+                    {tiktokTokenExpires && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Token expira em: {new Date(tiktokTokenExpires).toLocaleString('pt-BR')}
+                      </div>
+                    )}
+                  </AlertDescription>
+                </Alert>
+
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTestTikTok}
+                    disabled={testing}
+                  >
+                    {testing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Testar Conexão
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDeleteTikTok}
+                    disabled={loading}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Desconectar
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tiktok_shop_id">
+                      Shop ID <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="tiktok_shop_id"
+                      type="text"
+                      value={tiktokShopId}
+                      onChange={(e) => setTiktokShopId(e.target.value)}
+                      placeholder="12345678"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      ID da sua loja no TikTok Shop
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={handleConnectTikTok}
+                    disabled={loading || !tiktokShopId}
+                    className="w-full bg-pink-600 hover:bg-pink-700"
+                  >
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Conectar com OAuth
+                  </Button>
+                </div>
+
+                <div className="p-4 bg-muted rounded-lg">
+                  <h4 className="font-semibold mb-2 text-sm">Como conectar:</h4>
+                  <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>Acesse o TikTok Shop Seller Center</li>
+                    <li>Vá em Settings {'>'} Developer Tools</li>
+                    <li>Encontre o Shop ID da sua loja</li>
+                    <li>Digite o Shop ID acima</li>
+                    <li>Clique em &quot;Conectar com OAuth&quot;</li>
+                    <li>Autorize o aplicativo na página do TikTok</li>
                   </ol>
                 </div>
               </>

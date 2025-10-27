@@ -298,6 +298,82 @@ class IntegrationService {
 
     return this.handleResponse(response);
   }
+
+  // ============================================================================
+  // TIKTOK SHOP METHODS
+  // ============================================================================
+
+  async getTikTokShopAuthUrl(shop_id: string): Promise<{ auth_url: string; shop_id: string }> {
+    const response = await fetch(
+      `${API_URL}/integrations/tiktokshop/auth-url?shop_id=${encodeURIComponent(shop_id)}`,
+      {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      }
+    );
+
+    return this.handleResponse(response);
+  }
+
+  async processTikTokShopCallback(code: string, shop_id: string): Promise<{
+    success: boolean;
+    message: string;
+    shop_id: string;
+    expires_at: string;
+  }> {
+    const response = await fetch(`${API_URL}/integrations/tiktokshop/callback`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ code, shop_id }),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async getTikTokShopConfig(): Promise<{
+    shop_id: string | null;
+    last_sync: string | null;
+    connected: boolean;
+    token_expires_at: string | null;
+  }> {
+    const response = await fetch(`${API_URL}/integrations/tiktokshop/config`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async testTikTokShopConnection(): Promise<{ success: boolean; message: string; shop_name?: string }> {
+    const response = await fetch(`${API_URL}/integrations/tiktokshop/test-connection`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async syncTikTokShopOrders(limit: number = 50): Promise<{
+    success: boolean;
+    new_orders_imported: number;
+    message: string;
+  }> {
+    const response = await fetch(`${API_URL}/integrations/tiktokshop/sync-orders?limit=${limit}`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async deleteTikTokShopConfig(): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_URL}/integrations/tiktokshop/config`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+
+    return this.handleResponse(response);
+  }
 }
 
 export const integrationService = new IntegrationService();
