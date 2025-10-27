@@ -43,12 +43,8 @@ export default function LoginPage() {
       if (redirectUrl) {
         router.push(redirectUrl);
       } else {
-        // Caso contrário, redirecionar baseado no role
-        if (user.role === 'super_admin') {
-          router.push('/super-admin');
-        } else {
-          router.push('/admin/dashboard');
-        }
+        // Redirecionar para dashboard (admin ou super-admin já têm botões na sidebar)
+        router.push('/admin/dashboard');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login');
