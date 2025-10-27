@@ -40,6 +40,24 @@ class IntegrationService {
     };
   }
 
+  private async handleResponse(response: Response) {
+    // Se receber 401, significa que o token expirou
+    if (response.status === 401) {
+      // Limpar token e redirecionar para login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      throw new Error('Sessão expirada. Redirecionando para o login...');
+    }
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Erro desconhecido' }));
+      throw new Error(error.detail || `Erro HTTP ${response.status}`);
+    }
+
+    return response.json();
+  }
+
   // ============================================================================
   // SHOPIFY
   // ============================================================================
@@ -51,12 +69,7 @@ class IntegrationService {
       body: JSON.stringify(config),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Erro ao salvar configurações Shopify');
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async getShopifyConfig(): Promise<ShopifyConfigResponse> {
@@ -65,12 +78,7 @@ class IntegrationService {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Erro ao buscar configurações Shopify');
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async testShopifyConnection(): Promise<ShopifyConnectionTest> {
@@ -79,12 +87,7 @@ class IntegrationService {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Erro ao testar conexão Shopify');
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async syncShopifyOrders(limit: number = 250): Promise<ShopifySyncResult> {
@@ -94,12 +97,7 @@ class IntegrationService {
       body: JSON.stringify({ limit }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Erro ao sincronizar pedidos Shopify');
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async deleteShopifyConfig(): Promise<{ success: boolean; message: string }> {
@@ -108,12 +106,7 @@ class IntegrationService {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Erro ao remover integração Shopify');
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   // ============================================================================
@@ -126,12 +119,7 @@ class IntegrationService {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Erro ao obter URL de autorização ML');
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async connectMercadoLivre(code: string): Promise<{ success: boolean; message: string; user_id: string; nickname: string }> {
@@ -141,12 +129,7 @@ class IntegrationService {
       body: JSON.stringify({ code }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Erro ao conectar Mercado Livre');
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async getMercadoLivreConfig(): Promise<{
@@ -161,12 +144,7 @@ class IntegrationService {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Erro ao buscar configurações Mercado Livre');
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async testMercadoLivreConnection(): Promise<{
@@ -181,12 +159,7 @@ class IntegrationService {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Erro ao testar conexão Mercado Livre');
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async syncMercadoLivreOrders(limit: number = 50): Promise<ShopifySyncResult> {
@@ -196,12 +169,7 @@ class IntegrationService {
       body: JSON.stringify({ limit }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Erro ao sincronizar pedidos Mercado Livre');
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async deleteMercadoLivreConfig(): Promise<{ success: boolean; message: string }> {
@@ -210,12 +178,7 @@ class IntegrationService {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Erro ao remover integração Mercado Livre');
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 }
 
