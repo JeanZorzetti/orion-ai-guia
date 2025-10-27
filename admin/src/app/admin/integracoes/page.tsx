@@ -25,6 +25,11 @@ export default function IntegracoesPage() {
   const [lastSync, setLastSync] = useState<string | undefined>();
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
 
+  // Mercado Livre
+  const [mlUserId, setMlUserId] = useState<string | undefined>();
+  const [mlLastSync, setMlLastSync] = useState<string | undefined>();
+  const [mlConnectionStatus, setMlConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
+
   useEffect(() => {
     loadConfigs();
   }, []);
@@ -32,18 +37,25 @@ export default function IntegracoesPage() {
   async function loadConfigs() {
     try {
       setLoadingPage(true);
-      const config = await integrationService.getShopifyConfig();
 
+      // Carregar Shopify
+      const shopifyConfig = await integrationService.getShopifyConfig();
       setShopifyConfig({
-        store_url: config.store_url || '',
-        api_key: '', // Nunca retorna a API key por segurança
+        store_url: shopifyConfig.store_url || '',
+        api_key: '',
       });
-
-      setHasShopifyConfig(config.has_api_key);
-      setLastSync(config.last_sync);
-
-      if (config.has_api_key) {
+      setHasShopifyConfig(shopifyConfig.has_api_key);
+      setLastSync(shopifyConfig.last_sync);
+      if (shopifyConfig.has_api_key) {
         setConnectionStatus('connected');
+      }
+
+      // Carregar Mercado Livre
+      const mlConfig = await integrationService.getMercadoLivreConfig();
+      setMlUserId(mlConfig.user_id);
+      setMlLastSync(mlConfig.last_sync);
+      if (mlConfig.has_token) {
+        setMlConnectionStatus('connected');
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
@@ -124,6 +136,57 @@ export default function IntegracoesPage() {
       setConnectionStatus('disconnected');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao remover integração';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ========== MERCADO LIVRE ==========
+
+  async function handleConnectMercadoLivre() {
+    try {
+      const { auth_url } = await integrationService.getMercadoLivreAuthUrl();
+      // Redirecionar para autorização do ML
+      window.location.href = auth_url;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao obter URL de autorização';
+      toast.error(errorMessage);
+    }
+  }
+
+  async function handleTestMercadoLivre() {
+    setTesting(true);
+    try {
+      const result = await integrationService.testMercadoLivreConnection();
+      if (result.success) {
+        toast.success('Conexão bem-sucedida!', {
+          description: `User ID: ${result.user_id}`,
+        });
+        setMlConnectionStatus('connected');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao testar conexão';
+      toast.error(errorMessage);
+      setMlConnectionStatus('error');
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function handleDeleteMercadoLivre() {
+    if (!confirm('Tem certeza que deseja desconectar o Mercado Livre?')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await integrationService.deleteMercadoLivreConfig();
+      toast.success('Mercado Livre desconectado');
+      setMlUserId(undefined);
+      setMlConnectionStatus('disconnected');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao desconectar';
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -283,21 +346,100 @@ export default function IntegracoesPage() {
         </CardContent>
       </Card>
 
-      {/* Placeholder para futuras integrações */}
-      <Card className="opacity-50">
+      {/* Card Mercado Livre */}
+      <Card>
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/20">
-              <ShoppingBag className="h-6 w-6 text-blue-600" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950/20">
+                <ShoppingBag className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div>
+                <CardTitle>Mercado Livre</CardTitle>
+                <CardDescription>
+                  Sincronize pedidos do maior marketplace do Brasil
+                </CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle>Mercado Livre</CardTitle>
-              <CardDescription>
-                Em breve - Sincronize vendas do Mercado Livre
-              </CardDescription>
-            </div>
+
+            <Badge variant={mlConnectionStatus === 'connected' ? 'default' : mlConnectionStatus === 'error' ? 'destructive' : 'secondary'}>
+              {mlConnectionStatus === 'connected' && (
+                <>
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  Conectado
+                </>
+              )}
+              {mlConnectionStatus === 'error' && (
+                <>
+                  <AlertTriangle className="mr-1 h-3 w-3" />
+                  Erro
+                </>
+              )}
+              {mlConnectionStatus === 'disconnected' && 'Desconectado'}
+            </Badge>
           </div>
         </CardHeader>
+
+        <CardContent>
+          <div className="space-y-4">
+            {mlUserId ? (
+              <>
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Conectado - User ID: {mlUserId}
+                    {mlLastSync && (
+                      <><br />Última sincronização: {new Date(mlLastSync).toLocaleString('pt-BR')}</>
+                    )}
+                  </AlertDescription>
+                </Alert>
+
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTestMercadoLivre}
+                    disabled={testing}
+                  >
+                    {testing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Testar Conexão
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDeleteMercadoLivre}
+                    disabled={loading}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Desconectar
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Conecte sua conta do Mercado Livre para sincronizar pedidos automaticamente.
+                  Você será redirecionado para autorizar o acesso.
+                </p>
+
+                <Button onClick={handleConnectMercadoLivre} className="w-full">
+                  Conectar com Mercado Livre
+                </Button>
+
+                <div className="p-4 bg-muted rounded-lg">
+                  <h4 className="font-semibold mb-2 text-sm">Como conectar:</h4>
+                  <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>Clique em "Conectar com Mercado Livre"</li>
+                    <li>Você será redirecionado para o site do Mercado Livre</li>
+                    <li>Faça login e autorize o acesso</li>
+                    <li>Será redirecionado de volta automaticamente</li>
+                  </ol>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

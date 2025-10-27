@@ -42,6 +42,7 @@ const VendasPage: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [syncingML, setSyncingML] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -186,6 +187,41 @@ const VendasPage: React.FC = () => {
     }
   };
 
+  const handleSyncMercadoLivre = async () => {
+    setSyncingML(true);
+    try {
+      const result = await integrationService.syncMercadoLivreOrders(50);
+
+      if (result.success) {
+        if (result.new_orders_imported > 0) {
+          toast.success(`${result.new_orders_imported} pedido(s) Mercado Livre importado(s)!`, {
+            description: result.message,
+          });
+          loadSales();
+        } else {
+          toast.info(result.message);
+        }
+
+        if (result.errors.length > 0) {
+          toast.warning('Alguns pedidos tiveram erros', {
+            description: `${result.errors.length} erro(s) encontrado(s)`,
+          });
+        }
+      } else {
+        toast.error('Erro na sincronização', {
+          description: result.errors[0] || 'Erro desconhecido',
+        });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error('Erro ao sincronizar pedidos Mercado Livre', {
+        description: errorMessage,
+      });
+    } finally {
+      setSyncingML(false);
+    }
+  };
+
   // Estatísticas
   const totalSales = sales.length;
   const totalRevenue = sales
@@ -263,6 +299,23 @@ const VendasPage: React.FC = () => {
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Sincronizar Shopify
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleSyncMercadoLivre}
+                disabled={syncingML}
+              >
+                {syncingML ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Sincronizando ML...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Sincronizar ML
                   </>
                 )}
               </Button>
