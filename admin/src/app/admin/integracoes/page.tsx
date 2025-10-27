@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Plug, CheckCircle, AlertTriangle, Loader2, ShoppingBag, Trash2 } from 'lucide-react';
+import { Plug, CheckCircle, AlertTriangle, Loader2, ShoppingBag, Trash2, Store } from 'lucide-react';
 import { toast } from 'sonner';
 import { integrationService, type ShopifyConfig } from '@/services/integration';
 
@@ -36,6 +36,12 @@ export default function IntegracoesPage() {
   const [wcConsumerSecret, setWcConsumerSecret] = useState('');
   const [wcLastSync, setWcLastSync] = useState<string | undefined>();
   const [wcConnectionStatus, setWcConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
+
+  // Magalu
+  const [magaluSellerId, setMagaluSellerId] = useState('');
+  const [magaluApiKey, setMagaluApiKey] = useState('');
+  const [magaluLastSync, setMagaluLastSync] = useState<string | undefined>();
+  const [magaluConnectionStatus, setMagaluConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
 
   useEffect(() => {
     loadConfigs();
@@ -71,6 +77,14 @@ export default function IntegracoesPage() {
       setWcLastSync(wcConfig.last_sync || undefined);
       if (wcConfig.connected) {
         setWcConnectionStatus('connected');
+      }
+
+      // Carregar Magalu
+      const magaluConfig = await integrationService.getMagaluConfig();
+      setMagaluSellerId(magaluConfig.seller_id || '');
+      setMagaluLastSync(magaluConfig.last_sync || undefined);
+      if (magaluConfig.connected) {
+        setMagaluConnectionStatus('connected');
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
@@ -268,6 +282,72 @@ export default function IntegracoesPage() {
       setWcConsumerKey('');
       setWcConsumerSecret('');
       setWcConnectionStatus('disconnected');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao desconectar';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ========== MAGALU ==========
+
+  async function handleSaveMagalu(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!magaluSellerId || !magaluApiKey) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await integrationService.saveMagaluConfig(magaluSellerId, magaluApiKey);
+      toast.success('Magalu configurado com sucesso!');
+      setMagaluApiKey('');
+      await loadConfigs();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao configurar Magalu';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleTestMagalu() {
+    setTesting(true);
+    try {
+      const result = await integrationService.testMagaluConnection();
+      if (result.success) {
+        toast.success('Conexão bem-sucedida!', {
+          description: `Seller: ${result.seller_name || magaluSellerId}`,
+        });
+        setMagaluConnectionStatus('connected');
+      } else {
+        toast.error(result.message);
+        setMagaluConnectionStatus('error');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao testar conexão';
+      toast.error(errorMessage);
+      setMagaluConnectionStatus('error');
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function handleDeleteMagalu() {
+    if (!confirm('Tem certeza que deseja desconectar o Magalu?')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await integrationService.deleteMagaluConfig();
+      toast.success('Magalu desconectado');
+      setMagaluSellerId('');
+      setMagaluApiKey('');
+      setMagaluConnectionStatus('disconnected');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao desconectar';
       toast.error(errorMessage);
@@ -660,6 +740,138 @@ export default function IntegracoesPage() {
                     <li>Clique em &quot;Adicionar chave&quot;</li>
                     <li>Defina permissões como &quot;Leitura/Escrita&quot;</li>
                     <li>Copie a Consumer Key e Consumer Secret geradas</li>
+                  </ol>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Magalu Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Store className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle>Magazine Luiza (Magalu)</CardTitle>
+                <CardDescription>3º maior marketplace do Brasil</CardDescription>
+              </div>
+            </div>
+            {magaluConnectionStatus === 'connected' && (
+              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                <CheckCircle className="mr-1 h-3 w-3" />
+                Conectado
+              </Badge>
+            )}
+            {magaluConnectionStatus === 'error' && (
+              <Badge variant="destructive">
+                <AlertTriangle className="mr-1 h-3 w-3" />
+                Erro
+              </Badge>
+            )}
+            {magaluConnectionStatus === 'disconnected' && (
+              <Badge variant="secondary">Desconectado</Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {magaluConnectionStatus === 'connected' ? (
+              <>
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Magalu conectado com sucesso
+                    {magaluSellerId && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Seller ID: {magaluSellerId}
+                      </div>
+                    )}
+                    {magaluLastSync && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Última sincronização: {new Date(magaluLastSync).toLocaleString('pt-BR')}
+                      </div>
+                    )}
+                  </AlertDescription>
+                </Alert>
+
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTestMagalu}
+                    disabled={testing}
+                  >
+                    {testing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Testar Conexão
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDeleteMagalu}
+                    disabled={loading}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Desconectar
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <form onSubmit={handleSaveMagalu} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="magalu_seller_id">
+                      Seller ID <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="magalu_seller_id"
+                      type="text"
+                      value={magaluSellerId}
+                      onChange={(e) => setMagaluSellerId(e.target.value)}
+                      placeholder="12345"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      ID do seller fornecido pelo Magalu Marketplace
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="magalu_api_key">
+                      API Key <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="magalu_api_key"
+                      type="password"
+                      value={magaluApiKey}
+                      onChange={(e) => setMagaluApiKey(e.target.value)}
+                      placeholder="sua-api-key"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Chave de API fornecida pelo Magalu
+                    </p>
+                  </div>
+
+                  <Button type="submit" disabled={loading} className="w-full">
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Salvar e Conectar
+                  </Button>
+                </form>
+
+                <div className="p-4 bg-muted rounded-lg">
+                  <h4 className="font-semibold mb-2 text-sm">Como obter as credenciais:</h4>
+                  <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>Acesse o Magalu Marketplace Seller Center</li>
+                    <li>Vá em Configurações {'>'} Integrações</li>
+                    <li>Gere uma nova API Key</li>
+                    <li>Anote o Seller ID e a API Key</li>
+                    <li>Cole as credenciais nos campos acima</li>
                   </ol>
                 </div>
               </>
