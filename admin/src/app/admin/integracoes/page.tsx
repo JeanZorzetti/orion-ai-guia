@@ -430,7 +430,7 @@ export default function IntegracoesPage() {
                 <div className="p-4 bg-muted rounded-lg">
                   <h4 className="font-semibold mb-2 text-sm">Como conectar:</h4>
                   <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                    <li>Clique em "Conectar com Mercado Livre"</li>
+                    <li>Clique em &quot;Conectar com Mercado Livre&quot;</li>
                     <li>Você será redirecionado para o site do Mercado Livre</li>
                     <li>Faça login e autorize o acesso</li>
                     <li>Será redirecionado de volta automaticamente</li>
