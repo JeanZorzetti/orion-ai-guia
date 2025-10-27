@@ -78,6 +78,13 @@ class Workspace(Base):
     integration_magalu_api_key = Column(String(500), nullable=True)  # ENCRYPTED
     integration_magalu_last_sync = Column(DateTime, nullable=True)
 
+    # Integração TikTok Shop
+    integration_tiktokshop_access_token = Column(String(500), nullable=True)  # ENCRYPTED
+    integration_tiktokshop_refresh_token = Column(String(500), nullable=True)  # ENCRYPTED
+    integration_tiktokshop_shop_id = Column(String(100), nullable=True)
+    integration_tiktokshop_token_expires_at = Column(DateTime, nullable=True)
+    integration_tiktokshop_last_sync = Column(DateTime, nullable=True)
+
     # Relationships
     users = relationship(
         "User",
