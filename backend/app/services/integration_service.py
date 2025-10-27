@@ -720,3 +720,222 @@ class WooCommerceIntegrationService:
         except Exception as e:
             logger.error(f"Erro ao mapear pedido WooCommerce: {str(e)}")
             return None
+
+
+class MagaluIntegrationService:
+    """
+    Serviço de integração com Magazine Luiza (Magalu) para sincronização de pedidos
+    Usa autenticação via Seller ID + API Key
+    """
+
+    def __init__(self, workspace: Workspace, db: Session):
+        self.workspace = workspace
+        self.db = db
+        self.api_base_url = "https://marketplace.magazineluiza.com.br/api/v1"
+
+        if not workspace.integration_magalu_seller_id:
+            raise ValueError("Magalu não está configurado. Configure o Seller ID primeiro.")
+
+        self.seller_id = workspace.integration_magalu_seller_id
+
+        # Descriptografar API key
+        try:
+            encryption = FieldEncryption(key=settings.ENCRYPTION_KEY)
+            self.api_key = encryption.decrypt(workspace.integration_magalu_api_key)
+        except:
+            self.api_key = workspace.integration_magalu_api_key
+
+    async def test_connection(self) -> Dict[str, Any]:
+        """Testa conexão com Magalu"""
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    f"{self.api_base_url}/sellers/{self.seller_id}/profile",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    }
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    return {
+                        'success': True,
+                        'message': 'Conexão com Magalu estabelecida com sucesso',
+                        'seller_name': data.get('name', 'Seller Magalu'),
+                        'seller_id': self.seller_id
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'message': f'Erro ao conectar: {response.status_code}'
+                    }
+
+        except Exception as e:
+            logger.error(f"Erro ao testar conexão Magalu: {str(e)}")
+            return {
+                'success': False,
+                'message': f'Erro ao testar conexão: {str(e)}'
+            }
+
+    async def sync_orders(self, limit: int = 50) -> Dict[str, Any]:
+        """
+        Sincroniza pedidos do Magalu
+
+        Args:
+            limit: Número máximo de pedidos a processar
+
+        Returns:
+            Estatísticas da sincronização
+        """
+        try:
+            # Parâmetros da busca
+            params = {
+                'limit': limit,
+                'status': 'approved,invoiced',  # Apenas pedidos aprovados
+                'sort': 'created_at:desc'
+            }
+
+            # Se houver sincronização anterior, filtrar por data
+            if self.workspace.integration_magalu_last_sync:
+                params['created_after'] = self.workspace.integration_magalu_last_sync.isoformat()
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.api_base_url}/sellers/{self.seller_id}/orders",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    params=params
+                )
+
+                if response.status_code != 200:
+                    raise Exception(f"Erro na API Magalu: {response.status_code}")
+
+                result = response.json()
+                magalu_orders = result.get('orders', [])
+
+            logger.info(f"Encontrados {len(magalu_orders)} pedidos Magalu")
+
+            new_orders_count = 0
+            skipped_orders_count = 0
+            errors = []
+
+            for magalu_order in magalu_orders:
+                try:
+                    # Verificar se pedido já foi importado
+                    order_id = magalu_order.get('id', '')
+                    existing_sale = self.db.query(Sale).filter(
+                        Sale.workspace_id == self.workspace.id,
+                        Sale.notes.contains(f"Magalu #{order_id}")
+                    ).first()
+
+                    if existing_sale:
+                        skipped_orders_count += 1
+                        continue
+
+                    # Mapear pedido para Sale
+                    sale = self._map_order_to_sale(magalu_order)
+
+                    if sale:
+                        self.db.add(sale)
+                        self.db.commit()
+                        new_orders_count += 1
+                        logger.info(f"Pedido Magalu #{order_id} importado com sucesso")
+                    else:
+                        skipped_orders_count += 1
+
+                except Exception as e:
+                    error_msg = f"Erro ao processar pedido #{magalu_order.get('id', 'unknown')}: {str(e)}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+                    self.db.rollback()
+
+            # Atualizar timestamp de última sincronização
+            self.workspace.integration_magalu_last_sync = datetime.utcnow()
+            self.db.commit()
+
+            return {
+                'success': True,
+                'new_orders_imported': new_orders_count,
+                'orders_skipped': skipped_orders_count,
+                'errors': errors
+            }
+
+        except Exception as e:
+            logger.error(f"Erro ao sincronizar pedidos Magalu: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e),
+                'new_orders_imported': 0,
+                'orders_skipped': 0,
+                'errors': [str(e)]
+            }
+
+    def _map_order_to_sale(self, magalu_order: Dict) -> Optional[Sale]:
+        """
+        Mapeia um pedido do Magalu para um objeto Sale
+
+        Args:
+            magalu_order: Dados do pedido Magalu
+
+        Returns:
+            Objeto Sale ou None se não foi possível mapear
+        """
+        try:
+            # Extrair itens do pedido
+            items = magalu_order.get('items', [])
+            if not items:
+                logger.warning(f"Pedido Magalu #{magalu_order.get('id')} sem itens")
+                return None
+
+            first_item = items[0]
+
+            # Tentar encontrar produto por SKU
+            product_sku = first_item.get('sku', '')
+            product = None
+
+            if product_sku:
+                product = self.db.query(Product).filter(
+                    Product.workspace_id == self.workspace.id,
+                    Product.sku == product_sku
+                ).first()
+
+            if not product:
+                logger.warning(f"Produto com SKU '{product_sku}' não encontrado no workspace")
+                return None
+
+            # Extrair dados do cliente
+            customer = magalu_order.get('customer', {})
+            shipping_address = magalu_order.get('shipping_address', {})
+
+            # Criar objeto Sale
+            sale = Sale(
+                workspace_id=self.workspace.id,
+                product_id=product.id,
+                customer_name=customer.get('name', 'Cliente Magalu'),
+                customer_email=customer.get('email'),
+                customer_phone=customer.get('phone'),
+                customer_cpf_cnpj=customer.get('document', '').replace('.', '').replace('-', '').replace('/', ''),
+                customer_cep=shipping_address.get('zip_code', '').replace('-', ''),
+                customer_logradouro=shipping_address.get('street'),
+                customer_numero=shipping_address.get('number'),
+                customer_complemento=shipping_address.get('complement'),
+                customer_bairro=shipping_address.get('neighborhood'),
+                customer_cidade=shipping_address.get('city'),
+                customer_uf=shipping_address.get('state'),
+                quantity=first_item.get('quantity', 1),
+                unit_price=float(first_item.get('price', 0)),
+                total_value=float(magalu_order.get('total_amount', 0)),
+                status='completed',
+                sale_date=datetime.fromisoformat(magalu_order['created_at'].replace('Z', '+00:00')).date(),
+                notes=f"Pedido Magalu #{magalu_order['id']} - Status: {magalu_order.get('status', 'unknown')}",
+                created_at=datetime.fromisoformat(magalu_order['created_at'].replace('Z', '+00:00'))
+            )
+
+            return sale
+
+        except Exception as e:
+            logger.error(f"Erro ao mapear pedido Magalu: {str(e)}")
+            return None

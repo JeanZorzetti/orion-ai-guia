@@ -235,6 +235,69 @@ class IntegrationService {
 
     return this.handleResponse(response);
   }
+
+  // ============================================================================
+  // MAGALU METHODS
+  // ============================================================================
+
+  async saveMagaluConfig(
+    seller_id: string,
+    api_key: string
+  ): Promise<{ success: boolean; message: string; seller_id: string }> {
+    const response = await fetch(`${API_URL}/integrations/magalu/config`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ seller_id, api_key }),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async getMagaluConfig(): Promise<{
+    connected: boolean;
+    seller_id: string | null;
+    last_sync: string | null;
+  }> {
+    const response = await fetch(`${API_URL}/integrations/magalu/config`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async testMagaluConnection(): Promise<{
+    success: boolean;
+    message: string;
+    seller_name?: string;
+    seller_id?: string;
+  }> {
+    const response = await fetch(`${API_URL}/integrations/magalu/test-connection`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async syncMagaluOrders(limit: number = 50): Promise<ShopifySyncResult> {
+    const response = await fetch(`${API_URL}/integrations/magalu/sync-orders`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ limit }),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async deleteMagaluConfig(): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_URL}/integrations/magalu/config`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+
+    return this.handleResponse(response);
+  }
 }
 
 export const integrationService = new IntegrationService();

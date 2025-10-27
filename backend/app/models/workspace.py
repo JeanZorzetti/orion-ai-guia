@@ -73,6 +73,11 @@ class Workspace(Base):
     integration_woocommerce_consumer_secret = Column(String(500), nullable=True)  # ENCRYPTED
     integration_woocommerce_last_sync = Column(DateTime, nullable=True)
 
+    # Integração Magazine Luiza (Magalu)
+    integration_magalu_seller_id = Column(String(100), nullable=True)
+    integration_magalu_api_key = Column(String(500), nullable=True)  # ENCRYPTED
+    integration_magalu_last_sync = Column(DateTime, nullable=True)
+
     # Relationships
     users = relationship(
         "User",

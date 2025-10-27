@@ -12,7 +12,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.workspace import Workspace
-from app.services.integration_service import ShopifyIntegrationService, MercadoLivreIntegrationService, WooCommerceIntegrationService
+from app.services.integration_service import ShopifyIntegrationService, MercadoLivreIntegrationService, WooCommerceIntegrationService, MagaluIntegrationService
 from app.core.encryption import FieldEncryption
 from app.core.config import settings
 import logging
@@ -716,6 +716,180 @@ async def delete_woocommerce_config(
 
     except Exception as e:
         logger.error(f"Erro ao remover WooCommerce: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao remover integração: {str(e)}"
+        )
+
+
+# ============================================================================
+# MAGALU (MAGAZINE LUIZA) INTEGRATION ENDPOINTS
+# ============================================================================
+
+class MagaluConfigRequest(BaseModel):
+    """Schema para configuração de integração Magalu"""
+    seller_id: str = Field(..., description="Seller ID do Magalu Marketplace")
+    api_key: str = Field(..., description="API Key fornecida pelo Magalu")
+
+
+@router.post("/magalu/config")
+async def save_magalu_config(
+    config: MagaluConfigRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Salva configuração de integração com Magalu
+    """
+    workspace = current_user.workspace
+
+    try:
+        encryption = FieldEncryption(key=settings.ENCRYPTION_KEY)
+
+        # Criptografar API key
+        workspace.integration_magalu_seller_id = config.seller_id
+        workspace.integration_magalu_api_key = encryption.encrypt(config.api_key)
+
+        db.commit()
+
+        logger.info(f"Magalu configurado para workspace {workspace.id}")
+
+        return {
+            "success": True,
+            "message": "Integração Magalu configurada com sucesso",
+            "seller_id": workspace.integration_magalu_seller_id
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao configurar Magalu: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao configurar integração: {str(e)}"
+        )
+
+
+@router.get("/magalu/config")
+async def get_magalu_config(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna configuração atual de integração com Magalu
+    """
+    workspace = current_user.workspace
+
+    if not workspace.integration_magalu_seller_id:
+        return {
+            "connected": False,
+            "seller_id": None,
+            "last_sync": None
+        }
+
+    return {
+        "connected": True,
+        "seller_id": workspace.integration_magalu_seller_id,
+        "last_sync": workspace.integration_magalu_last_sync.isoformat() if workspace.integration_magalu_last_sync else None
+    }
+
+
+@router.post("/magalu/test-connection")
+async def test_magalu_connection(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Testa conexão com Magalu
+    """
+    workspace = current_user.workspace
+
+    if not workspace.integration_magalu_seller_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Magalu não está configurado"
+        )
+
+    try:
+        service = MagaluIntegrationService(workspace, db)
+        result = await service.test_connection()
+
+        return result
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Erro ao testar conexão Magalu: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao testar conexão: {str(e)}"
+        )
+
+
+@router.post("/magalu/sync-orders")
+async def sync_magalu_orders(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    limit: int = 50
+):
+    """
+    Sincroniza pedidos do Magalu
+    """
+    workspace = current_user.workspace
+
+    if not workspace.integration_magalu_seller_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Magalu não está configurado"
+        )
+
+    try:
+        service = MagaluIntegrationService(workspace, db)
+        result = await service.sync_orders(limit=limit)
+
+        return result
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Erro ao sincronizar pedidos Magalu: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao sincronizar pedidos: {str(e)}"
+        )
+
+
+@router.delete("/magalu/config")
+async def delete_magalu_config(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Remove a configuração de integração com Magalu
+    """
+    workspace = current_user.workspace
+
+    try:
+        workspace.integration_magalu_seller_id = None
+        workspace.integration_magalu_api_key = None
+        workspace.integration_magalu_last_sync = None
+
+        db.commit()
+
+        logger.info(f"Magalu desconectado do workspace {workspace.id}")
+
+        return {
+            "success": True,
+            "message": "Integração Magalu removida com sucesso"
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao remover Magalu: {str(e)}")
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
