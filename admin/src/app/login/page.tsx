@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,10 +11,20 @@ import { authService } from '@/services/auth';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Pegar URL de redirect dos parâmetros
+    const redirect = searchParams?.get('redirect');
+    if (redirect) {
+      setRedirectUrl(redirect);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,11 +39,16 @@ export default function LoginPage() {
       const user = await authService.getCurrentUser();
       localStorage.setItem('user', JSON.stringify(user));
 
-      // Redirecionar baseado no role
-      if (user.role === 'super_admin') {
-        router.push('/super-admin');
+      // Se há URL de redirect, usar ela
+      if (redirectUrl) {
+        router.push(redirectUrl);
       } else {
-        router.push('/admin/dashboard');
+        // Caso contrário, redirecionar baseado no role
+        if (user.role === 'super_admin') {
+          router.push('/super-admin');
+        } else {
+          router.push('/admin/dashboard');
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login');
