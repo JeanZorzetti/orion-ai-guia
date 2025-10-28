@@ -32,6 +32,7 @@ import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { ChannelFilter } from '@/components/dashboard/ChannelFilter';
 import { InsightCard } from '@/components/dashboard/InsightCard';
 import { generateInsights } from '@/lib/insights-generator';
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { DateRange } from 'react-day-picker';
 
 const Dashboard: React.FC = () => {
@@ -257,14 +258,7 @@ const Dashboard: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Carregando dashboard...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
