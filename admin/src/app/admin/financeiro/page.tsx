@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -16,8 +18,69 @@ import { CashFlowChart } from '@/components/financeiro/CashFlowChart';
 import { AgingChart } from '@/components/financeiro/AgingChart';
 import { DREWaterfallChart } from '@/components/financeiro/DREWaterfallChart';
 import { ExpensesByCategoryChart } from '@/components/financeiro/ExpensesByCategoryChart';
+import { FilterBar, FinancialFilters } from '@/components/financeiro/FilterBar';
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 const FinanceiroPage: React.FC = () => {
+  // Estado dos filtros
+  const [filters, setFilters] = useState<FinancialFilters>({
+    dateRange: {
+      from: startOfMonth(new Date()),
+      to: endOfMonth(new Date()),
+    },
+    category: 'all',
+    status: 'all',
+  });
+
+  const handleFiltersChange = (newFilters: FinancialFilters) => {
+    setFilters(newFilters);
+    // Aqui você pode adicionar lógica para recarregar dados com novos filtros
+    console.log('Filtros atualizados:', newFilters);
+  };
+
+  const handleRefresh = () => {
+    console.log('Atualizando dados...');
+    // Lógica de refresh
+  };
+
+  const handleExport = () => {
+    console.log('Exportando dados...');
+    // Lógica de exportação para CSV ou Excel
+    // Exemplo: Gerar CSV com os dados filtrados
+    const csvData = [
+      ['Data', 'Categoria', 'Descrição', 'Valor', 'Status'],
+      // ... dados filtrados
+    ];
+    console.log('Dados para exportar:', csvData);
+  };
+
+  // Função auxiliar para aplicar filtros aos dados
+  // Em produção, isso seria feito no backend via API
+  const applyFilters = <T extends { date?: Date; category?: string; status?: string }>(
+    data: T[]
+  ): T[] => {
+    return data.filter((item) => {
+      // Filtro de data
+      if (item.date) {
+        if (item.date < filters.dateRange.from || item.date > filters.dateRange.to) {
+          return false;
+        }
+      }
+
+      // Filtro de categoria
+      if (filters.category !== 'all' && item.category !== filters.category) {
+        return false;
+      }
+
+      // Filtro de status
+      if (filters.status !== 'all' && item.status !== filters.status) {
+        return false;
+      }
+
+      return true;
+    });
+  };
+
   // Dados atuais
   const resumoFinanceiro = {
     contasAPagar: 15420.50,
@@ -143,6 +206,14 @@ const FinanceiroPage: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Barra de Filtros - Fase 3 */}
+      <FilterBar
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        onRefresh={handleRefresh}
+        onExport={handleExport}
+      />
 
       {/* Cards de Resumo - Layout Hierárquico */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
