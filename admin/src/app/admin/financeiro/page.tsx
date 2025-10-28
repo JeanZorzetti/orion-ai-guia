@@ -25,6 +25,8 @@ import { FilterBar, FinancialFilters } from '@/components/financeiro/FilterBar';
 import { AlertsPanel } from '@/components/financeiro/AlertsPanel';
 import { FinancialAlertData } from '@/components/financeiro/FinancialAlert';
 import { generateAllFinancialAlerts } from '@/lib/financial-alerts';
+import { InsightsPanel } from '@/components/financeiro/InsightsPanel';
+import { generateFinancialInsights } from '@/lib/financial-insights-ai';
 import { startOfMonth, endOfMonth, addDays, subDays } from 'date-fns';
 
 const FinanceiroPage: React.FC = () => {
@@ -257,6 +259,29 @@ const FinanceiroPage: React.FC = () => {
     setDismissedAlerts((prev) => new Set([...prev, ...dismissableIds]));
   };
 
+  // Gerar insights de IA - Fase 7
+  const insights = useMemo(() => {
+    return generateFinancialInsights({
+      currentBalance: resumoFinanceiro.saldoAtual,
+      monthlyRevenue: 125000,
+      monthlyExpenses: 93000,
+      revenue30Days: 125000,
+      revenue60Days: 118000,
+      revenue90Days: 110000,
+      expenses30Days: 93000,
+      expenses60Days: 88000,
+      expenses90Days: 85000,
+      overduePayments: 3200,
+      overdueReceipts: 8500,
+      categoryExpenses: expensesCategoryData.map((cat) => ({
+        category: cat.category,
+        value: cat.value,
+        percentage: cat.percentage,
+        trend: Math.random() * 30 - 10, // Tendência simulada -10% a +20%
+      })),
+    });
+  }, [resumoFinanceiro.saldoAtual]);
+
   const acoesRapidas = [
     {
       titulo: 'Contas a Pagar',
@@ -475,6 +500,9 @@ const FinanceiroPage: React.FC = () => {
           <ExpensesByCategoryChart data={expensesCategoryData} />
         </div>
       </div>
+
+      {/* Insights de IA - Fase 7 */}
+      <InsightsPanel insights={insights} />
 
       {/* Ações Rápidas */}
       <div>
