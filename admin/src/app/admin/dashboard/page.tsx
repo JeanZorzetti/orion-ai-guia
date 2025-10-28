@@ -26,6 +26,8 @@ import { format, isAfter, isBefore, addDays, startOfDay, subDays, subMonths, sta
 import { ptBR } from 'date-fns/locale';
 import { Sparkline } from '@/components/ui/sparkline';
 import { TrendBadge } from '@/components/ui/trend-badge';
+import { RevenueChart } from '@/components/dashboard/RevenueChart';
+import { SalesByChannelChart } from '@/components/dashboard/SalesByChannelChart';
 
 const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -151,6 +153,46 @@ const Dashboard: React.FC = () => {
   const salesCountTrend = lastMonthSalesCount > 0
     ? ((currentMonthSalesCount - lastMonthSalesCount) / lastMonthSalesCount) * 100
     : 0;
+
+  // Dados para gráfico de receita (últimos 30 dias agrupados por semana)
+  const revenueChartData = Array.from({ length: 4 }, (_, i) => {
+    const weekStart = subDays(today, (3 - i) * 7);
+    const weekEnd = subDays(today, (3 - i) * 7 - 6);
+    const weekSales = completedSales.filter((sale) => {
+      const saleDate = new Date(sale.sale_date);
+      return saleDate >= weekEnd && saleDate <= weekStart;
+    });
+    const weekRevenue = weekSales.reduce((sum, sale) => sum + sale.total_value, 0);
+
+    return {
+      date: `Sem ${4 - i}`,
+      receita: weekRevenue,
+    };
+  });
+
+  // Dados para gráfico de vendas por canal (últimos 6 meses)
+  const salesByChannelData = Array.from({ length: 6 }, (_, i) => {
+    const monthDate = subMonths(today, 5 - i);
+    const monthStart = startOfMonth(monthDate);
+    const monthEnd = endOfMonth(monthDate);
+
+    const monthSales = completedSales.filter((sale) => {
+      const saleDate = new Date(sale.sale_date);
+      return saleDate >= monthStart && saleDate <= monthEnd;
+    });
+
+    // Agrupar vendas por canal
+    const channelTotals: Record<string, number> = {};
+    monthSales.forEach((sale) => {
+      const channel = sale.origin_channel || 'manual';
+      channelTotals[channel] = (channelTotals[channel] || 0) + sale.total_value;
+    });
+
+    return {
+      period: format(monthDate, 'MMM', { locale: ptBR }),
+      ...channelTotals
+    };
+  });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -321,6 +363,41 @@ const Dashboard: React.FC = () => {
                 Ação necessária
               </Badge>
             )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Gráficos Avançados */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Gráfico de Receita */}
+        <Card className="md:col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-green-500" />
+              Receita nas Últimas 4 Semanas
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Evolução semanal da receita
+            </p>
+          </CardHeader>
+          <CardContent>
+            <RevenueChart data={revenueChartData} />
+          </CardContent>
+        </Card>
+
+        {/* Gráfico de Vendas por Canal */}
+        <Card className="md:col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+              Vendas por Canal (6 Meses)
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Distribuição de receita por origem
+            </p>
+          </CardHeader>
+          <CardContent>
+            <SalesByChannelChart data={salesByChannelData} />
           </CardContent>
         </Card>
       </div>
