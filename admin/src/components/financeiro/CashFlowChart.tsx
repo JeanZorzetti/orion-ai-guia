@@ -78,7 +78,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   return null;
 };
 
-export const CashFlowChart: React.FC<CashFlowChartProps> = ({
+const CashFlowChartComponent: React.FC<CashFlowChartProps> = ({
   data,
   className = '',
 }) => {
@@ -186,3 +186,6 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
     </Card>
   );
 };
+
+// Otimização: Memoizar componente para evitar re-renders desnecessários
+export const CashFlowChart = React.memo(CashFlowChartComponent);

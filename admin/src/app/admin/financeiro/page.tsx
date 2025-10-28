@@ -14,10 +14,13 @@ import {
 } from 'lucide-react';
 import { FinancialSparkline } from '@/components/ui/financial-sparkline';
 import { TrendBadge } from '@/components/ui/trend-badge';
-import { CashFlowChart } from '@/components/financeiro/CashFlowChart';
-import { AgingChart } from '@/components/financeiro/AgingChart';
-import { DREWaterfallChart } from '@/components/financeiro/DREWaterfallChart';
-import { ExpensesByCategoryChart } from '@/components/financeiro/ExpensesByCategoryChart';
+// Fase 6: Lazy loading dos gráficos para melhor performance
+import {
+  LazyCashFlowChart as CashFlowChart,
+  LazyAgingChart as AgingChart,
+  LazyDREWaterfallChart as DREWaterfallChart,
+  LazyExpensesByCategoryChart as ExpensesByCategoryChart,
+} from '@/components/financeiro/LazyCharts';
 import { FilterBar, FinancialFilters } from '@/components/financeiro/FilterBar';
 import { AlertsPanel } from '@/components/financeiro/AlertsPanel';
 import { FinancialAlertData } from '@/components/financeiro/FinancialAlert';

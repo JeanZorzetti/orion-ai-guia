@@ -77,7 +77,7 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
   return null;
 };
 
-export const ExpensesByCategoryChart: React.FC<
+const ExpensesByCategoryChartComponent: React.FC<
   ExpensesByCategoryChartProps
 > = ({ data, className = '' }) => {
   const totalExpenses = data.reduce((sum, item) => sum + item.value, 0);
@@ -159,3 +159,6 @@ export const ExpensesByCategoryChart: React.FC<
     </Card>
   );
 };
+
+// Otimização: Memoizar componente para evitar re-renders desnecessários
+export const ExpensesByCategoryChart = React.memo(ExpensesByCategoryChartComponent);

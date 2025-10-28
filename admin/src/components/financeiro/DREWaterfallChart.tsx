@@ -77,7 +77,7 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
   return null;
 };
 
-export const DREWaterfallChart: React.FC<DREWaterfallChartProps> = ({
+const DREWaterfallChartComponent: React.FC<DREWaterfallChartProps> = ({
   data,
   className = '',
 }) => {
@@ -213,3 +213,6 @@ export const DREWaterfallChart: React.FC<DREWaterfallChartProps> = ({
     </Card>
   );
 };
+
+// Otimização: Memoizar componente para evitar re-renders desnecessários
+export const DREWaterfallChart = React.memo(DREWaterfallChartComponent);

@@ -83,7 +83,7 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
   return null;
 };
 
-export const AgingChart: React.FC<AgingChartProps> = ({
+const AgingChartComponent: React.FC<AgingChartProps> = ({
   type,
   data,
   className = '',
@@ -174,3 +174,6 @@ export const AgingChart: React.FC<AgingChartProps> = ({
     </Card>
   );
 };
+
+// Otimização: Memoizar componente para evitar re-renders desnecessários
+export const AgingChart = React.memo(AgingChartComponent);
