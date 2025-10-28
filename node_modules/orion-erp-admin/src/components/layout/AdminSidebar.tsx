@@ -21,6 +21,7 @@ import {
   LayoutDashboard,
   Zap,
   Brain,
+  CreditCard,
   type LucideIcon
 } from 'lucide-react';
 import { User } from '@/types';
@@ -80,6 +81,11 @@ const navigation = [
             name: 'Análise de Risco',
             href: '/admin/financeiro/contas-a-receber/analise-risco',
             icon: Brain,
+          },
+          {
+            name: 'Meios de Pagamento',
+            href: '/admin/financeiro/contas-a-receber/pagamentos',
+            icon: CreditCard,
           },
         ],
       },
