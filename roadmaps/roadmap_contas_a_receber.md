@@ -1704,7 +1704,7 @@ export class WebhookController {
 
 **Status:** ✅ **CONCLUÍDA**
 **Data:** 28/10/2025
-**Commit:** [Em andamento]
+**Commit:** `93ef5e7f`
 
 **Objetivo:** Criar portal para clientes consultarem títulos e realizarem pagamentos.
 

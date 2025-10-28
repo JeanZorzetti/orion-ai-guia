@@ -61,6 +61,18 @@ const navigation = [
         name: 'Contas a Pagar',
         href: '/admin/financeiro/contas-a-pagar',
         icon: FileText,
+        children: [
+          {
+            name: 'Dashboard',
+            href: '/admin/financeiro/contas-a-pagar/dashboard',
+            icon: LayoutDashboard,
+          },
+          {
+            name: 'Faturas',
+            href: '/admin/financeiro/contas-a-pagar',
+            icon: FileText,
+          },
+        ],
       },
       {
         name: 'Contas a Receber',
