@@ -20,6 +20,7 @@ import {
   FileBarChart,
   LayoutDashboard,
   Zap,
+  Brain,
   type LucideIcon
 } from 'lucide-react';
 import { User } from '@/types';
@@ -74,6 +75,11 @@ const navigation = [
             name: 'Automação',
             href: '/admin/financeiro/contas-a-receber/automacao',
             icon: Zap,
+          },
+          {
+            name: 'Análise de Risco',
+            href: '/admin/financeiro/contas-a-receber/analise-risco',
+            icon: Brain,
           },
         ],
       },
