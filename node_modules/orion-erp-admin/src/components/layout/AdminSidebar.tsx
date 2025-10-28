@@ -14,7 +14,10 @@ import {
   LogOut,
   ShoppingCart,
   Truck,
-  Plug
+  Plug,
+  TrendingUp,
+  Calendar,
+  FileBarChart
 } from 'lucide-react';
 import { User } from '@/types';
 import { authService } from '@/services/auth';
@@ -45,6 +48,21 @@ const navigation = [
         name: 'Contas a Pagar',
         href: '/admin/financeiro/contas-a-pagar',
         icon: FileText,
+      },
+      {
+        name: 'Contas a Receber',
+        href: '/admin/financeiro/contas-a-receber',
+        icon: TrendingUp,
+      },
+      {
+        name: 'Fluxo de Caixa',
+        href: '/admin/financeiro/fluxo-caixa',
+        icon: Calendar,
+      },
+      {
+        name: 'Relatórios',
+        href: '/admin/financeiro/relatorios',
+        icon: FileBarChart,
       },
       {
         name: 'Fornecedores',
