@@ -149,6 +149,7 @@ const AdminSidebar: React.FC = () => {
                   key={item.name}
                   icon={item.icon}
                   label={item.name}
+                  href={item.href}
                   items={item.children.map((child) => ({
                     label: child.name,
                     href: child.href,
@@ -179,6 +180,7 @@ const AdminSidebar: React.FC = () => {
                   key={item.name}
                   icon={item.icon}
                   label={item.name}
+                  href={item.href}
                   items={item.children.map((child) => ({
                     label: child.name,
                     href: child.href,

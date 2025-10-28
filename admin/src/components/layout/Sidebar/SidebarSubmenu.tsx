@@ -28,6 +28,7 @@ export interface SubmenuItem {
 interface SidebarSubmenuProps {
   icon: LucideIcon;
   label: string;
+  href?: string; // URL da página pai (opcional)
   items: SubmenuItem[];
   className?: string;
 }
@@ -35,6 +36,7 @@ interface SidebarSubmenuProps {
 export const SidebarSubmenu: React.FC<SidebarSubmenuProps> = ({
   icon: Icon,
   label,
+  href,
   items,
   className,
 }) => {
@@ -60,30 +62,77 @@ export const SidebarSubmenu: React.FC<SidebarSubmenuProps> = ({
     }
   }, [isCollapsed]);
 
-  const trigger = (
+  // Área clicável para navegação (quando href existe)
+  const navigationContent = (
+    <>
+      <Icon className={cn('h-5 w-5 flex-shrink-0', isCollapsed && 'h-6 w-6')} />
+      {!isCollapsed && (
+        <span className="flex-1 truncate text-left text-sm font-medium">
+          {label}
+        </span>
+      )}
+    </>
+  );
+
+  // Botão de toggle separado (apenas quando não colapsado)
+  const toggleButton = !isCollapsed && (
+    <CollapsibleTrigger asChild>
+      <button
+        className={cn(
+          'flex items-center justify-center h-9 w-9 rounded-md transition-colors',
+          'hover:bg-accent/50',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {isOpen ? (
+          <ChevronDown className="h-4 w-4 transition-transform" />
+        ) : (
+          <ChevronRight className="h-4 w-4 transition-transform" />
+        )}
+      </button>
+    </CollapsibleTrigger>
+  );
+
+  const trigger = href ? (
+    // Com href: Link para navegação + botão separado para toggle
+    <div className="relative">
+      <Link
+        href={href}
+        className={cn(
+          'flex items-center gap-3 rounded-lg px-3 py-2.5 pr-10 transition-all',
+          'hover:bg-accent hover:text-accent-foreground',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          pathname === href && 'bg-primary text-primary-foreground hover:bg-primary/90',
+          !pathname?.includes(href) && hasActiveChild && 'bg-accent text-accent-foreground',
+          isCollapsed && 'justify-center px-2 pr-2'
+        )}
+      >
+        {navigationContent}
+      </Link>
+      {!isCollapsed && (
+        <div className="absolute right-1 top-1/2 -translate-y-1/2">
+          {toggleButton}
+        </div>
+      )}
+    </div>
+  ) : (
+    // Sem href: apenas trigger do collapsible (comportamento original)
     <CollapsibleTrigger
       className={cn(
         'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 transition-all',
         'hover:bg-accent hover:text-accent-foreground',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         hasActiveChild && 'bg-accent text-accent-foreground',
-        isCollapsed && 'justify-center px-2',
-        className
+        isCollapsed && 'justify-center px-2'
       )}
     >
-      <Icon className={cn('h-5 w-5 flex-shrink-0', isCollapsed && 'h-6 w-6')} />
-      {!isCollapsed && (
-        <>
-          <span className="flex-1 truncate text-left text-sm font-medium">
-            {label}
-          </span>
-          {isOpen ? (
-            <ChevronDown className="h-4 w-4 transition-transform" />
-          ) : (
-            <ChevronRight className="h-4 w-4 transition-transform" />
-          )}
-        </>
-      )}
+      {navigationContent}
+      {!isCollapsed && (isOpen ? (
+        <ChevronDown className="h-4 w-4 transition-transform" />
+      ) : (
+        <ChevronRight className="h-4 w-4 transition-transform" />
+      ))}
     </CollapsibleTrigger>
   );
 
