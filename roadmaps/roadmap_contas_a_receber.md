@@ -30,7 +30,7 @@ Este roadmap define as melhorias para transformar o módulo de Contas a Receber 
 
 **Status:** ✅ **CONCLUÍDA**
 **Data:** 28/10/2025
-**Commit:** `[próximo commit]`
+**Commit:** `b2408cb2`
 
 **Objetivo:** Transformar a visualização básica em um dashboard analítico completo com métricas essenciais.
 
@@ -303,9 +303,35 @@ npm install recharts
 
 ---
 
-## Fase 2: Automação e Workflows de Cobrança 🤖
+## Fase 2: Automação e Workflows de Cobrança 🤖 ✅
+
+**Status:** ✅ **CONCLUÍDA**
+**Data:** 28/10/2025
+**Commit:** `[próximo commit]`
 
 **Objetivo:** Automatizar processos de cobrança, comunicação com clientes e follow-ups.
+
+**Implementado:**
+- ✅ Componente `AutomatedReminders` - Sistema completo de regras automáticas
+- ✅ Componente `CommunicationTemplates` - Templates para Email, WhatsApp e SMS
+- ✅ Componente `CommunicationHistory` - Histórico completo de interações
+- ✅ Componente `QuickPaymentDialog` - Dialog melhorado de registro de pagamento
+- ✅ Hook `useCommunicationHistory` e `useCommunicationStats`
+- ✅ Página dedicada de Automação (/contas-a-receber/automacao)
+- ✅ Navegação atualizada com submenu (Dashboard / Automação)
+
+**Arquivos criados:**
+- `admin/src/components/financeiro/contas-a-receber/AutomatedReminders.tsx`
+- `admin/src/components/financeiro/contas-a-receber/CommunicationTemplates.tsx`
+- `admin/src/components/financeiro/contas-a-receber/CommunicationHistory.tsx`
+- `admin/src/components/financeiro/contas-a-receber/QuickPaymentDialog.tsx`
+- `admin/src/hooks/useCommunicationHistory.ts`
+- `admin/src/app/admin/financeiro/contas-a-receber/automacao/page.tsx`
+
+**Arquivos modificados:**
+- `admin/src/components/layout/AdminSidebar.tsx`
+
+---
 
 ### 2.1 Sistema de Lembretes Automáticos
 

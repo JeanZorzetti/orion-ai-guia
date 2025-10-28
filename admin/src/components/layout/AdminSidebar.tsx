@@ -17,7 +17,9 @@ import {
   Plug,
   TrendingUp,
   Calendar,
-  FileBarChart
+  FileBarChart,
+  LayoutDashboard,
+  Zap
 } from 'lucide-react';
 import { User } from '@/types';
 import { authService } from '@/services/auth';
@@ -53,6 +55,18 @@ const navigation = [
         name: 'Contas a Receber',
         href: '/admin/financeiro/contas-a-receber',
         icon: TrendingUp,
+        children: [
+          {
+            name: 'Dashboard',
+            href: '/admin/financeiro/contas-a-receber',
+            icon: LayoutDashboard,
+          },
+          {
+            name: 'Automação',
+            href: '/admin/financeiro/contas-a-receber/automacao',
+            icon: Zap,
+          },
+        ],
       },
       {
         name: 'Fluxo de Caixa',
