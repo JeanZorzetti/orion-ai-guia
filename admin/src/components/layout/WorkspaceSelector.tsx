@@ -138,10 +138,16 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
             variant="ghost"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between px-3 h-auto py-2 hover:bg-accent"
+            className={cn(
+              'group w-full justify-between px-3 h-auto py-2',
+              'transition-all duration-200 ease-in-out',
+              'hover:bg-accent hover:scale-[1.02]',
+              'active:scale-[0.98]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2'
+            )}
           >
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <Avatar className="h-9 w-9 flex-shrink-0">
+              <Avatar className="h-9 w-9 flex-shrink-0 transition-transform duration-200 group-hover:scale-110">
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                   {currentWorkspace.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
@@ -158,7 +164,7 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
                 </Badge>
               </div>
             </div>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 group-hover:opacity-100" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[280px] p-0" align="start">
@@ -174,10 +180,14 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
                     key={workspace.id}
                     value={workspace.id.toString()}
                     onSelect={handleSelectWorkspace}
-                    className="cursor-pointer"
+                    className={cn(
+                      'group cursor-pointer',
+                      'transition-all duration-200 ease-in-out',
+                      'hover:scale-[1.02] active:scale-[0.98]'
+                    )}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <Avatar className="h-8 w-8 flex-shrink-0">
+                      <Avatar className="h-8 w-8 flex-shrink-0 transition-transform duration-200 group-hover:scale-110">
                         <AvatarFallback className="text-xs font-semibold">
                           {workspace.name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
@@ -196,10 +206,10 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
                     </div>
                     <Check
                       className={cn(
-                        'ml-2 h-4 w-4 flex-shrink-0',
+                        'ml-2 h-4 w-4 flex-shrink-0 transition-all duration-200',
                         currentWorkspace.id === workspace.id
-                          ? 'opacity-100'
-                          : 'opacity-0'
+                          ? 'opacity-100 scale-110'
+                          : 'opacity-0 scale-0'
                       )}
                     />
                   </CommandItem>
@@ -207,14 +217,18 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
               </CommandGroup>
               <CommandGroup>
                 <CommandItem
-                  className="text-primary cursor-pointer"
+                  className={cn(
+                    'group text-primary cursor-pointer',
+                    'transition-all duration-200 ease-in-out',
+                    'hover:scale-[1.02] active:scale-[0.98]'
+                  )}
                   onSelect={() => {
                     setOpen(false);
                     // TODO: Implementar criação de workspace
                     console.log('Create new workspace');
                   }}
                 >
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="mr-2 h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
                   <span>Criar novo workspace</span>
                 </CommandItem>
               </CommandGroup>

@@ -72,7 +72,9 @@
       "Bash(\"C:\\Users\\jeanz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" -m alembic revision --autogenerate -m \"add_fiscal_fields_to_workspace_product_sale_and_create_fiscal_audit_log\")",
       "Bash(\"C:\\Users\\jeanz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" -m pip install httpx==0.25.2 cryptography==41.0.7)",
       "Bash(chmod:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(timeout 120 npm run build)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

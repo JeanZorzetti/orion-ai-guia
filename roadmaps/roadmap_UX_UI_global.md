@@ -73,7 +73,7 @@ Este roadmap visa transformar a experiência global do usuário no Orion ERP atr
 
 **Objetivo:** Refatorar header com navegação hierárquica e branding
 
-**Status:** ✅ Implementada (commit `[próximo]`)
+**Status:** ✅ Implementada (commit `9a817be6`)
 
 - ✅ Breadcrumbs component com geração automática de rotas
 - ✅ UserMenu component com avatar, dropdown e logout
@@ -88,7 +88,7 @@ Este roadmap visa transformar a experiência global do usuário no Orion ERP atr
 
 **Objetivo:** Melhorar UX do seletor de workspace multi-tenant
 
-**Status:** ✅ Implementada (commit `[próximo]`)
+**Status:** ✅ Implementada (commit `c20ffea0`)
 
 - ✅ WorkspaceSelector component com dropdown
 - ✅ Avatar com iniciais do workspace
@@ -100,9 +100,20 @@ Este roadmap visa transformar a experiência global do usuário no Orion ERP atr
 - ✅ Lógica de troca com reload
 - ✅ Integrado no AdminSidebar com Separator
 
-### **FASE 4: Estados Visuais e Interações** 🎯 **PRÓXIMA**
+### **FASE 4: Estados Visuais e Interações** ✅ **CONCLUÍDA**
 
 **Objetivo:** Implementar hover, active, focus states consistentes
+
+**Status:** ✅ Implementada (commit `[próximo]`)
+
+- ✅ SidebarItem: hover scale (1.02), active scale (0.98), focus ring, left border indicator
+- ✅ SidebarSubmenu: todos os estados (trigger, items, tooltip), icon animations
+- ✅ WorkspaceSelector: hover/active states, avatar/icon animations
+- ✅ Transitions consistentes: 200ms ease-in-out
+- ✅ Micro-interações: icon scale (1.10) on hover
+- ✅ Acessibilidade: aria-current, focus-visible rings
+- ✅ Badge hover states
+- ✅ Active indicators (before pseudo-elements)
 
 ### **FASE 5: Global Search e Quick Actions**
 
