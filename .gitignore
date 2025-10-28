@@ -6,3 +6,8 @@ backend/python-installer.exe
 backend/simple_test.py
 backend/test_invoice.txt
 node_modules/
+
+# Python virtual environment at root (venv)
+Lib/
+Scripts/
+pyvenv.cfg
