@@ -17,6 +17,7 @@ import { ARCharts } from '@/components/financeiro/contas-a-receber/ARCharts';
 import { AdvancedFilters } from '@/components/financeiro/contas-a-receber/AdvancedFilters';
 import { SavedViews, type SavedView } from '@/components/financeiro/contas-a-receber/SavedViews';
 import { ExportDialog, type ExportOptions } from '@/components/financeiro/contas-a-receber/ExportDialog';
+import { GeneratePortalAccessDialog } from '@/components/financeiro/contas-a-receber/GeneratePortalAccessDialog';
 import { useARFilters, type ContaReceber } from '@/hooks/useARFilters';
 import { addDays } from 'date-fns';
 
@@ -405,6 +406,11 @@ const ContasAReceberPage: React.FC = () => {
                       </td>
                       <td className="p-3">
                         <div className="flex items-center justify-center gap-2">
+                          <GeneratePortalAccessDialog
+                            clienteId={conta.clienteId}
+                            clienteNome={conta.clienteNome}
+                            clienteEmail={`contato@${conta.clienteNome.toLowerCase().replace(/\s+/g, '')}.com.br`}
+                          />
                           <Button variant="outline" size="sm">
                             Ver Detalhes
                           </Button>

@@ -1405,9 +1405,36 @@ export const ExportDialog: React.FC = () => {
 
 ---
 
-## Fase 5: Integração com Meios de Pagamento 💳
+## Fase 5: Integração com Meios de Pagamento 💳 ✅
+
+**Status:** ✅ **CONCLUÍDA**
+**Data:** 28/10/2025
+**Commit:** `41d88106`
 
 **Objetivo:** Integrar com plataformas de pagamento para automatizar recebimentos.
+
+**Implementado:**
+- ✅ Hook `usePixCharge` - Geração e gerenciamento de cobranças PIX
+- ✅ Hook `useBoleto` - Geração e gerenciamento de boletos bancários
+- ✅ Componente `PixIntegration` - Interface completa de PIX com QR Code
+- ✅ Componente `BoletoIntegration` - Interface completa de boleto com configurações
+- ✅ Página `/pagamentos` - Interface unificada com tabs para PIX e Boleto
+- ✅ Auto-refresh de status (PIX: 10s, Boleto: 30s)
+- ✅ Copy-to-clipboard para códigos de pagamento
+- ✅ Envio simulado de emails com meios de pagamento
+- ✅ Atualização do menu lateral com "Meios de Pagamento"
+
+**Arquivos criados:**
+- `admin/src/hooks/usePixCharge.ts`
+- `admin/src/hooks/useBoleto.ts`
+- `admin/src/components/financeiro/contas-a-receber/PixIntegration.tsx`
+- `admin/src/components/financeiro/contas-a-receber/BoletoIntegration.tsx`
+- `admin/src/app/admin/financeiro/contas-a-receber/pagamentos/page.tsx`
+
+**Arquivos modificados:**
+- `admin/src/components/layout/AdminSidebar.tsx`
+
+---
 
 ### 5.1 Integração com PIX
 
@@ -1673,9 +1700,41 @@ export class WebhookController {
 
 ---
 
-## Fase 6: Portal do Cliente (Self-Service) 🌐
+## Fase 6: Portal do Cliente (Self-Service) 🌐 ✅
+
+**Status:** ✅ **CONCLUÍDA**
+**Data:** 28/10/2025
+**Commit:** [Em andamento]
 
 **Objetivo:** Criar portal para clientes consultarem títulos e realizarem pagamentos.
+
+**Implementado:**
+- ✅ Hook `useCustomerPortal` - Carregamento e validação de dados do portal
+- ✅ Hook `useGeneratePortalToken` - Geração de tokens de acesso seguros
+- ✅ Página `/portal/cliente/[token]` - Portal público do cliente
+- ✅ Componente `GeneratePortalAccessDialog` - Dialog para geração de acesso
+- ✅ Resumo financeiro com 4 cards (Total em Aberto, Vencido, Vencidos, Próximo Vencimento)
+- ✅ Tabela completa de títulos do cliente
+- ✅ Dropdown de ações por título (Ver Detalhes, Gerar PIX, Gerar Boleto, Baixar NF)
+- ✅ Sistema de tokens com validade de 7 dias
+- ✅ Envio simulado de email com link de acesso
+- ✅ Copy-to-clipboard para link do portal
+- ✅ Integração no contas a receber (botão "Gerar Acesso Portal")
+- ✅ Mock data com 2 tokens demo
+
+**Arquivos criados:**
+- `admin/src/hooks/useCustomerPortal.ts`
+- `admin/src/app/portal/cliente/[token]/page.tsx`
+- `admin/src/components/financeiro/contas-a-receber/GeneratePortalAccessDialog.tsx`
+
+**Arquivos modificados:**
+- `admin/src/app/admin/financeiro/contas-a-receber/page.tsx`
+
+**Tokens de demonstração:**
+- `demo-token-abc123` - Empresa ABC Ltda (3 títulos)
+- `demo-token-xyz456` - Comercial XYZ S.A. (2 títulos)
+
+---
 
 ### 6.1 Portal de Consulta
 
