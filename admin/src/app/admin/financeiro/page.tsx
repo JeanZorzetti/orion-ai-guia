@@ -1,7 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import {
   DollarSign,
   TrendingUp,
@@ -13,6 +12,10 @@ import {
 } from 'lucide-react';
 import { FinancialSparkline } from '@/components/ui/financial-sparkline';
 import { TrendBadge } from '@/components/ui/trend-badge';
+import { CashFlowChart } from '@/components/financeiro/CashFlowChart';
+import { AgingChart } from '@/components/financeiro/AgingChart';
+import { DREWaterfallChart } from '@/components/financeiro/DREWaterfallChart';
+import { ExpensesByCategoryChart } from '@/components/financeiro/ExpensesByCategoryChart';
 
 const FinanceiroPage: React.FC = () => {
   // Dados atuais
@@ -37,6 +40,63 @@ const FinanceiroPage: React.FC = () => {
     contasAReceber: +1.9, // +1.9% vs mês anterior
     resultado: +8.5, // +8.5% vs mês anterior
   };
+
+  // Dados para Fluxo de Caixa (12 semanas)
+  const cashFlowData = [
+    { week: 'Sem 1', entrada: 15000, saida: 12000, saldo: 48280, projecao: false },
+    { week: 'Sem 2', entrada: 18000, saida: 14000, saldo: 52280, projecao: false },
+    { week: 'Sem 3', entrada: 16000, saida: 15000, saldo: 53280, projecao: false },
+    { week: 'Sem 4', entrada: 20000, saida: 13000, saldo: 60280, projecao: false },
+    { week: 'Sem 5', entrada: 17000, saida: 16000, saldo: 61280, projecao: true },
+    { week: 'Sem 6', entrada: 19000, saida: 14500, saldo: 65780, projecao: true },
+    { week: 'Sem 7', entrada: 21000, saida: 15000, saldo: 71780, projecao: true },
+    { week: 'Sem 8', entrada: 18000, saida: 16000, saldo: 73780, projecao: true },
+    { week: 'Sem 9', entrada: 22000, saida: 14000, saldo: 81780, projecao: true },
+    { week: 'Sem 10', entrada: 20000, saida: 15500, saldo: 86280, projecao: true },
+    { week: 'Sem 11', entrada: 19000, saida: 17000, saldo: 88280, projecao: true },
+    { week: 'Sem 12', entrada: 23000, saida: 16000, saldo: 95280, projecao: true },
+  ];
+
+  // Dados para Aging de Recebíveis
+  const agingReceivableData = [
+    { range: '0-30 dias (Atual)', value: 15200, count: 8 },
+    { range: '31-60 dias', value: 8500, count: 4 },
+    { range: '61-90 dias', value: 3200, count: 2 },
+    { range: '90+ dias (Vencido)', value: 1450, count: 1 },
+  ];
+
+  // Dados para Aging de Pagáveis
+  const agingPayableData = [
+    { range: '0-30 dias (Atual)', value: 9200, count: 5 },
+    { range: '31-60 dias', value: 4500, count: 3 },
+    { range: '61-90 dias', value: 1200, count: 1 },
+    { range: '90+ dias (Vencido)', value: 520, count: 1 },
+  ];
+
+  // Dados para DRE (Waterfall)
+  const dreData = [
+    { category: 'Receita Bruta', value: 125000, isTotal: false },
+    { category: 'Deduções', value: -8000, isTotal: false },
+    { category: 'Receita Líquida', value: 117000, isTotal: true },
+    { category: 'CMV', value: -45000, isTotal: false },
+    { category: 'Lucro Bruto', value: 72000, isTotal: true },
+    { category: 'Despesas Op.', value: -32000, isTotal: false },
+    { category: 'EBITDA', value: 40000, isTotal: true },
+    { category: 'Deprec./Amort.', value: -3000, isTotal: false },
+    { category: 'Juros', value: -2000, isTotal: false },
+    { category: 'IR/CSLL', value: -7000, isTotal: false },
+    { category: 'Lucro Líquido', value: 28000, isTotal: true },
+  ];
+
+  // Dados para Despesas por Categoria
+  const expensesCategoryData = [
+    { category: 'Fornecedores', value: 18500, percentage: 42.5 },
+    { category: 'Pessoal', value: 12000, percentage: 27.6 },
+    { category: 'Impostos', value: 7800, percentage: 17.9 },
+    { category: 'Aluguel', value: 3200, percentage: 7.4 },
+    { category: 'Marketing', value: 1500, percentage: 3.4 },
+    { category: 'Outros', value: 500, percentage: 1.2 },
+  ];
 
   const acoesRapidas = [
     {
@@ -216,6 +276,26 @@ const FinanceiroPage: React.FC = () => {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Gráficos Financeiros - Fase 2 */}
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold">Análises Financeiras</h2>
+
+        {/* Fluxo de Caixa - Full Width */}
+        <CashFlowChart data={cashFlowData} />
+
+        {/* Aging Reports - Grid 2 Columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AgingChart type="receivable" data={agingReceivableData} />
+          <AgingChart type="payable" data={agingPayableData} />
+        </div>
+
+        {/* DRE e Despesas - Grid 2 Columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DREWaterfallChart data={dreData} />
+          <ExpensesByCategoryChart data={expensesCategoryData} />
+        </div>
       </div>
 
       {/* Ações Rápidas */}
