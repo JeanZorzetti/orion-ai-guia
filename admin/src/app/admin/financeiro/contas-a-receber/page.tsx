@@ -8,12 +8,13 @@ import {
   Search,
   Plus,
   Filter,
-  Calendar,
-  DollarSign,
   CheckCircle,
   Clock,
   AlertCircle
 } from 'lucide-react';
+import { ARDashboardKPIs } from '@/components/financeiro/contas-a-receber/ARDashboardKPIs';
+import { AgingReportTable } from '@/components/financeiro/contas-a-receber/AgingReportTable';
+import { ARCharts } from '@/components/financeiro/contas-a-receber/ARCharts';
 
 const ContasAReceberPage: React.FC = () => {
   const contas = [
@@ -59,13 +60,6 @@ const ContasAReceberPage: React.FC = () => {
     },
   ];
 
-  const resumo = {
-    totalAReceber: contas.filter(c => c.status === 'pendente').reduce((sum, c) => sum + c.valor, 0),
-    vencidosTotal: contas.filter(c => c.status === 'vencido').reduce((sum, c) => sum + c.valor, 0),
-    recebidoMes: contas.filter(c => c.status === 'recebido').reduce((sum, c) => sum + c.valor, 0),
-    qtdPendentes: contas.filter(c => c.status === 'pendente').length,
-  };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pendente':
@@ -110,68 +104,14 @@ const ContasAReceberPage: React.FC = () => {
         </Button>
       </div>
 
-      {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total a Receber</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              R$ {resumo.totalAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {resumo.qtdPendentes} contas pendentes
-            </p>
-          </CardContent>
-        </Card>
+      {/* Dashboard de KPIs Avançados */}
+      <ARDashboardKPIs />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vencidos</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              R$ {resumo.vencidosTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Requer atenção
-            </p>
-          </CardContent>
-        </Card>
+      {/* Gráficos de Análise */}
+      <ARCharts />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recebido este Mês</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              R$ {resumo.recebidoMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Janeiro 2024
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Próximos 30 dias</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              R$ {resumo.totalAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Previsão de recebimentos
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Relatório de Aging */}
+      <AgingReportTable />
 
       {/* Filtros e Busca */}
       <Card>
