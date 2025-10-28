@@ -30,6 +30,8 @@ import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { SalesByChannelChart } from '@/components/dashboard/SalesByChannelChart';
 import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { ChannelFilter } from '@/components/dashboard/ChannelFilter';
+import { InsightCard } from '@/components/dashboard/InsightCard';
+import { generateInsights } from '@/lib/insights-generator';
 import { DateRange } from 'react-day-picker';
 
 const Dashboard: React.FC = () => {
@@ -229,6 +231,14 @@ const Dashboard: React.FC = () => {
       period: format(monthDate, 'MMM', { locale: ptBR }),
       ...channelTotals
     };
+  });
+
+  // Gerar insights AI
+  const insights = generateInsights({
+    sales,
+    invoices,
+    products,
+    dateRange
   });
 
   const formatCurrency = (value: number) => {
@@ -485,6 +495,9 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Insights */}
+      <InsightCard insights={insights} maxDisplay={5} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card 1: Ações Rápidas */}
