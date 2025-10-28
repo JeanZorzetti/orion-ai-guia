@@ -28,12 +28,22 @@ import { Sparkline } from '@/components/ui/sparkline';
 import { TrendBadge } from '@/components/ui/trend-badge';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { SalesByChannelChart } from '@/components/dashboard/SalesByChannelChart';
+import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
+import { ChannelFilter } from '@/components/dashboard/ChannelFilter';
+import { DateRange } from 'react-day-picker';
 
 const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+
+  // Filter states
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 29),
+    to: new Date()
+  });
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -86,8 +96,35 @@ const Dashboard: React.FC = () => {
     .filter((prod) => prod.active)
     .reduce((sum, prod) => sum + prod.stock_quantity * prod.sale_price, 0);
 
-  // Estatísticas de Vendas
-  const completedSales = sales.filter((sale) => sale.status === 'completed');
+  // Estatísticas de Vendas - com filtros aplicados
+  let filteredSales = sales.filter((sale) => sale.status === 'completed');
+
+  // Aplicar filtro de data
+  if (dateRange?.from || dateRange?.to) {
+    filteredSales = filteredSales.filter((sale) => {
+      const saleDate = new Date(sale.sale_date);
+      if (dateRange.from && dateRange.to) {
+        return saleDate >= dateRange.from && saleDate <= dateRange.to;
+      }
+      if (dateRange.from) {
+        return saleDate >= dateRange.from;
+      }
+      if (dateRange.to) {
+        return saleDate <= dateRange.to;
+      }
+      return true;
+    });
+  }
+
+  // Aplicar filtro de canal
+  if (selectedChannels.length > 0) {
+    filteredSales = filteredSales.filter((sale) => {
+      const channel = sale.origin_channel || 'manual';
+      return selectedChannels.includes(channel);
+    });
+  }
+
+  const completedSales = filteredSales;
   const totalRevenue = completedSales.reduce((sum, sale) => sum + sale.total_value, 0);
   const averageTicket = completedSales.length > 0 ? totalRevenue / completedSales.length : 0;
 
@@ -226,6 +263,53 @@ const Dashboard: React.FC = () => {
         <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground">Visão geral do seu negócio</p>
       </div>
+
+      {/* Filtros */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">
+                Período
+              </label>
+              <DateRangePicker
+                value={dateRange}
+                onChange={setDateRange}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">
+                Canais de Venda
+              </label>
+              <ChannelFilter
+                selected={selectedChannels}
+                onChange={setSelectedChannels}
+              />
+            </div>
+          </div>
+          {(dateRange || selectedChannels.length > 0) && (
+            <div className="mt-4 flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                Filtros ativos: {[
+                  dateRange && 'Período',
+                  selectedChannels.length > 0 && `${selectedChannels.length} canal(is)`
+                ].filter(Boolean).join(', ')}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  setDateRange({ from: subDays(new Date(), 29), to: new Date() });
+                  setSelectedChannels([]);
+                }}
+              >
+                Limpar filtros
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Cards de Estatísticas Principais - Layout Hierárquico */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

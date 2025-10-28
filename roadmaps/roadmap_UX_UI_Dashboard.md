@@ -613,7 +613,7 @@ const YearOverYearChart = ({ currentYear, lastYear }) => (
 
 ## 🎛️ Fase 3: Filtros e Interatividade (Prioridade: MÉDIA)
 
-### Status: ⏳ Planejado
+### Status: 🚧 Em Progresso (2025-10-27)
 
 ### Objetivo
 Permitir que usuários customizem a visualização de dados.
