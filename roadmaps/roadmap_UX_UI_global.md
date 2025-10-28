@@ -56,25 +56,52 @@ Este roadmap visa transformar a experiência global do usuário no Orion ERP atr
 
 ## 📐 Arquitetura das Fases
 
-### **FASE 1: Sidebar Colapsável com Modo Mini** 🎯 ALTA PRIORIDADE
+### **FASE 1: Sidebar Colapsável com Modo Mini** ✅ **CONCLUÍDA**
+
 **Objetivo:** Implementar sidebar responsiva com toggle e modo icon-only
 
-### **FASE 2: Header Modernizado com Breadcrumbs**
+**Status:** ✅ Implementada (commits `7d57748c` e `69d6fa53`)
+
+- ✅ SidebarContext com localStorage
+- ✅ Componentes modulares (Sidebar, SidebarItem, SidebarSubmenu, SidebarToggle)
+- ✅ Estados: 280px (expandido) → 72px (colapsado)
+- ✅ Tooltips no modo colapsado
+- ✅ Navegação separada de toggle (fix)
+- ✅ Auto-expansão de submenus ativos
+
+### **FASE 2: Header Modernizado com Breadcrumbs** ✅ **CONCLUÍDA**
+
 **Objetivo:** Refatorar header com navegação hierárquica e branding
 
-### **FASE 3: Workspace Selector Aprimorado**
+**Status:** ✅ Implementada (commit `[próximo]`)
+
+- ✅ Breadcrumbs component com geração automática de rotas
+- ✅ UserMenu component com avatar, dropdown e logout
+- ✅ AdminHeader refatorado com novo layout
+- ✅ Logo clicável para dashboard
+- ✅ Global Search com placeholder "Buscar... (Ctrl+K)"
+- ✅ Quick Actions (Notificações com badge, Help)
+- ✅ Header sticky (z-40)
+- ✅ Layout: Logo | Breadcrumbs | Search | Actions | User
+
+### **FASE 3: Workspace Selector Aprimorado** 🎯 **PRÓXIMA**
+
 **Objetivo:** Melhorar UX do seletor de workspace multi-tenant
 
 ### **FASE 4: Estados Visuais e Interações**
+
 **Objetivo:** Implementar hover, active, focus states consistentes
 
 ### **FASE 5: Global Search e Quick Actions**
+
 **Objetivo:** Adicionar busca global e ações rápidas
 
 ### **FASE 6: Responsividade Mobile**
+
 **Objetivo:** Adaptar sidebar e header para mobile
 
 ### **FASE 7: Tema e Personalização**
+
 **Objetivo:** Dark mode nativo e preferências do usuário
 
 ---
