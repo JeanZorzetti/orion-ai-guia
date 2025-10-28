@@ -104,7 +104,7 @@ Este roadmap visa transformar a experiência global do usuário no Orion ERP atr
 
 **Objetivo:** Implementar hover, active, focus states consistentes
 
-**Status:** ✅ Implementada (commit `[próximo]`)
+**Status:** ✅ Implementada (commit `e30f55d3`)
 
 - ✅ SidebarItem: hover scale (1.02), active scale (0.98), focus ring, left border indicator
 - ✅ SidebarSubmenu: todos os estados (trigger, items, tooltip), icon animations
@@ -119,7 +119,7 @@ Este roadmap visa transformar a experiência global do usuário no Orion ERP atr
 
 **Objetivo:** Adicionar busca global e ações rápidas
 
-**Status:** ✅ Implementada (commit `[próximo]`)
+**Status:** ✅ Implementada (commit `d9e6a2ca`)
 
 - ✅ CommandPalette component com Command Dialog
 - ✅ Keyboard shortcut Ctrl+K (Cmd+K no Mac)
@@ -139,9 +139,24 @@ Este roadmap visa transformar a experiência global do usuário no Orion ERP atr
 
 **Objetivo:** Adaptar sidebar e header para mobile
 
-### **FASE 7: Tema e Personalização**
+### **FASE 7: Tema e Personalização** ✅ **CONCLUÍDA**
 
 **Objetivo:** Dark mode nativo e preferências do usuário
+
+**Status:** ✅ Implementada (commit `[próximo]`)
+
+- ✅ ThemeToggle já existia (theme-toggle.tsx)
+- ✅ useTheme hook completo (light/dark/system)
+- ✅ localStorage persistence ('orion-erp-theme')
+- ✅ Sistema de detecção automática (matchMedia)
+- ✅ ThemeToggle integrado no AdminSidebar Footer
+- ✅ Modo expandido: label + descrição do tema atual
+- ✅ Modo colapsado: apenas ícone
+- ✅ Página de Configurações já tinha tema
+- ✅ Dropdown com 3 opções (Claro/Escuro/Sistema)
+- ✅ Ícones dinâmicos (Sun/Moon/Monitor)
+- ✅ Classes aplicadas no <html> (dark/light)
+- ✅ Suporte a data-theme attribute
 
 ---
 

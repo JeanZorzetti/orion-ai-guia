@@ -27,6 +27,8 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { useTheme } from '@/hooks/useTheme';
 
 const navigation = [
   {
@@ -97,6 +99,7 @@ const supportNavigation = [
 
 const AdminSidebar: React.FC = () => {
   const { isCollapsed } = useSidebar();
+  const { theme, setTheme } = useTheme();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -208,9 +211,38 @@ const AdminSidebar: React.FC = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer com Super Admin e Logout */}
+      {/* Footer com Theme, Super Admin e Logout */}
       <SidebarFooter>
         <div className="space-y-2">
+          {/* Theme Toggle */}
+          {!isCollapsed ? (
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50">
+              <div>
+                <p className="text-sm font-medium">Aparência</p>
+                <p className="text-xs text-muted-foreground">
+                  {theme === 'light' ? 'Claro' : theme === 'dark' ? 'Escuro' : 'Sistema'}
+                </p>
+              </div>
+              <ThemeToggle
+                theme={theme}
+                onThemeChange={setTheme}
+                variant="ghost"
+                size="icon"
+              />
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <ThemeToggle
+                theme={theme}
+                onThemeChange={setTheme}
+                variant="ghost"
+                size="icon"
+              />
+            </div>
+          )}
+
+          <Separator />
+
           {/* Super Admin Link - só aparece para super admins */}
           {isSuperAdmin && (
             <Link
