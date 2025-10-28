@@ -419,73 +419,22 @@ const FinanceiroPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* Segunda Linha de Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Resultado</CardTitle>
-            <CreditCard className="h-4 w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-2xl font-bold text-purple-600">
-              R$ {(resumoFinanceiro.contasAReceber - resumoFinanceiro.contasAPagar).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
-            <TrendBadge value={comparacoes.resultado} size="sm" />
-            <p className="text-xs text-muted-foreground mt-1">
-              Projeção do mês
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Módulos Financeiros - Acesso Rápido */}
-        <Link href="/admin/financeiro/fluxo-caixa">
-          <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-md cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Fluxo de Caixa
-              </CardTitle>
-              <Calendar className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Visualize entrada e saída de recursos
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/admin/financeiro/relatorios">
-          <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-md cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                DRE
-              </CardTitle>
-              <FileText className="h-4 w-4 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Demonstrativo disponível em breve
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/admin/financeiro/relatorios">
-          <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-md cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Aging Report
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Análise disponível em breve
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
+      {/* Card de Resultado do Mês */}
+      <Card className="hover:shadow-lg transition-shadow">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Resultado</CardTitle>
+          <CreditCard className="h-4 w-4 text-purple-500" />
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="text-2xl font-bold text-purple-600">
+            R$ {(resumoFinanceiro.contasAReceber - resumoFinanceiro.contasAPagar).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </div>
+          <TrendBadge value={comparacoes.resultado} size="sm" />
+          <p className="text-xs text-muted-foreground mt-1">
+            Projeção do mês
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Gráficos Financeiros - Fase 2 */}
       <div className="space-y-6">
