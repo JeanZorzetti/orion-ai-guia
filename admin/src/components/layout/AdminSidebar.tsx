@@ -19,7 +19,8 @@ import {
   Calendar,
   FileBarChart,
   LayoutDashboard,
-  Zap
+  Zap,
+  type LucideIcon
 } from 'lucide-react';
 import { User } from '@/types';
 import { authService } from '@/services/auth';
@@ -27,6 +28,7 @@ import { Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarGroup } f
 import { SidebarToggle } from './Sidebar/SidebarToggle';
 import { SidebarItem } from './Sidebar/SidebarItem';
 import { SidebarSubmenu } from './Sidebar/SidebarSubmenu';
+import { NestedSubmenu } from './Sidebar/NestedSubmenu';
 import { WorkspaceSelector } from './WorkspaceSelector';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
@@ -34,6 +36,13 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useTheme } from '@/hooks/useTheme';
+
+interface NavChild {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  children?: NavChild[];
+}
 
 const navigation = [
   {
@@ -184,6 +193,33 @@ const AdminSidebar: React.FC = () => {
           {navigation.map((item) => {
             const hasChildren = item.children && item.children.length > 0;
 
+            // Verificar se algum child tem children (submenu aninhado)
+            const hasNestedChildren = hasChildren && item.children.some((child: NavChild) => child.children && child.children.length > 0);
+
+            if (hasNestedChildren) {
+              // Usar NestedSubmenu para submenus aninhados
+              return (
+                <NestedSubmenu
+                  key={item.name}
+                  item={{
+                    label: item.name,
+                    href: item.href,
+                    icon: item.icon,
+                    children: item.children.map((child: NavChild) => ({
+                      label: child.name,
+                      href: child.href,
+                      icon: child.icon,
+                      children: child.children?.map((grandchild: NavChild) => ({
+                        label: grandchild.name,
+                        href: grandchild.href,
+                        icon: grandchild.icon,
+                      })),
+                    })),
+                  }}
+                />
+              );
+            }
+
             if (hasChildren) {
               return (
                 <SidebarSubmenu
@@ -191,7 +227,7 @@ const AdminSidebar: React.FC = () => {
                   icon={item.icon}
                   label={item.name}
                   href={item.href}
-                  items={item.children.map((child) => ({
+                  items={item.children.map((child: NavChild) => ({
                     label: child.name,
                     href: child.href,
                     icon: child.icon,
