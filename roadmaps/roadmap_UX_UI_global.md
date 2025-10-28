@@ -115,9 +115,25 @@ Este roadmap visa transformar a experiência global do usuário no Orion ERP atr
 - ✅ Badge hover states
 - ✅ Active indicators (before pseudo-elements)
 
-### **FASE 5: Global Search e Quick Actions**
+### **FASE 5: Global Search e Quick Actions** ✅ **CONCLUÍDA**
 
 **Objetivo:** Adicionar busca global e ações rápidas
+
+**Status:** ✅ Implementada (commit `[próximo]`)
+
+- ✅ CommandPalette component com Command Dialog
+- ✅ Keyboard shortcut Ctrl+K (Cmd+K no Mac)
+- ✅ Categorias: Páginas, Ações Rápidas, Relatórios, Configurações
+- ✅ Busca integrada no header (click abre Command Palette)
+- ✅ NotificationsPanel com popover
+- ✅ Mock data: 3 notificações (Contas a Pagar, Estoque, Vendas)
+- ✅ Marcar como lida individual/todas
+- ✅ Remover notificações
+- ✅ Badge com contador de não lidas
+- ✅ QuickActionsMenu com dropdown
+- ✅ Ações: Nova Venda, Novo Produto, Nova Despesa, etc.
+- ✅ Organizado por categorias (Vendas, Estoque, Financeiro, Cadastros)
+- ✅ Integrado no AdminHeader
 
 ### **FASE 6: Responsividade Mobile**
 

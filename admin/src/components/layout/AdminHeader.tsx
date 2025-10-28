@@ -1,12 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Bell, HelpCircle, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Breadcrumbs } from './Breadcrumbs';
 import { UserMenu } from './UserMenu';
+import { CommandPalette } from './CommandPalette';
+import { NotificationsPanel } from './NotificationsPanel';
+import { QuickActionsMenu } from './QuickActionsMenu';
 import {
   Tooltip,
   TooltipContent,
@@ -15,8 +18,24 @@ import {
 } from '@/components/ui/tooltip';
 
 const AdminHeader: React.FC = () => {
+  const [commandOpen, setCommandOpen] = useState(false);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setCommandOpen((open) => !open);
+      }
+    };
+
+    document.addEventListener('keydown', down);
+    return () => document.removeEventListener('keydown', down);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-6">
+    <>
+      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+      <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-6">
       {/* Logo */}
       <Link
         href="/admin/dashboard"
@@ -34,33 +53,21 @@ const AdminHeader: React.FC = () => {
         <Input
           type="search"
           placeholder="Buscar... (Ctrl+K)"
-          className="pl-10"
+          className="pl-10 cursor-pointer"
           readOnly
-          onClick={() => {
-            // TODO: Abrir command palette na Fase 5
-            console.log('TODO: Implement Command Palette');
-          }}
+          onClick={() => setCommandOpen(true)}
         />
       </div>
 
       {/* Quick Actions */}
       <div className="flex items-center gap-1">
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
-                  3
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Notificações (3)</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {/* Quick Actions Menu */}
+        <QuickActionsMenu />
 
+        {/* Notifications */}
+        <NotificationsPanel />
+
+        {/* Help */}
         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -80,6 +87,7 @@ const AdminHeader: React.FC = () => {
       {/* User Menu */}
       <UserMenu />
     </header>
+    </>
   );
 };
 
