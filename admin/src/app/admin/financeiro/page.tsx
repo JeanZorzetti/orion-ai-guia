@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -19,7 +19,10 @@ import { AgingChart } from '@/components/financeiro/AgingChart';
 import { DREWaterfallChart } from '@/components/financeiro/DREWaterfallChart';
 import { ExpensesByCategoryChart } from '@/components/financeiro/ExpensesByCategoryChart';
 import { FilterBar, FinancialFilters } from '@/components/financeiro/FilterBar';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { AlertsPanel } from '@/components/financeiro/AlertsPanel';
+import { FinancialAlertData } from '@/components/financeiro/FinancialAlert';
+import { generateAllFinancialAlerts } from '@/lib/financial-alerts';
+import { startOfMonth, endOfMonth, addDays, subDays } from 'date-fns';
 
 const FinanceiroPage: React.FC = () => {
   // Estado dos filtros
@@ -31,6 +34,9 @@ const FinanceiroPage: React.FC = () => {
     category: 'all',
     status: 'all',
   });
+
+  // Estado dos alertas (alertas dismissados)
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   const handleFiltersChange = (newFilters: FinancialFilters) => {
     setFilters(newFilters);
@@ -161,6 +167,93 @@ const FinanceiroPage: React.FC = () => {
     { category: 'Outros', value: 500, percentage: 1.2 },
   ];
 
+  // Dados simulados para geração de alertas
+  const financialDataForAlerts = {
+    cashFlow: {
+      currentBalance: resumoFinanceiro.saldoAtual,
+      projectedBalance: 52000, // Projeção positiva
+      monthlyRevenue: 125000,
+      monthlyExpenses: 93000,
+    },
+    payments: [
+      {
+        id: '1',
+        description: 'Fornecedor ABC - Nota 12345',
+        amount: 3200,
+        dueDate: subDays(new Date(), 5), // 5 dias vencido
+        status: 'overdue' as const,
+        category: 'expense',
+      },
+      {
+        id: '2',
+        description: 'Aluguel - Dezembro',
+        amount: 4500,
+        dueDate: new Date(), // Vence hoje
+        status: 'pending' as const,
+        category: 'expense',
+      },
+      {
+        id: '3',
+        description: 'Fornecedor XYZ - Nota 67890',
+        amount: 2100,
+        dueDate: addDays(new Date(), 2), // Vence em 2 dias
+        status: 'pending' as const,
+        category: 'expense',
+      },
+    ],
+    receipts: [
+      {
+        id: '4',
+        description: 'Cliente ABC - Fatura 001',
+        amount: 8500,
+        dueDate: subDays(new Date(), 18), // 18 dias de atraso
+        status: 'pending' as const,
+        category: 'revenue',
+      },
+    ],
+    budgets: [
+      {
+        category: 'Marketing',
+        limit: 5000,
+        spent: 4800,
+        percentage: 96, // 96% utilizado - crítico
+      },
+      {
+        category: 'Fornecedores',
+        limit: 20000,
+        spent: 18500,
+        percentage: 92.5, // 92.5% utilizado - aviso
+      },
+    ],
+  };
+
+  // Gerar alertas usando useMemo para performance
+  const alerts = useMemo(() => {
+    const generated = generateAllFinancialAlerts(financialDataForAlerts);
+    // Filtrar alertas dismissados
+    return generated.filter((alert) => !dismissedAlerts.has(alert.id));
+  }, [dismissedAlerts]);
+
+  // Handlers de alertas
+  const handleAlertAction = (alert: FinancialAlertData) => {
+    console.log('Ação do alerta:', alert);
+    if (alert.actionUrl) {
+      // Em produção, usar Next.js router
+      window.location.href = alert.actionUrl;
+    }
+  };
+
+  const handleAlertDismiss = (alertId: string) => {
+    setDismissedAlerts((prev) => new Set([...prev, alertId]));
+  };
+
+  const handleClearAllAlerts = () => {
+    const dismissableIds = alerts
+      .filter((a) => a.dismissable)
+      .map((a) => a.id);
+    setDismissedAlerts((prev) => new Set([...prev, ...dismissableIds]));
+  };
+
   const acoesRapidas = [
     {
       titulo: 'Contas a Pagar',
@@ -214,6 +307,17 @@ const FinanceiroPage: React.FC = () => {
         onRefresh={handleRefresh}
         onExport={handleExport}
       />
+
+      {/* Central de Alertas - Fase 4 */}
+      {alerts.length > 0 && (
+        <AlertsPanel
+          alerts={alerts}
+          onAlertAction={handleAlertAction}
+          onAlertDismiss={handleAlertDismiss}
+          onClearAll={handleClearAllAlerts}
+          compact
+        />
+      )}
 
       {/* Cards de Resumo - Layout Hierárquico */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
