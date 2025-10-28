@@ -22,9 +22,11 @@ import { Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarGroup } f
 import { SidebarToggle } from './Sidebar/SidebarToggle';
 import { SidebarItem } from './Sidebar/SidebarItem';
 import { SidebarSubmenu } from './Sidebar/SidebarSubmenu';
+import { WorkspaceSelector } from './WorkspaceSelector';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 const navigation = [
   {
@@ -136,6 +138,10 @@ const AdminSidebar: React.FC = () => {
           {!isCollapsed && <SidebarToggle />}
         </div>
       </SidebarHeader>
+
+      {/* Workspace Selector */}
+      <WorkspaceSelector />
+      <Separator className="mx-2" />
 
       {/* Navegação Principal */}
       <SidebarContent>

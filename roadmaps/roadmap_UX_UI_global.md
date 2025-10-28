@@ -84,11 +84,23 @@ Este roadmap visa transformar a experiência global do usuário no Orion ERP atr
 - ✅ Header sticky (z-40)
 - ✅ Layout: Logo | Breadcrumbs | Search | Actions | User
 
-### **FASE 3: Workspace Selector Aprimorado** 🎯 **PRÓXIMA**
+### **FASE 3: Workspace Selector Aprimorado** ✅ **CONCLUÍDA**
 
 **Objetivo:** Melhorar UX do seletor de workspace multi-tenant
 
-### **FASE 4: Estados Visuais e Interações**
+**Status:** ✅ Implementada (commit `[próximo]`)
+
+- ✅ WorkspaceSelector component com dropdown
+- ✅ Avatar com iniciais do workspace
+- ✅ Badge de role (Super Admin, Admin, Membro)
+- ✅ Posicionado após header na sidebar
+- ✅ Modo colapsado: apenas avatar
+- ✅ Command menu com busca (>5 workspaces)
+- ✅ Opção "Criar novo workspace"
+- ✅ Lógica de troca com reload
+- ✅ Integrado no AdminSidebar com Separator
+
+### **FASE 4: Estados Visuais e Interações** 🎯 **PRÓXIMA**
 
 **Objetivo:** Implementar hover, active, focus states consistentes
 
