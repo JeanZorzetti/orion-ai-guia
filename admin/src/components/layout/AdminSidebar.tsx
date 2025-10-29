@@ -26,6 +26,7 @@ import {
   Users,
   Percent,
   Building2,
+  Globe,
   type LucideIcon
 } from 'lucide-react';
 import { User } from '@/types';
@@ -95,6 +96,11 @@ const navigation = [
             name: 'Conciliação',
             href: '/admin/financeiro/contas-a-pagar/conciliacao',
             icon: Building2,
+          },
+          {
+            name: 'Portal Fornecedor',
+            href: '/admin/financeiro/contas-a-pagar/portal-fornecedor',
+            icon: Globe,
           },
         ],
       },
