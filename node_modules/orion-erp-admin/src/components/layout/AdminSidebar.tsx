@@ -23,6 +23,7 @@ import {
   Brain,
   CreditCard,
   CheckCircle,
+  Users,
   type LucideIcon
 } from 'lucide-react';
 import { User } from '@/types';
@@ -77,6 +78,11 @@ const navigation = [
             name: 'Aprovações',
             href: '/admin/financeiro/contas-a-pagar/aprovacoes',
             icon: CheckCircle,
+          },
+          {
+            name: 'Fornecedores',
+            href: '/admin/financeiro/contas-a-pagar/fornecedores',
+            icon: Users,
           },
         ],
       },
