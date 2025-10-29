@@ -1599,9 +1599,118 @@ export const BankReconciliation: React.FC = () => {
 
 ---
 
-## Fase 6: Portal do Fornecedor 🌐
+## Fase 6: Portal do Fornecedor 🌐 ✅
+
+**Status:** ✅ **CONCLUÍDA**
+**Data:** 29/10/2025
+**Commit:** `df1d4c57`
 
 **Objetivo:** Criar portal para fornecedores consultarem status de faturas e pagamentos.
+
+**Implementado:**
+- ✅ Types para portal do fornecedor (supplier-portal.ts)
+- ✅ Hook `useSupplierPortal` - Autenticação e dados
+- ✅ Função `generateSupplierAccess` - Gerar tokens
+- ✅ Componente `SupplierPortal` - Portal externo
+- ✅ Componente `GenerateSupplierAccessDialog` - Gerar acesso
+- ✅ Página `/portal/fornecedor/[token]` - Portal público
+- ✅ Página `/portal-fornecedor` - Gerenciamento admin
+- ✅ 3 fornecedores mock com acesso ativo
+- ✅ Sistema de autenticação por token
+- ✅ Validação de token e expiração
+
+**Portal do Fornecedor (Público):**
+- Rota: `/portal/fornecedor/[token]`
+- Autenticação segura por token único
+- Design responsivo com gradiente azul/índigo
+- 4 cards de resumo financeiro
+- Tabela completa de faturas
+- Gráfico de histórico (6 meses)
+- Status de aprovação por fatura
+- Informações do fornecedor
+- Página de acesso negado para tokens inválidos
+- Loading state durante carregamento
+
+**Painel Admin:**
+- Lista de todos os fornecedores
+- Status de acesso visualizado
+- Gerar novo acesso
+- Copiar link de acesso
+- Abrir portal em nova aba
+- Contador de acessos
+- Data do último acesso
+- Busca por nome/CNPJ
+- 3 cards de resumo
+
+**Geração de Acesso:**
+- Dialog interativo
+- Configuração de validade (1-365 dias)
+- Padrão: 90 dias
+- Token único e seguro
+- Preview do que o fornecedor verá
+- Cópia automática do link
+- Botão para testar o portal
+- Instruções claras de uso
+
+**Fornecedores Mock com Acesso:**
+1. **Alpha Distribuidora Ltda**
+   - Token: token-alpha-2025
+   - Último acesso: há 2 dias
+   - Total de acessos: 15
+   - 5 faturas (R$ 82.000 total)
+   - R$ 33.000 a receber
+   - R$ 45.000 pago este mês
+
+2. **Beta Suprimentos S.A.**
+   - Token: token-beta-2025
+   - Último acesso: há 1 dia
+   - Total de acessos: 28
+   - 3 faturas (R$ 35.500 total)
+   - R$ 25.500 a receber
+   - R$ 32.000 pago este mês
+
+3. **Gamma Indústria Ltda**
+   - Token: token-gamma-2025
+   - Último acesso: há 5 dias
+   - Total de acessos: 8
+   - 3 faturas (R$ 74.000 total)
+   - R$ 52.000 a receber
+   - R$ 22.000 pago este mês
+
+**Fornecedores sem Acesso:**
+4. Delta Comercial Ltda
+5. Epsilon Materiais S.A.
+
+**Recursos de Segurança:**
+- Token único por fornecedor
+- Validação de token a cada acesso
+- Data de expiração configurável
+- Registro de quantidade de acessos
+- Log de último acesso
+- Sistema de revogação (preparado)
+
+**Dados Exibidos no Portal:**
+- Resumo financeiro (total a receber, pendente, pago)
+- Lista completa de faturas
+- Status: Pendente, Validada, Paga, Cancelada
+- Status de aprovação: Aguardando, Aprovada, Rejeitada
+- Datas: Emissão, Vencimento, Pagamento
+- Valores por fatura
+- Descrição das faturas
+- Histórico mensal com gráfico
+- Informações de contato
+
+**Arquivos criados:**
+- `admin/src/types/supplier-portal.ts`
+- `admin/src/hooks/useSupplierPortal.ts`
+- `admin/src/app/portal/fornecedor/[token]/page.tsx`
+- `admin/src/components/financeiro/contas-a-pagar/GenerateSupplierAccessDialog.tsx`
+- `admin/src/app/admin/financeiro/contas-a-pagar/portal-fornecedor/page.tsx`
+
+**Arquivos modificados:**
+- `admin/src/components/layout/AdminSidebar.tsx`
+
+---
 
 ### 6.1 Portal de Consulta
 
