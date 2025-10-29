@@ -16,6 +16,8 @@ import { ScenarioAnalysis } from '@/components/financeiro/fluxo-caixa/ScenarioAn
 import { ImpactSimulator } from '@/components/financeiro/fluxo-caixa/ImpactSimulator';
 import { FinancialKPIs } from '@/components/financeiro/fluxo-caixa/FinancialKPIs';
 import { BreakEvenAnalysis } from '@/components/financeiro/fluxo-caixa/BreakEvenAnalysis';
+import { MultiAccountManagement } from '@/components/financeiro/fluxo-caixa/MultiAccountManagement';
+import { AccountTransfers } from '@/components/financeiro/fluxo-caixa/AccountTransfers';
 
 const FluxoCaixaPage: React.FC = () => {
   const movimentacoes = [
@@ -140,6 +142,12 @@ const FluxoCaixaPage: React.FC = () => {
 
       {/* Análise de Break-Even */}
       <BreakEvenAnalysis />
+
+      {/* Gestão de Múltiplas Contas */}
+      <MultiAccountManagement />
+
+      {/* Transferências Entre Contas */}
+      <AccountTransfers />
 
       {/* Gráfico de Fluxo Semanal */}
       <Card>
