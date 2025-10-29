@@ -9,7 +9,9 @@ import {
   BarChart3,
   ShoppingCart,
   ArrowRight,
-  Boxes
+  Boxes,
+  Warehouse,
+  Calendar
 } from 'lucide-react';
 
 const EstoquePage: React.FC = () => {
@@ -35,6 +37,24 @@ const EstoquePage: React.FC = () => {
       href: '/admin/estoque/produtos',
       color: 'text-blue-500',
       bgColor: 'bg-blue-50 dark:bg-blue-950/20',
+    },
+    {
+      titulo: 'Lotes e Validades',
+      descricao: 'Controle de lotes, validades e rastreabilidade',
+      icon: Calendar,
+      href: '/admin/estoque/lotes',
+      color: 'text-cyan-500',
+      bgColor: 'bg-cyan-50 dark:bg-cyan-950/20',
+      badge: 'Novo',
+    },
+    {
+      titulo: 'Depósitos',
+      descricao: 'Gestão de múltiplos depósitos e transferências',
+      icon: Warehouse,
+      href: '/admin/estoque/depositos',
+      color: 'text-indigo-500',
+      bgColor: 'bg-indigo-50 dark:bg-indigo-950/20',
+      badge: 'Novo',
     },
     {
       titulo: 'Movimentações',
@@ -188,7 +208,12 @@ const EstoquePage: React.FC = () => {
                       <modulo.icon className={`h-6 w-6 ${modulo.color}`} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-lg mb-1">{modulo.titulo}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-lg">{modulo.titulo}</h3>
+                        {(modulo as any).badge && (
+                          <Badge className="bg-green-600">{(modulo as any).badge}</Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">{modulo.descricao}</p>
                     </div>
                     <ArrowRight className="h-5 w-5 text-muted-foreground" />
