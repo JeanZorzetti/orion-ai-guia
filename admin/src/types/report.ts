@@ -247,3 +247,106 @@ export type ReportFormato = ReportConfig['exportacao']['formato'];
 export type ReportStatus = GeneratedReport['status'];
 export type ReportFrequencia = ReportSchedule['frequencia']['tipo'];
 export type ReportExecutionStatus = ReportSchedule['execucoes'][0]['status'];
+
+// ============================================
+// DASHBOARD EXECUTIVO - FASE 5
+// ============================================
+
+export interface ExecutiveDashboardKPI {
+  id: string;
+  titulo: string;
+  valor: number;
+  valorFormatado: string;
+  variacao: number; // Percentual em relação ao período anterior
+  variacaoAbsoluta: number; // Valor absoluto da diferença
+  tendencia: 'up' | 'down' | 'stable';
+  categoria: 'receita' | 'despesa' | 'lucro' | 'estoque' | 'vendas' | 'custom';
+  icone?: string;
+  cor?: string;
+  meta?: number; // Valor da meta
+  percentualMeta?: number; // % de atingimento da meta
+}
+
+export interface ExecutiveDashboardChart {
+  id: string;
+  titulo: string;
+  tipo: 'linha' | 'barra' | 'pizza' | 'area' | 'barraEmpilhada' | 'linhaMultipla';
+  dados: {
+    labels: string[];
+    datasets: {
+      label: string;
+      data: number[];
+      backgroundColor?: string | string[];
+      borderColor?: string;
+      fill?: boolean;
+    }[];
+  };
+  config?: {
+    showLegend?: boolean;
+    showGrid?: boolean;
+    showTooltip?: boolean;
+    enableZoom?: boolean;
+    enableDrillDown?: boolean;
+    drillDownPath?: string; // Caminho para drill-down
+  };
+}
+
+export interface ExecutiveDashboardComparison {
+  periodo: string;
+  periodoAnterior: string;
+  metricas: {
+    metrica: string;
+    valorAtual: number;
+    valorAnterior: number;
+    diferenca: number;
+    diferencaPercentual: number;
+    tendencia: 'up' | 'down' | 'stable';
+  }[];
+}
+
+export interface ExecutiveDashboardFilter {
+  periodoAtual: {
+    inicio: Date;
+    fim: Date;
+  };
+  periodoComparacao?: {
+    inicio: Date;
+    fim: Date;
+  };
+  tipoComparacao: 'periodo-anterior' | 'mesmo-periodo-ano-anterior' | 'personalizado';
+  categorias?: string[];
+  centrosCusto?: string[];
+  produtos?: string[];
+  clientes?: string[];
+  fornecedores?: string[];
+}
+
+export interface ExecutiveDashboardBookmark {
+  id: string;
+  nome: string;
+  descricao?: string;
+  filtros: ExecutiveDashboardFilter;
+  kpisVisiveis: string[]; // IDs dos KPIs a exibir
+  graficosVisiveis: string[]; // IDs dos gráficos a exibir
+  layout?: 'grid' | 'list' | 'compact';
+  criadoEm: Date;
+  criadoPor: {
+    id: string;
+    nome: string;
+  };
+  publico: boolean;
+  favorito: boolean;
+}
+
+export interface ExecutiveDashboardData {
+  kpis: ExecutiveDashboardKPI[];
+  graficos: ExecutiveDashboardChart[];
+  comparacao: ExecutiveDashboardComparison;
+  insights: {
+    tipo: 'positivo' | 'neutro' | 'negativo' | 'alerta';
+    titulo: string;
+    descricao: string;
+    icone?: string;
+  }[];
+  atualizadoEm: Date;
+}

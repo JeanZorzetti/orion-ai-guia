@@ -15,20 +15,22 @@ import {
   FileSpreadsheet,
   Settings,
   History,
-  Layout
+  Layout,
+  LayoutDashboard
 } from 'lucide-react';
 import { ReportConfigurator } from '@/components/relatorios/ReportConfigurator';
 import { ReportPreview } from '@/components/relatorios/ReportPreview';
 import { ReportHistory } from '@/components/relatorios/ReportHistory';
 import { ReportTemplates } from '@/components/relatorios/ReportTemplates';
 import { ScheduledReportsList } from '@/components/relatorios/ScheduledReportsList';
+import { ExecutiveDashboard } from '@/components/relatorios/ExecutiveDashboard';
 import type { ReportConfig } from '@/types/report';
 import { generateReport } from '@/lib/report-generator';
 import { format, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const RelatoriosFinanceirosPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('gerar');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedReport, setSelectedReport] = useState<{ tipo: string; subtipo: string } | null>(null);
   const [showConfigurator, setShowConfigurator] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -180,7 +182,11 @@ const RelatoriosFinanceirosPage: React.FC = () => {
 
       {/* Tabs de navegação */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-4 mb-4">
+        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-5 mb-4">
+          <TabsTrigger value="dashboard" className="gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            Dashboard
+          </TabsTrigger>
           <TabsTrigger value="gerar" className="gap-2">
             <FileText className="h-4 w-4" />
             Gerar Relatório
@@ -198,6 +204,10 @@ const RelatoriosFinanceirosPage: React.FC = () => {
             Histórico
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-6">
+          <ExecutiveDashboard />
+        </TabsContent>
 
         <TabsContent value="gerar" className="space-y-6">
           {/* Resumo */}
