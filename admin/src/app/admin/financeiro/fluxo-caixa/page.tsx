@@ -11,6 +11,11 @@ import {
   ArrowDownCircle,
   Filter
 } from 'lucide-react';
+import { CashFlowProjection } from '@/components/financeiro/fluxo-caixa/CashFlowProjection';
+import { ScenarioAnalysis } from '@/components/financeiro/fluxo-caixa/ScenarioAnalysis';
+import { ImpactSimulator } from '@/components/financeiro/fluxo-caixa/ImpactSimulator';
+import { FinancialKPIs } from '@/components/financeiro/fluxo-caixa/FinancialKPIs';
+import { BreakEvenAnalysis } from '@/components/financeiro/fluxo-caixa/BreakEvenAnalysis';
 
 const FluxoCaixaPage: React.FC = () => {
   const movimentacoes = [
@@ -120,6 +125,21 @@ const FluxoCaixaPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Projeção de Fluxo de Caixa */}
+      <CashFlowProjection />
+
+      {/* Análise de Cenários */}
+      <ScenarioAnalysis />
+
+      {/* Simulador de Impacto */}
+      <ImpactSimulator />
+
+      {/* Indicadores Financeiros (KPIs) */}
+      <FinancialKPIs />
+
+      {/* Análise de Break-Even */}
+      <BreakEvenAnalysis />
 
       {/* Gráfico de Fluxo Semanal */}
       <Card>
