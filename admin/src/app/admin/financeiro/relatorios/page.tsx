@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,10 +11,40 @@ import {
   BarChart3,
   Calendar,
   DollarSign,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Settings
 } from 'lucide-react';
+import { ReportConfigurator } from '@/components/relatorios/ReportConfigurator';
+import { ReportPreview } from '@/components/relatorios/ReportPreview';
+import type { ReportConfig } from '@/types/report';
+import { exportToCSV, exportToJSON } from '@/lib/report-generator';
 
 const RelatoriosFinanceirosPage: React.FC = () => {
+  const [selectedReport, setSelectedReport] = useState<{ tipo: string; subtipo: string } | null>(null);
+  const [showConfigurator, setShowConfigurator] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [currentConfig, setCurrentConfig] = useState<ReportConfig | null>(null);
+  const handleOpenConfigurator = (subtipo: string) => {
+    setSelectedReport({ tipo: 'financeiro', subtipo });
+    setShowConfigurator(true);
+  };
+
+  const handleGenerate = (config: ReportConfig) => {
+    // TODO: Implementar geração real na Fase 2
+    alert(`Relatório "${config.nome}" será gerado!\n\nFormato: ${config.exportacao.formato.toUpperCase()}\nPeríodo: ${config.periodo.inicio.toLocaleDateString()} - ${config.periodo.fim.toLocaleDateString()}`);
+  };
+
+  const handlePreview = (config: ReportConfig) => {
+    setCurrentConfig(config);
+    setShowConfigurator(false);
+    setShowPreview(true);
+  };
+
+  const handleConfirmPreview = (config: ReportConfig) => {
+    setShowPreview(false);
+    handleGenerate(config);
+  };
+
   const relatorios = [
     {
       titulo: 'Demonstrativo de Resultados (DRE)',
@@ -21,6 +53,7 @@ const RelatoriosFinanceirosPage: React.FC = () => {
       color: 'text-blue-500',
       bgColor: 'bg-blue-50 dark:bg-blue-950/20',
       periodo: 'Mensal',
+      subtipo: 'dre'
     },
     {
       titulo: 'Fluxo de Caixa Consolidado',
@@ -29,6 +62,7 @@ const RelatoriosFinanceirosPage: React.FC = () => {
       color: 'text-green-500',
       bgColor: 'bg-green-50 dark:bg-green-950/20',
       periodo: 'Personalizado',
+      subtipo: 'fluxo-caixa'
     },
     {
       titulo: 'Contas a Pagar - Resumo',
@@ -37,6 +71,7 @@ const RelatoriosFinanceirosPage: React.FC = () => {
       color: 'text-red-500',
       bgColor: 'bg-red-50 dark:bg-red-950/20',
       periodo: 'Mensal',
+      subtipo: 'contas-pagar'
     },
     {
       titulo: 'Contas a Receber - Resumo',
@@ -45,6 +80,7 @@ const RelatoriosFinanceirosPage: React.FC = () => {
       color: 'text-green-500',
       bgColor: 'bg-green-50 dark:bg-green-950/20',
       periodo: 'Mensal',
+      subtipo: 'contas-receber'
     },
     {
       titulo: 'Análise por Categoria',
@@ -53,6 +89,7 @@ const RelatoriosFinanceirosPage: React.FC = () => {
       color: 'text-purple-500',
       bgColor: 'bg-purple-50 dark:bg-purple-950/20',
       periodo: 'Trimestral',
+      subtipo: 'analise-categoria'
     },
     {
       titulo: 'Relatório Anual',
@@ -61,6 +98,7 @@ const RelatoriosFinanceirosPage: React.FC = () => {
       color: 'text-orange-500',
       bgColor: 'bg-orange-50 dark:bg-orange-950/20',
       periodo: 'Anual',
+      subtipo: 'relatorio-anual'
     },
   ];
 
@@ -146,16 +184,14 @@ const RelatoriosFinanceirosPage: React.FC = () => {
                   <span className="text-muted-foreground">Período:</span>
                   <span className="font-medium">{relatorio.periodo}</span>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" size="sm">
-                    <FileText className="mr-2 h-3 w-3" />
-                    PDF
-                  </Button>
-                  <Button variant="outline" className="flex-1" size="sm">
-                    <FileSpreadsheet className="mr-2 h-3 w-3" />
-                    Excel
-                  </Button>
-                </div>
+                <Button
+                  className="w-full"
+                  size="sm"
+                  onClick={() => handleOpenConfigurator(relatorio.subtipo)}
+                >
+                  <Settings className="mr-2 h-3 w-3" />
+                  Configurar e Gerar
+                </Button>
               </CardContent>
             </Card>
           ))}
@@ -212,6 +248,27 @@ const RelatoriosFinanceirosPage: React.FC = () => {
           </p>
         </CardContent>
       </Card>
+
+      {/* Dialogs */}
+      {selectedReport && (
+        <ReportConfigurator
+          tipo="financeiro"
+          subtipo={selectedReport.subtipo}
+          open={showConfigurator}
+          onOpenChange={setShowConfigurator}
+          onGenerate={handleGenerate}
+          onPreview={handlePreview}
+        />
+      )}
+
+      {currentConfig && (
+        <ReportPreview
+          config={currentConfig}
+          open={showPreview}
+          onClose={() => setShowPreview(false)}
+          onConfirm={handleConfirmPreview}
+        />
+      )}
     </div>
   );
 };
