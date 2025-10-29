@@ -24,6 +24,7 @@ import {
   CreditCard,
   CheckCircle,
   Users,
+  Percent,
   type LucideIcon
 } from 'lucide-react';
 import { User } from '@/types';
@@ -83,6 +84,11 @@ const navigation = [
             name: 'Fornecedores',
             href: '/admin/financeiro/contas-a-pagar/fornecedores',
             icon: Users,
+          },
+          {
+            name: 'Descontos',
+            href: '/admin/financeiro/contas-a-pagar/descontos',
+            icon: Percent,
           },
         ],
       },
