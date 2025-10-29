@@ -350,3 +350,228 @@ export interface ExecutiveDashboardData {
   }[];
   atualizadoEm: Date;
 }
+
+// ============================================
+// REPORT BUILDER - FASE 6
+// ============================================
+
+export interface CustomReport {
+  id: string;
+  nome: string;
+  descricao: string;
+
+  // Layout
+  layout: {
+    pagina: {
+      tamanho: 'a4' | 'letter' | 'legal';
+      orientacao: 'portrait' | 'landscape';
+      margens: { top: number; right: number; bottom: number; left: number };
+    };
+    secoes: ReportSection[];
+  };
+
+  // Fontes de dados
+  fontesDados: ReportDataSource[];
+
+  // Estilo
+  estilo: {
+    tema: 'claro' | 'escuro' | 'customizado';
+    cores: {
+      primaria: string;
+      secundaria: string;
+      texto: string;
+      fundo: string;
+    };
+    fontes: {
+      titulo: { familia: string; tamanho: number; peso: string };
+      subtitulo: { familia: string; tamanho: number; peso: string };
+      corpo: { familia: string; tamanho: number; peso: string };
+    };
+  };
+
+  // Permissões
+  permissoes: {
+    visualizar: string[];
+    editar: string[];
+    compartilhar: string[];
+  };
+
+  // Metadados
+  criadoEm: Date;
+  criadoPor: {
+    id: string;
+    nome: string;
+  };
+  atualizadoEm: Date;
+  versao: number;
+}
+
+export interface ReportDataSource {
+  id: string;
+  nome: string;
+  tipo: 'financeiro' | 'estoque' | 'vendas' | 'customizado' | 'sql';
+  query?: string;
+  parametros: Record<string, any>;
+  camposCalculados?: CalculatedField[];
+}
+
+export interface CalculatedField {
+  id: string;
+  nome: string;
+  formula: string; // Ex: "receita - despesa", "quantidade * preco"
+  tipo: 'numero' | 'texto' | 'data' | 'booleano';
+  formato?: string; // Ex: "R$ 0,0.00", "0.00%"
+}
+
+export interface ReportSection {
+  id: string;
+  tipo: 'texto' | 'tabela' | 'grafico' | 'kpi' | 'imagem' | 'espacamento' | 'divisor';
+  ordem: number;
+
+  // Configuração específica do tipo
+  config:
+    | TextSectionConfig
+    | TableSectionConfig
+    | ChartSectionConfig
+    | KPISectionConfig
+    | ImageSectionConfig
+    | SpacerSectionConfig;
+
+  // Layout da seção
+  layout: {
+    largura: 'completa' | 'metade' | 'terco' | 'dois-tercos' | 'quarto' | 'tres-quartos';
+    altura?: number;
+    padding: { top: number; right: number; bottom: number; left: number };
+    alinhamento?: 'left' | 'center' | 'right';
+  };
+
+  // Estilo
+  estilo?: {
+    fundo?: string;
+    borda?: { cor: string; largura: number; estilo: 'solid' | 'dashed' | 'dotted' };
+    sombra?: boolean;
+    borderRadius?: number;
+  };
+
+  // Fonte de dados (se aplicável)
+  fonteDadosId?: string;
+
+  // Visibilidade condicional
+  condicao?: {
+    campo: string;
+    operador: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'contains';
+    valor: any;
+  };
+}
+
+export interface TextSectionConfig {
+  conteudo: string; // Suporta markdown
+  estilo: {
+    fontSize: number;
+    fontWeight: 'normal' | 'bold' | 'bolder';
+    color: string;
+    align: 'left' | 'center' | 'right' | 'justify';
+    lineHeight: number;
+  };
+  variaveis?: Record<string, string>; // Para substituição de variáveis
+}
+
+export interface TableSectionConfig {
+  colunas: {
+    id: string;
+    label: string;
+    campo: string;
+    tipo: 'texto' | 'numero' | 'data' | 'moeda';
+    formato?: string;
+    largura?: number;
+    alinhamento?: 'left' | 'center' | 'right';
+    agregacao?: 'sum' | 'avg' | 'count' | 'min' | 'max';
+  }[];
+  ordenacao?: {
+    campo: string;
+    direcao: 'asc' | 'desc';
+  };
+  filtros?: {
+    campo: string;
+    operador: string;
+    valor: any;
+  }[];
+  paginacao?: {
+    tamanhoPagina: number;
+    mostrarTotais: boolean;
+  };
+  estilo: {
+    zebraStripe: boolean;
+    headerBackground: string;
+    headerTextColor: string;
+    borderColor: string;
+    fontSize: number;
+  };
+}
+
+export interface ChartSectionConfig {
+  tipoGrafico: 'linha' | 'barra' | 'pizza' | 'area' | 'scatter' | 'radar' | 'barraEmpilhada';
+  eixoX: {
+    campo: string;
+    label: string;
+  };
+  eixoY: {
+    campo: string;
+    label: string;
+    formato?: string;
+  };
+  series?: {
+    campo: string;
+    nome: string;
+    cor?: string;
+  }[];
+  opcoes: {
+    mostrarLegenda: boolean;
+    mostrarGrid: boolean;
+    mostrarTooltip: boolean;
+    altura: number;
+    animacao: boolean;
+  };
+}
+
+export interface KPISectionConfig {
+  metrica: string;
+  valor: number | string;
+  valorFormatado: string;
+  comparacao?: {
+    valor: number;
+    periodo: string;
+    formato: 'percentual' | 'absoluto';
+  };
+  meta?: {
+    valor: number;
+    mostrarProgresso: boolean;
+  };
+  icone?: string;
+  cor: string;
+  tamanho: 'pequeno' | 'medio' | 'grande';
+}
+
+export interface ImageSectionConfig {
+  url: string;
+  alt: string;
+  largura?: number;
+  altura?: number;
+  ajuste: 'cover' | 'contain' | 'fill' | 'none';
+  alinhamento: 'left' | 'center' | 'right';
+}
+
+export interface SpacerSectionConfig {
+  altura: number;
+}
+
+export interface ReportBuilderTemplate {
+  id: string;
+  nome: string;
+  descricao: string;
+  categoria: 'financeiro' | 'vendas' | 'estoque' | 'geral';
+  thumbnail?: string;
+  report: Omit<CustomReport, 'id' | 'criadoEm' | 'criadoPor' | 'atualizadoEm'>;
+  popular: boolean;
+  tags: string[];
+}
