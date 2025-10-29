@@ -179,6 +179,60 @@ export interface ReportSchedule {
   atualizadoEm: Date;
 }
 
+export interface ReportTemplate {
+  id: string;
+  nome: string;
+  descricao: string;
+
+  // Configuração base
+  config: ReportConfig;
+
+  // Metadados
+  criadoEm: Date;
+  criadoPor: {
+    id: string;
+    nome: string;
+  };
+  atualizadoEm: Date;
+
+  // Uso
+  vezesUsado: number;
+  ultimoUso?: Date;
+
+  // Organização
+  categoria: 'financeiro' | 'estoque' | 'vendas' | 'gerencial' | 'custom';
+  tags: string[];
+  favorito: boolean;
+
+  // Compartilhamento
+  publico: boolean; // Visível para todos no workspace
+  compartilhadoCom?: string[]; // IDs de usuários
+
+  // Validação
+  valido: boolean;
+  errosValidacao?: string[];
+}
+
+export interface ReportHistoryFilter {
+  tipo?: ReportTipo[];
+  formato?: ReportFormato[];
+  status?: ReportStatus[];
+  dataInicio?: Date;
+  dataFim?: Date;
+  geradoPor?: string[];
+  tags?: string[];
+  busca?: string; // Busca por nome
+}
+
+export interface ReportTemplateFilter {
+  categoria?: ReportTemplate['categoria'][];
+  tags?: string[];
+  favoritos?: boolean;
+  publicos?: boolean;
+  criadoPor?: string[];
+  busca?: string;
+}
+
 // Helper types
 export type ReportTipo = ReportConfig['tipo'];
 export type ReportFormato = ReportConfig['exportacao']['formato'];

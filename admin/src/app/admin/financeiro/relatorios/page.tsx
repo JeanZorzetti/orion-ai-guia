@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   FileText,
   Download,
@@ -12,22 +13,33 @@ import {
   Calendar,
   DollarSign,
   FileSpreadsheet,
-  Settings
+  Settings,
+  History,
+  Layout
 } from 'lucide-react';
 import { ReportConfigurator } from '@/components/relatorios/ReportConfigurator';
 import { ReportPreview } from '@/components/relatorios/ReportPreview';
+import { ReportHistory } from '@/components/relatorios/ReportHistory';
+import { ReportTemplates } from '@/components/relatorios/ReportTemplates';
 import type { ReportConfig } from '@/types/report';
 import { generateReport } from '@/lib/report-generator';
 import { format, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const RelatoriosFinanceirosPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('gerar');
   const [selectedReport, setSelectedReport] = useState<{ tipo: string; subtipo: string } | null>(null);
   const [showConfigurator, setShowConfigurator] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [currentConfig, setCurrentConfig] = useState<ReportConfig | null>(null);
   const handleOpenConfigurator = (subtipo: string) => {
     setSelectedReport({ tipo: 'financeiro', subtipo });
+    setShowConfigurator(true);
+  };
+
+  const handleUseTemplate = (config: ReportConfig) => {
+    setCurrentConfig(config);
+    setSelectedReport({ tipo: config.tipo, subtipo: config.subtipo });
     setShowConfigurator(true);
   };
 
@@ -165,8 +177,26 @@ const RelatoriosFinanceirosPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Tabs de navegação */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-3 mb-4">
+          <TabsTrigger value="gerar" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Gerar Relatório
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="gap-2">
+            <Layout className="h-4 w-4" />
+            Templates
+          </TabsTrigger>
+          <TabsTrigger value="historico" className="gap-2">
+            <History className="h-4 w-4" />
+            Histórico
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="gerar" className="space-y-6">
+          {/* Resumo */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Relatórios Disponíveis</CardTitle>
@@ -276,21 +306,31 @@ const RelatoriosFinanceirosPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Dica */}
-      <Card className="border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/20">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-blue-500" />
-            <CardTitle>Dica</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Configure relatórios automáticos para receber análises financeiras por e-mail periodicamente.
-            Acesse <span className="font-semibold text-foreground">Configurações → Notificações</span> para ativar.
-          </p>
-        </CardContent>
-      </Card>
+          {/* Dica */}
+          <Card className="border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/20">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-blue-500" />
+                <CardTitle>Dica</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Configure relatórios automáticos para receber análises financeiras por e-mail periodicamente.
+                Acesse <span className="font-semibold text-foreground">Configurações → Notificações</span> para ativar.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="templates" className="space-y-6">
+          <ReportTemplates onUseTemplate={handleUseTemplate} />
+        </TabsContent>
+
+        <TabsContent value="historico" className="space-y-6">
+          <ReportHistory />
+        </TabsContent>
+      </Tabs>
 
       {/* Dialogs */}
       {selectedReport && (
@@ -301,6 +341,7 @@ const RelatoriosFinanceirosPage: React.FC = () => {
           onOpenChange={setShowConfigurator}
           onGenerate={handleGenerate}
           onPreview={handlePreview}
+          initialConfig={currentConfig || undefined}
         />
       )}
 

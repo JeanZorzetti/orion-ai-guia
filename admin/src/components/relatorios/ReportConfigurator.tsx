@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,7 @@ interface ReportConfiguratorProps {
   onOpenChange: (open: boolean) => void;
   onGenerate: (config: ReportConfig) => void;
   onPreview?: (config: ReportConfig) => void;
+  initialConfig?: ReportConfig;
 }
 
 export const ReportConfigurator: React.FC<ReportConfiguratorProps> = ({
@@ -30,10 +31,12 @@ export const ReportConfigurator: React.FC<ReportConfiguratorProps> = ({
   open,
   onOpenChange,
   onGenerate,
-  onPreview
+  onPreview,
+  initialConfig
 }) => {
   const {
     config,
+    setConfig,
     updatePeriodoTipo,
     updateInicio,
     updateFim,
@@ -48,6 +51,13 @@ export const ReportConfigurator: React.FC<ReportConfiguratorProps> = ({
   } = useReportConfig(tipo, subtipo);
 
   const [activeTab, setActiveTab] = useState('periodo');
+
+  // Aplicar configuração inicial quando fornecida
+  useEffect(() => {
+    if (initialConfig && open) {
+      setConfig(initialConfig);
+    }
+  }, [initialConfig, open, setConfig]);
 
   const handleGenerate = () => {
     onGenerate(config);
