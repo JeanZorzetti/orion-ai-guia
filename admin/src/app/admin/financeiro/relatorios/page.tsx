@@ -17,7 +17,9 @@ import {
 import { ReportConfigurator } from '@/components/relatorios/ReportConfigurator';
 import { ReportPreview } from '@/components/relatorios/ReportPreview';
 import type { ReportConfig } from '@/types/report';
-import { exportToCSV, exportToJSON } from '@/lib/report-generator';
+import { generateReport } from '@/lib/report-generator';
+import { format, eachDayOfInterval } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const RelatoriosFinanceirosPage: React.FC = () => {
   const [selectedReport, setSelectedReport] = useState<{ tipo: string; subtipo: string } | null>(null);
@@ -29,9 +31,50 @@ const RelatoriosFinanceirosPage: React.FC = () => {
     setShowConfigurator(true);
   };
 
-  const handleGenerate = (config: ReportConfig) => {
-    // TODO: Implementar geração real na Fase 2
-    alert(`Relatório "${config.nome}" será gerado!\n\nFormato: ${config.exportacao.formato.toUpperCase()}\nPeríodo: ${config.periodo.inicio.toLocaleDateString()} - ${config.periodo.fim.toLocaleDateString()}`);
+  const handleGenerate = async (config: ReportConfig) => {
+    try {
+      // Gerar dados mockados (inline, sem hook)
+      const data = generateMockData(config);
+
+      // Gerar relatório no formato selecionado
+      await generateReport(config, data);
+
+      // Feedback de sucesso
+      alert(`✅ Relatório "${config.nome}" gerado com sucesso!\n\nFormato: ${config.exportacao.formato.toUpperCase()}\nO download deve iniciar automaticamente.`);
+    } catch (error) {
+      console.error('Erro ao gerar relatório:', error);
+      alert(`❌ Erro ao gerar relatório: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  };
+
+  const generateMockData = (config: ReportConfig) => {
+    // Dados mockados simples para demonstração
+    const resumo = config.tipo === 'financeiro' ? [
+      { label: 'Receita Total', valor: 'R$ 125.480,00', variacao: 15.3, tendencia: 'up' as const },
+      { label: 'Despesa Total', valor: 'R$ 78.250,00', variacao: -5.2, tendencia: 'down' as const },
+      { label: 'Lucro Líquido', valor: 'R$ 47.230,00', variacao: 28.5, tendencia: 'up' as const }
+    ] : [];
+
+    const graficos = config.visualizacao.incluirGraficos ? [{
+      titulo: 'Evolução Financeira',
+      tipo: 'linha' as const,
+      dados: eachDayOfInterval({ start: config.periodo.inicio, end: config.periodo.fim }).slice(0, 30).map(date => ({
+        label: format(date, 'dd/MM', { locale: ptBR }),
+        receitas: 15000 + Math.random() * 5000,
+        despesas: 10000 + Math.random() * 3000
+      }))
+    }] : [];
+
+    const colunas = ['Data', 'Descrição', 'Categoria', 'Receitas', 'Despesas', 'Saldo'];
+    const linhas = [
+      [format(new Date(), 'dd/MM/yyyy'), 'Venda de produtos', 'Vendas', 'R$ 5.250,00', '-', 'R$ 5.250,00'],
+      [format(new Date(), 'dd/MM/yyyy'), 'Pagamento fornecedor', 'Operacional', '-', 'R$ 2.800,00', 'R$ 2.450,00'],
+      [format(new Date(), 'dd/MM/yyyy'), 'Serviços prestados', 'Serviços', 'R$ 8.500,00', '-', 'R$ 10.950,00'],
+      [format(new Date(), 'dd/MM/yyyy'), 'Salários', 'Pessoal', '-', 'R$ 15.000,00', 'R$ -4.050,00'],
+      [format(new Date(), 'dd/MM/yyyy'), 'Comissões', 'Vendas', 'R$ 3.200,00', '-', 'R$ -850,00']
+    ];
+
+    return { resumo, graficos, colunas, linhas };
   };
 
   const handlePreview = (config: ReportConfig) => {

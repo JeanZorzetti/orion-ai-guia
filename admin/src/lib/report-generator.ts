@@ -1,36 +1,53 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { ReportConfig, ReportData } from '@/types/report';
+import { generateAndDownloadPDF } from './pdf-generator';
+import { generateAndDownloadExcel } from './excel-generator';
 
-export interface ReportData {
-  titulo: string;
-  periodo: { inicio: Date; fim: Date };
-  dados: Record<string, string | number | Date>[];
-  resumo?: Record<string, string | number>;
-  cabecalhos?: string[];
-}
+// Re-export types for backward compatibility
+export type { ReportData, ReportConfig } from '@/types/report';
+
+// Função principal para gerar relatório no formato selecionado
+export const generateReport = async (
+  config: ReportConfig,
+  data: ReportData
+): Promise<void> => {
+  switch (config.exportacao.formato) {
+    case 'pdf':
+      await generateAndDownloadPDF(config, data);
+      break;
+    case 'excel':
+      await generateAndDownloadExcel(config, data);
+      break;
+    case 'csv':
+      exportToCSV(config, data);
+      break;
+    case 'json':
+      exportToJSON(config, data);
+      break;
+    default:
+      throw new Error(`Formato não suportado: ${config.exportacao.formato}`);
+  }
+};
 
 // Exportar para CSV
-export const exportToCSV = (data: ReportData): void => {
-  const { titulo, periodo, dados, cabecalhos } = data;
-
+export const exportToCSV = (config: ReportConfig, data: ReportData): void => {
   // Determinar cabeçalhos
-  const headers = cabecalhos || (dados.length > 0 ? Object.keys(dados[0]) : []);
+  const headers = data.colunas;
 
   // Criar conteúdo CSV
-  let csvContent = `${titulo}\n`;
-  csvContent += `Período: ${format(periodo.inicio, 'dd/MM/yyyy', { locale: ptBR })} a ${format(periodo.fim, 'dd/MM/yyyy', { locale: ptBR })}\n\n`;
+  let csvContent = `${config.nome}\n`;
+  csvContent += `Período: ${format(config.periodo.inicio, 'dd/MM/yyyy', { locale: ptBR })} a ${format(config.periodo.fim, 'dd/MM/yyyy', { locale: ptBR })}\n\n`;
 
   // Adicionar cabeçalhos
   csvContent += headers.join(',') + '\n';
 
   // Adicionar dados
-  dados.forEach(row => {
-    const values = headers.map(header => {
-      const value = row[header];
+  data.linhas.forEach(row => {
+    const values = row.map(value => {
       // Tratar valores especiais
       if (value === null || value === undefined) return '';
       if (typeof value === 'number') return value.toString();
-      if (value instanceof Date) return format(value, 'dd/MM/yyyy', { locale: ptBR });
       // Escapar vírgulas e aspas
       const stringValue = String(value);
       if (stringValue.includes(',') || stringValue.includes('"')) {
@@ -47,27 +64,36 @@ export const exportToCSV = (data: ReportData): void => {
   const url = URL.createObjectURL(blob);
 
   link.setAttribute('href', url);
-  link.setAttribute('download', `${sanitizeFilename(titulo)}_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`);
+  link.setAttribute('download', `${sanitizeFilename(config.nome)}_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`);
   link.style.visibility = 'hidden';
 
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
 // Exportar para JSON
-export const exportToJSON = (data: ReportData): void => {
-  const { titulo, periodo, dados, resumo } = data;
-
+export const exportToJSON = (config: ReportConfig, data: ReportData): void => {
   const jsonData = {
-    titulo,
+    nome: config.nome,
+    tipo: config.tipo,
+    subtipo: config.subtipo,
     periodo: {
-      inicio: format(periodo.inicio, 'yyyy-MM-dd'),
-      fim: format(periodo.fim, 'yyyy-MM-dd')
+      inicio: format(config.periodo.inicio, 'yyyy-MM-dd'),
+      fim: format(config.periodo.fim, 'yyyy-MM-dd')
     },
     geradoEm: new Date().toISOString(),
-    resumo,
-    dados
+    resumo: data.resumo,
+    graficos: data.graficos,
+    tabela: {
+      colunas: data.colunas,
+      linhas: data.linhas
+    },
+    config: {
+      visualizacao: config.visualizacao,
+      exportacao: config.exportacao
+    }
   };
 
   const jsonString = JSON.stringify(jsonData, null, 2);
@@ -76,54 +102,17 @@ export const exportToJSON = (data: ReportData): void => {
   const url = URL.createObjectURL(blob);
 
   link.setAttribute('href', url);
-  link.setAttribute('download', `${sanitizeFilename(titulo)}_${format(new Date(), 'yyyyMMdd_HHmmss')}.json`);
+  link.setAttribute('download', `${sanitizeFilename(config.nome)}_${format(new Date(), 'yyyyMMdd_HHmmss')}.json`);
   link.style.visibility = 'hidden';
 
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
-// Exportar para Excel (formato básico via CSV com extensão .xlsx)
-export const exportToExcel = (data: ReportData): void => {
-  const { titulo, periodo, dados, cabecalhos } = data;
-
-  // Usar mesma lógica do CSV mas com extensão .xlsx
-  const headers = cabecalhos || (dados.length > 0 ? Object.keys(dados[0]) : []);
-
-  let csvContent = `${titulo}\n`;
-  csvContent += `Período: ${format(periodo.inicio, 'dd/MM/yyyy', { locale: ptBR })} a ${format(periodo.fim, 'dd/MM/yyyy', { locale: ptBR })}\n\n`;
-
-  csvContent += headers.join('\t') + '\n'; // Usar TAB ao invés de vírgula
-
-  dados.forEach(row => {
-    const values = headers.map(header => {
-      const value = row[header];
-      if (value === null || value === undefined) return '';
-      if (typeof value === 'number') return value.toString();
-      if (value instanceof Date) return format(value, 'dd/MM/yyyy', { locale: ptBR });
-      return String(value);
-    });
-    csvContent += values.join('\t') + '\n';
-  });
-
-  const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-
-  link.setAttribute('href', url);
-  link.setAttribute('download', `${sanitizeFilename(titulo)}_${format(new Date(), 'yyyyMMdd_HHmmss')}.xls`);
-  link.style.visibility = 'hidden';
-
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
-// Imprimir relatório
-export const printReport = (data: ReportData): void => {
-  const { titulo, periodo, dados, resumo, cabecalhos } = data;
-
+// Imprimir relatório (versão básica - pode ser melhorada com html2canvas)
+export const printReport = (config: ReportConfig, data: ReportData): void => {
   // Criar janela de impressão
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
@@ -131,94 +120,154 @@ export const printReport = (data: ReportData): void => {
     return;
   }
 
-  const headers = cabecalhos || (dados.length > 0 ? Object.keys(dados[0]) : []);
-
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>${titulo}</title>
+      <title>${config.nome}</title>
       <style>
         body {
           font-family: Arial, sans-serif;
           padding: 20px;
+          color: #333;
+        }
+        .header {
+          text-align: center;
+          border-bottom: 3px solid #3b82f6;
+          padding-bottom: 20px;
+          margin-bottom: 30px;
         }
         h1 {
-          color: #333;
-          border-bottom: 2px solid #3b82f6;
-          padding-bottom: 10px;
+          color: #3b82f6;
+          margin: 0;
+          font-size: 28px;
         }
         .periodo {
           color: #666;
-          margin-bottom: 20px;
+          margin-top: 10px;
+          font-size: 14px;
+        }
+        .resumo {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 15px;
+          margin: 30px 0;
+        }
+        .kpi-card {
+          background-color: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 15px;
+        }
+        .kpi-label {
+          font-size: 12px;
+          color: #6b7280;
+          margin-bottom: 5px;
+        }
+        .kpi-value {
+          font-size: 22px;
+          font-weight: bold;
+          color: #111827;
+        }
+        .kpi-variacao {
+          font-size: 11px;
+          margin-top: 5px;
+        }
+        .kpi-variacao.positiva {
+          color: #10b981;
+        }
+        .kpi-variacao.negativa {
+          color: #ef4444;
         }
         table {
           width: 100%;
           border-collapse: collapse;
-          margin-top: 20px;
+          margin-top: 30px;
+          font-size: 12px;
         }
         th, td {
-          border: 1px solid #ddd;
-          padding: 8px;
+          border: 1px solid #e5e7eb;
+          padding: 10px;
           text-align: left;
         }
         th {
           background-color: #3b82f6;
           color: white;
+          font-weight: bold;
         }
         tr:nth-child(even) {
-          background-color: #f9f9f9;
+          background-color: #f9fafb;
         }
-        .resumo {
-          background-color: #f0f9ff;
-          padding: 15px;
-          border-radius: 5px;
-          margin: 20px 0;
+        .footer {
+          margin-top: 40px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          text-align: center;
+          font-size: 11px;
+          color: #9ca3af;
         }
         @media print {
-          body { padding: 0; }
+          body { padding: 10mm; }
+          .no-print { display: none; }
         }
       </style>
     </head>
     <body>
-      <h1>${titulo}</h1>
-      <div class="periodo">
-        Período: ${format(periodo.inicio, 'dd/MM/yyyy', { locale: ptBR })} a ${format(periodo.fim, 'dd/MM/yyyy', { locale: ptBR })}
+      <div class="header">
+        <h1>${config.nome}</h1>
+        <div class="periodo">
+          Período: ${format(config.periodo.inicio, 'dd/MM/yyyy', { locale: ptBR })} a ${format(config.periodo.fim, 'dd/MM/yyyy', { locale: ptBR })}
+        </div>
       </div>
 
-      ${resumo ? `
+      ${data.resumo.length > 0 ? `
         <div class="resumo">
-          <h3>Resumo</h3>
-          ${Object.entries(resumo).map(([key, value]) => `
-            <p><strong>${key}:</strong> ${value}</p>
+          ${data.resumo.map(item => `
+            <div class="kpi-card">
+              <div class="kpi-label">${item.label}</div>
+              <div class="kpi-value">${item.valor}</div>
+              ${item.variacao !== undefined ? `
+                <div class="kpi-variacao ${item.variacao > 0 ? 'positiva' : 'negativa'}">
+                  ${item.variacao > 0 ? '+' : ''}${item.variacao.toFixed(1)}% vs período anterior
+                </div>
+              ` : ''}
+            </div>
           `).join('')}
         </div>
       ` : ''}
 
-      <table>
-        <thead>
-          <tr>
-            ${headers.map(header => `<th>${header}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${dados.map(row => `
+      ${data.colunas.length > 0 ? `
+        <table>
+          <thead>
             <tr>
-              ${headers.map(header => {
-                const value = row[header];
-                if (value === null || value === undefined) return '<td></td>';
-                if (typeof value === 'number') return `<td>${value.toLocaleString('pt-BR')}</td>`;
-                if (value instanceof Date) return `<td>${format(value, 'dd/MM/yyyy', { locale: ptBR })}</td>`;
-                return `<td>${value}</td>`;
-              }).join('')}
+              ${data.colunas.map(header => `<th>${header}</th>`).join('')}
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${data.linhas.slice(0, 100).map(row => `
+              <tr>
+                ${row.map(cell => `<td>${cell}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ${data.linhas.length > 100 ? `
+          <p style="text-align: center; margin-top: 20px; color: #6b7280;">
+            Mostrando 100 de ${data.linhas.length} registros
+          </p>
+        ` : ''}
+      ` : ''}
+
+      <div class="footer">
+        <p>Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+        <p>Orion ERP - Sistema de Gestão Empresarial</p>
+      </div>
 
       <script>
         window.onload = function() {
-          window.print();
+          setTimeout(() => {
+            window.print();
+          }, 500);
         }
       </script>
     </body>
@@ -235,4 +284,9 @@ const sanitizeFilename = (filename: string): string => {
     .replace(/[^a-z0-9]/gi, '_')
     .replace(/_+/g, '_')
     .toLowerCase();
+};
+
+// Backward compatibility function for old Cash Flow module
+export const exportToExcel = (config: ReportConfig, data: ReportData): Promise<void> => {
+  return generateAndDownloadExcel(config, data);
 };

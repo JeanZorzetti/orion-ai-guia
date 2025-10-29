@@ -58,85 +58,118 @@ export const ReportGenerator: React.FC = () => {
     switch (reportConfig.tipo) {
       case 'fluxo-caixa':
         reportData = {
-          titulo: 'Relatório de Fluxo de Caixa',
-          periodo: reportConfig.periodo,
-          dados: projection.map(p => ({
-            'Data': format(p.data, 'dd/MM/yyyy', { locale: ptBR }),
-            'Saldo Inicial': p.saldoInicial,
-            'Entradas': p.entradasPrevistas,
-            'Saídas': p.saidasPrevistas,
-            'Saldo Final': p.saldoFinalPrevisto,
-            'Confiança (%)': p.confianca.toFixed(1),
-            'Status': p.origem
-          })),
-          resumo: {
-            'Saldo Mínimo': `R$ ${Math.min(...projection.map(p => p.saldoFinalPrevisto)).toLocaleString('pt-BR')}`,
-            'Saldo Máximo': `R$ ${Math.max(...projection.map(p => p.saldoFinalPrevisto)).toLocaleString('pt-BR')}`,
-            'Total de Dias': projection.length
-          }
+          resumo: [
+            { label: 'Saldo Mínimo', valor: `R$ ${Math.min(...projection.map(p => p.saldoFinalPrevisto)).toLocaleString('pt-BR')}` },
+            { label: 'Saldo Máximo', valor: `R$ ${Math.max(...projection.map(p => p.saldoFinalPrevisto)).toLocaleString('pt-BR')}` },
+            { label: 'Total de Dias', valor: projection.length.toString() }
+          ],
+          graficos: [],
+          colunas: ['Data', 'Saldo Inicial', 'Entradas', 'Saídas', 'Saldo Final', 'Confiança (%)', 'Status'],
+          linhas: projection.map(p => [
+            format(p.data, 'dd/MM/yyyy', { locale: ptBR }),
+            p.saldoInicial.toString(),
+            p.entradasPrevistas.toString(),
+            p.saidasPrevistas.toString(),
+            p.saldoFinalPrevisto.toString(),
+            p.confianca.toFixed(1),
+            p.origem
+          ])
         };
         break;
 
       case 'balanco':
         reportData = {
-          titulo: 'Relatório de Contas Bancárias',
-          periodo: reportConfig.periodo,
-          dados: accounts.map(a => ({
-            'Conta': a.nome,
-            'Banco': a.banco,
-            'Tipo': a.tipo,
-            'Saldo': a.saldo,
-            'Status': a.ativa ? 'Ativa' : 'Inativa'
-          })),
-          resumo: {
-            'Total de Contas': accounts.length,
-            'Contas Ativas': accounts.filter(a => a.ativa).length,
-            'Saldo Total': `R$ ${accounts.reduce((sum, a) => sum + a.saldo, 0).toLocaleString('pt-BR')}`
-          }
+          resumo: [
+            { label: 'Total de Contas', valor: accounts.length.toString() },
+            { label: 'Contas Ativas', valor: accounts.filter(a => a.ativa).length.toString() },
+            { label: 'Saldo Total', valor: `R$ ${accounts.reduce((sum, a) => sum + a.saldo, 0).toLocaleString('pt-BR')}` }
+          ],
+          graficos: [],
+          colunas: ['Conta', 'Banco', 'Tipo', 'Saldo', 'Status'],
+          linhas: accounts.map(a => [
+            a.nome,
+            a.banco,
+            a.tipo,
+            a.saldo.toString(),
+            a.ativa ? 'Ativa' : 'Inativa'
+          ])
         };
         break;
 
       case 'dre':
         reportData = {
-          titulo: 'Demonstrativo de KPIs Financeiros',
-          periodo: reportConfig.periodo,
-          dados: kpis ? [
-            { 'Indicador': 'Liquidez Imediata', 'Valor': kpis.liquidezImediata.toFixed(2) },
-            { 'Indicador': 'Liquidez Corrente', 'Valor': kpis.liquidezCorrente.toFixed(2) },
-            { 'Indicador': 'PMR (dias)', 'Valor': kpis.pmr.toFixed(0) },
-            { 'Indicador': 'PMP (dias)', 'Valor': kpis.pmp.toFixed(0) },
-            { 'Indicador': 'Ciclo Financeiro (dias)', 'Valor': kpis.cicloFinanceiro.toFixed(0) },
-            { 'Indicador': 'Margem Líquida (%)', 'Valor': kpis.margemLiquida.toFixed(1) },
-            { 'Indicador': 'Margem EBITDA (%)', 'Valor': kpis.margemEbitda.toFixed(1) },
-            { 'Indicador': 'ROA (%)', 'Valor': kpis.returnOnAssets.toFixed(1) },
-            { 'Indicador': 'ROE (%)', 'Valor': kpis.returnOnEquity.toFixed(1) },
-            { 'Indicador': 'Burn Rate (R$)', 'Valor': kpis.burnRate.toFixed(2) },
-            { 'Indicador': 'Runway (meses)', 'Valor': kpis.runway.toFixed(1) }
+          resumo: [],
+          graficos: [],
+          colunas: ['Indicador', 'Valor'],
+          linhas: kpis ? [
+            ['Liquidez Imediata', kpis.liquidezImediata.toFixed(2)],
+            ['Liquidez Corrente', kpis.liquidezCorrente.toFixed(2)],
+            ['PMR (dias)', kpis.pmr.toFixed(0)],
+            ['PMP (dias)', kpis.pmp.toFixed(0)],
+            ['Ciclo Financeiro (dias)', kpis.cicloFinanceiro.toFixed(0)],
+            ['Margem Líquida (%)', kpis.margemLiquida.toFixed(1)],
+            ['Margem EBITDA (%)', kpis.margemEbitda.toFixed(1)],
+            ['ROA (%)', kpis.returnOnAssets.toFixed(1)],
+            ['ROE (%)', kpis.returnOnEquity.toFixed(1)],
+            ['Burn Rate (R$)', kpis.burnRate.toFixed(2)],
+            ['Runway (meses)', kpis.runway.toFixed(1)]
           ] : []
         };
         break;
 
       default:
         reportData = {
-          titulo: reportConfig.nome,
-          periodo: reportConfig.periodo,
-          dados: []
+          resumo: [],
+          graficos: [],
+          colunas: [],
+          linhas: []
         };
     }
+
+    // Criar config básico para os novos geradores
+    const config = {
+      id: Math.random().toString(),
+      tipo: 'financeiro' as const,
+      subtipo: reportConfig.tipo,
+      nome: reportConfig.nome,
+      periodo: {
+        tipo: 'customizado' as const,
+        inicio: reportConfig.periodo.inicio,
+        fim: reportConfig.periodo.fim
+      },
+      filtros: {},
+      agrupamento: {
+        campo: 'dia' as const,
+        ordem: 'desc' as const
+      },
+      visualizacao: {
+        incluirGraficos: reportConfig.opcoes.incluirGraficos,
+        incluirTabelas: true,
+        incluirResumo: true,
+        incluirComparativo: reportConfig.opcoes.incluirComparativo
+      },
+      exportacao: {
+        formato: formato as 'pdf' | 'excel' | 'csv' | 'json',
+        orientacao: 'portrait' as const,
+        incluirCapa: true,
+        incluirIndice: false,
+        logoEmpresa: true
+      }
+    };
 
     // Executar exportação
     switch (formato) {
       case 'csv':
-        exportToCSV(reportData);
+        exportToCSV(config, reportData);
         break;
       case 'excel':
-        exportToExcel(reportData);
+        exportToExcel(config, reportData);
         break;
       case 'json':
-        exportToJSON(reportData);
+        exportToJSON(config, reportData);
         break;
       case 'print':
-        printReport(reportData);
+        printReport(config, reportData);
         break;
     }
   };

@@ -74,7 +74,8 @@
       "Bash(chmod:*)",
       "Bash(git rm:*)",
       "Bash(timeout 120 npm run build)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(git check-ignore:*)"
     ],
     "deny": [],
     "ask": []
