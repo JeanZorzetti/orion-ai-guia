@@ -2363,12 +2363,18 @@ export const ReportBuilder: React.FC = () => {
 
 ## Priorização e Cronograma Sugerido
 
-### Sprint 1 (3 semanas) - Fase 1
-- Configurador de relatórios
-- Preview de relatórios
-- Filtros avançados
+### ✅ Sprint 1 (3 semanas) - Fase 1 - CONCLUÍDA
+
+- ✅ Configurador de relatórios
+- ✅ Preview de relatórios
+- ✅ Seleção de período com calendário
+- ✅ Atalhos rápidos
+- ✅ Configuração de visualização
+- ✅ Configuração de exportação
+- ⏭️ Filtros avançados (próxima fase)
 - **Valor:** Base para todo o sistema
 - **Complexidade:** Alta
+- **Status:** Implementado em 29/10/2025
 
 ### Sprint 2 (3 semanas) - Fase 2
 - Geração real de PDF
