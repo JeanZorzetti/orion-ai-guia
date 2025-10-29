@@ -21,6 +21,7 @@ import { ReportConfigurator } from '@/components/relatorios/ReportConfigurator';
 import { ReportPreview } from '@/components/relatorios/ReportPreview';
 import { ReportHistory } from '@/components/relatorios/ReportHistory';
 import { ReportTemplates } from '@/components/relatorios/ReportTemplates';
+import { ScheduledReportsList } from '@/components/relatorios/ScheduledReportsList';
 import type { ReportConfig } from '@/types/report';
 import { generateReport } from '@/lib/report-generator';
 import { format, eachDayOfInterval } from 'date-fns';
@@ -179,7 +180,7 @@ const RelatoriosFinanceirosPage: React.FC = () => {
 
       {/* Tabs de navegação */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-3 mb-4">
+        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-4 mb-4">
           <TabsTrigger value="gerar" className="gap-2">
             <FileText className="h-4 w-4" />
             Gerar Relatório
@@ -187,6 +188,10 @@ const RelatoriosFinanceirosPage: React.FC = () => {
           <TabsTrigger value="templates" className="gap-2">
             <Layout className="h-4 w-4" />
             Templates
+          </TabsTrigger>
+          <TabsTrigger value="agendamentos" className="gap-2">
+            <Calendar className="h-4 w-4" />
+            Agendamentos
           </TabsTrigger>
           <TabsTrigger value="historico" className="gap-2">
             <History className="h-4 w-4" />
@@ -325,6 +330,10 @@ const RelatoriosFinanceirosPage: React.FC = () => {
 
         <TabsContent value="templates" className="space-y-6">
           <ReportTemplates onUseTemplate={handleUseTemplate} />
+        </TabsContent>
+
+        <TabsContent value="agendamentos" className="space-y-6">
+          <ScheduledReportsList />
         </TabsContent>
 
         <TabsContent value="historico" className="space-y-6">

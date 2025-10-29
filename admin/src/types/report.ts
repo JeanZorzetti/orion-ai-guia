@@ -233,7 +233,17 @@ export interface ReportTemplateFilter {
   busca?: string;
 }
 
+export interface ReportScheduleFilter {
+  ativo?: boolean;
+  tipo?: ReportTipo[];
+  frequencia?: ReportSchedule['frequencia']['tipo'][];
+  criadoPor?: string[];
+  busca?: string;
+}
+
 // Helper types
 export type ReportTipo = ReportConfig['tipo'];
 export type ReportFormato = ReportConfig['exportacao']['formato'];
 export type ReportStatus = GeneratedReport['status'];
+export type ReportFrequencia = ReportSchedule['frequencia']['tipo'];
+export type ReportExecutionStatus = ReportSchedule['execucoes'][0]['status'];
