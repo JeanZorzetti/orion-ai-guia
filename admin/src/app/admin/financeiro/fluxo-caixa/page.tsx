@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   Calendar,
   TrendingUp,
-  TrendingDown,
   DollarSign,
   ArrowUpCircle,
   ArrowDownCircle,
@@ -20,6 +19,7 @@ import { MultiAccountManagement } from '@/components/financeiro/fluxo-caixa/Mult
 import { AccountTransfers } from '@/components/financeiro/fluxo-caixa/AccountTransfers';
 import { SmartAlerts } from '@/components/financeiro/fluxo-caixa/SmartAlerts';
 import { AIRecommendations } from '@/components/financeiro/fluxo-caixa/AIRecommendations';
+import { ReportGenerator } from '@/components/financeiro/fluxo-caixa/ReportGenerator';
 
 const FluxoCaixaPage: React.FC = () => {
   const movimentacoes = [
@@ -156,6 +156,9 @@ const FluxoCaixaPage: React.FC = () => {
 
       {/* Recomendações de IA */}
       <AIRecommendations />
+
+      {/* Gerador de Relatórios */}
+      <ReportGenerator />
 
       {/* Gráfico de Fluxo Semanal */}
       <Card>
