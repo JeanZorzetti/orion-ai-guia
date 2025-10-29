@@ -1158,9 +1158,96 @@ export const SupplierComparison: React.FC = () => {
 
 ---
 
-## Fase 4: Gestão de Descontos e Negociações 💰
+## Fase 4: Gestão de Descontos e Negociações 💰 ✅
+
+**Status:** ✅ **CONCLUÍDA**
+**Data:** 29/10/2025
+**Commit:** `90dfc9e4`
 
 **Objetivo:** Otimizar economia através de gestão inteligente de descontos.
+
+**Implementado:**
+- ✅ Types completos para descontos e negociações (discount.ts)
+- ✅ Hook `useDiscountOpportunities` - Gestão de oportunidades
+- ✅ Hook `useDiscountSummary` - Métricas de descontos
+- ✅ Hook `useNegotiations` - Histórico de negociações
+- ✅ Hook `useNegotiationSummary` - KPIs de negociações
+- ✅ Componente `DiscountOpportunities` - Painel de oportunidades
+- ✅ Componente `NegotiationHistory` - Histórico completo
+- ✅ Página `/descontos` com 2 tabs
+- ✅ Sistema de categorização de descontos
+- ✅ Alertas de urgência com countdown
+- ✅ 6 oportunidades mock + 7 negociações mock
+
+**Tipos de Desconto:**
+1. Pagamento Antecipado (até 5% desconto)
+2. Volume (até 8% desconto)
+3. Primeira Compra (até 10% desconto)
+4. Fidelidade (até 4% desconto)
+5. Sazonal (variável)
+
+**Tipos de Negociação:**
+1. Desconto - Negociação de percentual
+2. Prazo - Extensão de prazo de pagamento
+3. Parcelamento - Divisão do pagamento
+4. Condições - Negociação de termos gerais
+
+**Funcionalidades de Descontos:**
+- Cards de resumo com 4 KPIs principais
+- Lista de oportunidades com badges coloridos
+- Sistema de urgência (crítico < 2 dias)
+- Status: Disponível, Aproveitado, Expirado
+- Detalhamento por categoria
+- Ações: Aproveitar desconto, Ver fatura
+- Alertas visuais para descontos expirando
+
+**Funcionalidades de Negociações:**
+- Cards de resumo com 4 KPIs
+- Tabela comparativa completa
+- Timeline de datas (início/fechamento)
+- Status: Em negociação, Aceita, Recusada
+- Detalhamento específico por tipo
+- Indicadores de economia (verde/vermelho)
+- Percentual de economia calculado
+- Histórico detalhado por negociação
+
+**KPIs Implementados:**
+- Total de descontos disponíveis
+- Economia potencial (R$ disponível)
+- Descontos expirados (valor perdido)
+- Taxa de aproveitamento (%)
+- Total de negociações
+- Taxa de sucesso (%)
+- Economia total obtida
+- Economia média por negociação
+
+**Oportunidades Mock:**
+1. Alpha Ltda - R$ 15.000 - 5% (R$ 750) - 2 dias
+2. Beta S.A. - R$ 8.500 - 3% (R$ 255) - 5 dias
+3. Gamma Ltda - R$ 22.000 - 8% (R$ 1.760) - 10 dias
+4. Delta Ltda - R$ 5.000 - 10% (R$ 500) - 15 dias
+5. Epsilon S.A. - R$ 12.500 - 4% (R$ 500) - 7 dias
+Total: R$ 3.765 em economia potencial
+
+**Negociações Mock:**
+- 7 negociações totais
+- 4 aceitas (R$ 3.000 economia)
+- 1 recusada
+- 2 em andamento
+- Taxa de sucesso: 60%
+
+**Arquivos criados:**
+- `admin/src/types/discount.ts`
+- `admin/src/hooks/useDiscountOpportunities.ts`
+- `admin/src/hooks/useNegotiations.ts`
+- `admin/src/components/financeiro/contas-a-pagar/DiscountOpportunities.tsx`
+- `admin/src/components/financeiro/contas-a-pagar/NegotiationHistory.tsx`
+- `admin/src/app/admin/financeiro/contas-a-pagar/descontos/page.tsx`
+
+**Arquivos modificados:**
+- `admin/src/components/layout/AdminSidebar.tsx`
+
+---
 
 ### 4.1 Painel de Descontos Disponíveis
 
