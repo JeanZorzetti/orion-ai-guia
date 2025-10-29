@@ -25,6 +25,7 @@ import {
   CheckCircle,
   Users,
   Percent,
+  Building2,
   type LucideIcon
 } from 'lucide-react';
 import { User } from '@/types';
@@ -89,6 +90,11 @@ const navigation = [
             name: 'Descontos',
             href: '/admin/financeiro/contas-a-pagar/descontos',
             icon: Percent,
+          },
+          {
+            name: 'Conciliação',
+            href: '/admin/financeiro/contas-a-pagar/conciliacao',
+            icon: Building2,
           },
         ],
       },
