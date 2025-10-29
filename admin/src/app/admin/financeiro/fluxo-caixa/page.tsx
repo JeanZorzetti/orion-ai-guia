@@ -18,6 +18,8 @@ import { FinancialKPIs } from '@/components/financeiro/fluxo-caixa/FinancialKPIs
 import { BreakEvenAnalysis } from '@/components/financeiro/fluxo-caixa/BreakEvenAnalysis';
 import { MultiAccountManagement } from '@/components/financeiro/fluxo-caixa/MultiAccountManagement';
 import { AccountTransfers } from '@/components/financeiro/fluxo-caixa/AccountTransfers';
+import { SmartAlerts } from '@/components/financeiro/fluxo-caixa/SmartAlerts';
+import { AIRecommendations } from '@/components/financeiro/fluxo-caixa/AIRecommendations';
 
 const FluxoCaixaPage: React.FC = () => {
   const movimentacoes = [
@@ -148,6 +150,12 @@ const FluxoCaixaPage: React.FC = () => {
 
       {/* Transferências Entre Contas */}
       <AccountTransfers />
+
+      {/* Alertas Inteligentes */}
+      <SmartAlerts />
+
+      {/* Recomendações de IA */}
+      <AIRecommendations />
 
       {/* Gráfico de Fluxo Semanal */}
       <Card>
