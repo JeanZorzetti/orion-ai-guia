@@ -18,8 +18,10 @@ import {
   Package,
   Download,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Target
 } from 'lucide-react';
+import Link from 'next/link';
 import { saleService } from '@/services/sale';
 import { integrationService } from '@/services/integration';
 import { Sale } from '@/types';
@@ -381,6 +383,13 @@ const VendasPage: React.FC = () => {
               </p>
             </div>
             <div className="flex gap-2">
+              <Link href="/admin/vendas/funil">
+                <Button variant="outline" className="bg-purple-50">
+                  <Target className="h-4 w-4 mr-2" />
+                  Funil de Vendas
+                  <Badge className="ml-2 bg-green-600">Novo</Badge>
+                </Button>
+              </Link>
               <Button
                 variant="outline"
                 onClick={handleSyncShopify}
