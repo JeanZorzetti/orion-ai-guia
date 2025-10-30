@@ -25,7 +25,7 @@ app = FastAPI(
 # Solução: Forçar wildcard incondicional
 
 print("=" * 60)
-print("🌐 CORS Configuration [v3.0 - WILDCARD TOTAL]")
+print("CORS Configuration [v3.0 - WILDCARD TOTAL]")
 print(f"   Environment: {os.getenv('ENVIRONMENT', 'development')}")
 print(f"   CORS Origins: ['*'] (PERMITINDO TODAS AS ORIGENS)")
 print("=" * 60)
@@ -64,9 +64,9 @@ async def startup_event():
     try:
         # Create all tables
         Base.metadata.create_all(bind=engine)
-        print("✓ Database tables created successfully")
+        print("Database tables created successfully")
     except Exception as e:
-        print(f"⚠ Warning: Could not create database tables: {e}")
+        print(f"WARNING: Could not create database tables: {e}")
         print("Application will continue, but database operations may fail")
 
 
