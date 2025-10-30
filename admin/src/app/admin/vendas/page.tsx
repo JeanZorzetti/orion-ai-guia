@@ -21,7 +21,8 @@ import {
   RefreshCw,
   Target,
   Truck,
-  Store
+  Store,
+  BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
 import { saleService } from '@/services/sale';
@@ -403,6 +404,13 @@ const VendasPage: React.FC = () => {
                 <Button variant="outline" className="bg-orange-50">
                   <Store className="h-4 w-4 mr-2" />
                   Marketplace
+                  <Badge className="ml-2 bg-green-600">Novo</Badge>
+                </Button>
+              </Link>
+              <Link href="/admin/vendas/analytics">
+                <Button variant="outline" className="bg-indigo-50">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Analytics
                   <Badge className="ml-2 bg-green-600">Novo</Badge>
                 </Button>
               </Link>
