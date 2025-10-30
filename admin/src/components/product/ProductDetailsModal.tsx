@@ -4,15 +4,15 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Eye, Edit, Trash2, Package, DollarSign, TrendingUp, AlertTriangle, CheckCircle, BarChart3 } from 'lucide-react';
 import { Product } from '@/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useDemandForecast } from '@/hooks/useDemandForecast';
-import { DemandForecastView } from './DemandForecastView';
+// import { useDemandForecast } from '@/hooks/useDemandForecast';
+// import { DemandForecastView } from './DemandForecastView';
 
 interface ProductDetailsModalProps {
   open: boolean;
@@ -35,13 +35,13 @@ export function ProductDetailsModal({
   const [forecastPeriod, setForecastPeriod] = useState<'2_weeks' | '4_weeks' | '8_weeks' | '12_weeks'>('4_weeks');
 
   // Hook para carregar previsão de demanda
-  const { data: forecast, loading: forecastLoading, error: forecastError, refetch: refetchForecast } = useDemandForecast(
-    product?.id || null,
-    {
-      enabled: open && activeTab === 'forecast',
-      period: forecastPeriod
-    }
-  );
+  // const { data: forecast, loading: forecastLoading, error: forecastError, refetch: refetchForecast } = useDemandForecast(
+  //   product?.id || null,
+  //   {
+  //     enabled: open && activeTab === 'forecast',
+  //     period: forecastPeriod
+  //   }
+  // );
 
   if (!product) return null;
 
@@ -324,16 +324,19 @@ export function ProductDetailsModal({
           </TabsContent>
 
           <TabsContent value="forecast" className="mt-6">
-            <DemandForecastView
-              productId={product.id}
-              data={forecast}
-              loading={forecastLoading}
-              error={forecastError}
-              onDataGenerated={refetchForecast}
-              onRefresh={refetchForecast}
-              period={forecastPeriod}
-              onPeriodChange={setForecastPeriod}
-            />
+            <Card>
+              <CardHeader>
+                <CardTitle>Previsão de Demanda</CardTitle>
+                <CardDescription>
+                  A previsão de demanda foi migrada para o módulo de Automação e IA
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600">
+                  Acesse <strong>Estoque → Automação e IA</strong> para visualizar previsões de demanda com inteligência artificial.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </DialogContent>

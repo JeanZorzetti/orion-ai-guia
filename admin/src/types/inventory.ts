@@ -558,3 +558,309 @@ export interface StockMovementFilters {
   user_id?: string;
   search?: string;
 }
+
+// ============================================
+// FASE 2: AUTOMAÇÃO E INTELIGÊNCIA
+// ============================================
+
+// 2.1 Previsão de Demanda com IA
+export interface DemandForecast {
+  id: string;
+  product_id: number;
+  product_name: string;
+  warehouse_id?: string;
+
+  // Previsão
+  forecast_date: Date;
+  forecast_period: 'day' | 'week' | 'month' | 'quarter';
+  predicted_demand: number;
+  confidence_interval: {
+    lower: number;
+    upper: number;
+    confidence_level: number; // 95%
+  };
+
+  // Fatores considerados
+  factors: {
+    historical_sales: number;
+    seasonality_impact: number;
+    trend_direction: 'increasing' | 'stable' | 'decreasing';
+    external_events?: string[]; // Feriados, campanhas, etc.
+    weather_impact?: number;
+    economic_indicators?: number;
+  };
+
+  // Algoritmo
+  model_type: 'arima' | 'exponential_smoothing' | 'prophet' | 'ml_ensemble';
+  accuracy_score: number; // % de acurácia histórica
+
+  generated_at: Date;
+}
+
+export interface StockOptimization {
+  id: string;
+  product_id: number;
+  product_name: string;
+  warehouse_id?: string;
+
+  // Ponto de pedido
+  reorder_point: number; // Quando pedir
+  safety_stock: number; // Estoque de segurança
+  optimal_order_quantity: number; // Quanto pedir (EOQ)
+  max_stock_level: number; // Estoque máximo
+
+  // Cálculos
+  avg_daily_demand: number;
+  lead_time_days: number;
+  service_level_target: number; // 95%, 99%, etc.
+
+  // Custos
+  holding_cost_per_unit: number;
+  ordering_cost: number;
+  stockout_cost_estimate: number;
+
+  // Recomendação
+  current_stock: number;
+  recommended_action: 'order_now' | 'order_soon' | 'sufficient' | 'excess';
+  days_until_stockout?: number;
+  suggested_order_date?: Date;
+
+  updated_at: Date;
+}
+
+export interface PurchaseSuggestion {
+  id: string;
+  product_id: number;
+  product_name: string;
+  suggested_quantity: number;
+  estimated_cost: number;
+  priority: 'urgent' | 'high' | 'medium' | 'low';
+
+  // Justificativa
+  reason: string; // Ex: "Estoque crítico - 3 dias até ruptura"
+  forecast_demand: number;
+  current_stock: number;
+  lead_time_days: number;
+
+  // Fornecedor
+  recommended_supplier_id?: number;
+  recommended_supplier_name?: string;
+  alternative_suppliers?: {
+    id: number;
+    name: string;
+    price: number;
+    lead_time: number;
+  }[];
+
+  // Timeline
+  order_by_date: Date;
+  expected_delivery_date: Date;
+
+  // Status
+  status: 'pending' | 'approved' | 'ordered' | 'dismissed';
+  approved_by?: string;
+  approved_at?: Date;
+  dismissed_reason?: string;
+
+  created_at: Date;
+  updated_at: Date;
+}
+
+// 2.2 Alertas e Notificações Inteligentes
+export interface StockAlert {
+  id: string;
+  type: 'low_stock' | 'critical_stock' | 'overstock' | 'expiring_soon' | 'expired' | 'slow_moving' | 'fast_moving' | 'stockout_risk';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+
+  // Produto
+  product_id: number;
+  product_name: string;
+  warehouse_id?: string;
+  warehouse_name?: string;
+  batch_id?: string;
+
+  // Detalhes
+  message: string;
+  current_value: number;
+  threshold_value: number;
+  recommended_action: string;
+
+  // Notificação
+  notify_users: string[];
+  notification_channels: ('email' | 'sms' | 'push' | 'whatsapp')[];
+  sent_at?: Date;
+
+  // Status
+  status: 'active' | 'acknowledged' | 'resolved' | 'dismissed';
+  acknowledged_by?: string;
+  acknowledged_at?: Date;
+  resolved_at?: Date;
+  resolution_notes?: string;
+
+  created_at: Date;
+}
+
+export interface AlertRule {
+  id: string;
+  name: string;
+  description?: string;
+  type: StockAlert['type'];
+  is_active: boolean;
+
+  // Condições
+  conditions: {
+    metric: 'quantity' | 'days' | 'percentage' | 'value' | 'turnover_rate';
+    operator: '<' | '>' | '<=' | '>=' | '=';
+    threshold: number;
+  }[];
+
+  // Escopo
+  applies_to: 'all' | 'category' | 'products' | 'warehouse';
+  category_ids?: number[];
+  product_ids?: number[];
+  warehouse_ids?: string[];
+
+  // Ações
+  auto_actions: ('create_purchase_suggestion' | 'send_notification' | 'create_transfer' | 'create_task')[];
+  notification_template: string;
+  notify_users: string[];
+  notification_channels: ('email' | 'sms' | 'push' | 'whatsapp')[];
+
+  // Frequência
+  check_frequency: 'realtime' | 'hourly' | 'daily' | 'weekly';
+  last_checked_at?: Date;
+
+  created_by: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// 2.3 Movimentações Automatizadas
+export interface AutomationSettings {
+  workspace_id: number;
+
+  // Configuração de movimentações
+  auto_reserve_on_sale: boolean; // Reservar ao vender
+  auto_deduct_on_shipment: boolean; // Deduzir ao expedir
+  auto_receive_on_delivery: boolean; // Receber ao entregar
+  auto_return_on_cancellation: boolean; // Devolver ao cancelar
+
+  // FIFO/LIFO (já existe em InventorySettings, mas adicionando aqui para consistência)
+  stock_valuation_method: 'fifo' | 'lifo' | 'average_cost';
+  prefer_near_expiry: boolean; // Priorizar lotes próximos ao vencimento
+
+  // Validações
+  prevent_negative_stock: boolean;
+  warn_on_low_stock: boolean;
+  require_approval_threshold?: number; // Valor acima do qual precisa aprovação
+
+  // Automação de compras
+  auto_generate_purchase_suggestions: boolean;
+  auto_approve_below_amount?: number; // Auto-aprovar compras abaixo deste valor
+
+  updated_at: Date;
+  updated_by: string;
+}
+
+export interface MovementRule {
+  id: string;
+  name: string;
+  description?: string;
+  trigger: 'time' | 'event' | 'condition';
+  is_active: boolean;
+
+  // Gatilho temporal
+  schedule?: {
+    frequency: 'daily' | 'weekly' | 'monthly';
+    time: string; // HH:mm
+    day_of_week?: number; // 0-6 (domingo-sábado)
+    day_of_month?: number; // 1-31
+  };
+
+  // Gatilho por evento
+  event?: 'sale_completed' | 'purchase_received' | 'stock_below_min' | 'transfer_completed' | 'inventory_completed';
+
+  // Condição
+  condition?: {
+    field: string;
+    operator: '<' | '>' | '<=' | '>=' | '=' | '!=';
+    value: number | string;
+  };
+
+  // Escopo
+  applies_to?: {
+    product_ids?: number[];
+    category_ids?: number[];
+    warehouse_ids?: string[];
+  };
+
+  // Ação
+  action: 'transfer' | 'adjust' | 'order' | 'alert' | 'email';
+  action_params: Record<string, any>;
+
+  // Execução
+  last_executed_at?: Date;
+  execution_count: number;
+  last_execution_status?: 'success' | 'failed';
+  last_execution_error?: string;
+
+  created_by: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface AutomationLog {
+  id: string;
+  rule_id?: string;
+  rule_name?: string;
+  automation_type: 'movement' | 'alert' | 'purchase' | 'transfer' | 'notification';
+
+  // Detalhes
+  action_taken: string;
+  triggered_by: 'rule' | 'system' | 'user';
+  trigger_details?: string;
+
+  // Resultado
+  status: 'success' | 'failed' | 'partial';
+  error_message?: string;
+  affected_items: {
+    product_id?: number;
+    warehouse_id?: string;
+    quantity?: number;
+  }[];
+
+  executed_at: Date;
+  execution_time_ms: number;
+}
+
+// Filters
+export interface DemandForecastFilters {
+  product_id?: number;
+  warehouse_id?: string;
+  forecast_period?: DemandForecast['forecast_period'];
+  date_from?: Date;
+  date_to?: Date;
+  model_type?: DemandForecast['model_type'];
+  min_accuracy?: number;
+}
+
+export interface StockAlertFilters {
+  type?: StockAlert['type'][];
+  severity?: StockAlert['severity'][];
+  status?: StockAlert['status'][];
+  product_id?: number;
+  warehouse_id?: string;
+  date_from?: Date;
+  date_to?: Date;
+  search?: string;
+}
+
+export interface PurchaseSuggestionFilters {
+  priority?: PurchaseSuggestion['priority'][];
+  status?: PurchaseSuggestion['status'][];
+  product_id?: number;
+  supplier_id?: number;
+  date_from?: Date;
+  date_to?: Date;
+  search?: string;
+}

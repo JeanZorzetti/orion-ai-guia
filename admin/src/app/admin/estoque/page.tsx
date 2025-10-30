@@ -11,7 +11,8 @@ import {
   ArrowRight,
   Boxes,
   Warehouse,
-  Calendar
+  Calendar,
+  Brain
 } from 'lucide-react';
 
 const EstoquePage: React.FC = () => {
@@ -54,6 +55,15 @@ const EstoquePage: React.FC = () => {
       href: '/admin/estoque/depositos',
       color: 'text-indigo-500',
       bgColor: 'bg-indigo-50 dark:bg-indigo-950/20',
+      badge: 'Novo',
+    },
+    {
+      titulo: 'Automação e IA',
+      descricao: 'Previsão de demanda, otimização e alertas inteligentes',
+      icon: Brain,
+      href: '/admin/estoque/automacao',
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-50 dark:bg-purple-950/20',
       badge: 'Novo',
     },
     {
