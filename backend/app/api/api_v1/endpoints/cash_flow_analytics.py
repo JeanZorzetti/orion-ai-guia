@@ -1,0 +1,474 @@
+"""
+Endpoints de Analytics e Projeções para Fluxo de Caixa
+
+Fornece APIs para análises financeiras avançadas:
+- Resumo e KPIs do período
+- Análise por categoria e conta
+- Histórico de saldo
+- Projeções futuras
+- Burn rate e runway
+- Health score financeiro
+
+Fase: 2.2 - Sprint Backend Cash Flow Analytics
+Referência: roadmaps/ROADMAP_FINANCEIRO_INTEGRACAO.md
+Autor: Sistema Orion ERP
+Data: 2025-01-30
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_, func, extract, case, desc
+from typing import List, Optional, Dict, Any
+from datetime import datetime, date, timedelta
+from collections import defaultdict
+
+from app.core.deps import get_current_user, get_db
+from app.models.user import User
+from app.models.cash_flow import BankAccount, CashFlowTransaction, TransactionType
+from app.schemas.cash_flow import (
+    CashFlowSummary,
+    CategorySummary,
+    BalanceHistory,
+    CashFlowProjection,
+    CashFlowAnalytics,
+    AccountBalanceSummary,
+    TransactionTypeEnum,
+)
+
+router = APIRouter()
+
+
+# ============================================
+# ANALYTICS ENDPOINTS
+# ============================================
+
+@router.get("/analytics/summary", response_model=CashFlowSummary)
+def get_cash_flow_summary(
+    start_date: date = Query(..., description="Data inicial do período"),
+    end_date: date = Query(..., description="Data final do período"),
+    account_id: Optional[int] = Query(None, description="Filtrar por conta específica"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Resumo de fluxo de caixa do período
+
+    Retorna KPIs principais: entradas, saídas, fluxo líquido, médias diárias.
+    """
+    # Query base
+    query = db.query(CashFlowTransaction).filter(
+        and_(
+            CashFlowTransaction.workspace_id == current_user.workspace_id,
+            CashFlowTransaction.transaction_date >= datetime.combine(start_date, datetime.min.time()),
+            CashFlowTransaction.transaction_date <= datetime.combine(end_date, datetime.max.time())
+        )
+    )
+
+    if account_id:
+        query = query.filter(CashFlowTransaction.account_id == account_id)
+
+    transactions = query.all()
+
+    # Calcular métricas
+    total_entries = sum(t.value for t in transactions if t.type == TransactionType.ENTRADA.value)
+    total_exits = sum(t.value for t in transactions if t.type == TransactionType.SAIDA.value)
+    entries_count = sum(1 for t in transactions if t.type == TransactionType.ENTRADA.value)
+    exits_count = sum(1 for t in transactions if t.type == TransactionType.SAIDA.value)
+
+    net_flow = total_entries - total_exits
+
+    # Calcular dias no período
+    days_in_period = (end_date - start_date).days + 1
+    avg_daily_entry = total_entries / days_in_period if days_in_period > 0 else 0
+    avg_daily_exit = total_exits / days_in_period if days_in_period > 0 else 0
+
+    # Calcular saldo inicial e final
+    opening_balance = _calculate_balance_at_date(
+        db,
+        current_user.workspace_id,
+        start_date - timedelta(days=1),
+        account_id
+    )
+
+    closing_balance = opening_balance + net_flow
+
+    return CashFlowSummary(
+        period_start=start_date,
+        period_end=end_date,
+        total_entries=total_entries,
+        total_exits=total_exits,
+        net_flow=net_flow,
+        entries_count=entries_count,
+        exits_count=exits_count,
+        opening_balance=opening_balance,
+        closing_balance=closing_balance,
+        avg_daily_entry=avg_daily_entry,
+        avg_daily_exit=avg_daily_exit
+    )
+
+
+@router.get("/analytics/by-category", response_model=List[CategorySummary])
+def get_by_category(
+    start_date: date = Query(..., description="Data inicial"),
+    end_date: date = Query(..., description="Data final"),
+    type: Optional[TransactionTypeEnum] = Query(None, description="Filtrar por tipo"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Análise por categoria
+
+    Agrupa transações por categoria mostrando totais e percentuais.
+    """
+    query = db.query(CashFlowTransaction).filter(
+        and_(
+            CashFlowTransaction.workspace_id == current_user.workspace_id,
+            CashFlowTransaction.transaction_date >= datetime.combine(start_date, datetime.min.time()),
+            CashFlowTransaction.transaction_date <= datetime.combine(end_date, datetime.max.time())
+        )
+    )
+
+    if type:
+        query = query.filter(CashFlowTransaction.type == type.value)
+
+    transactions = query.all()
+
+    # Agrupar por categoria
+    category_data: Dict[tuple, Dict[str, Any]] = defaultdict(lambda: {
+        'total_value': 0.0,
+        'transaction_count': 0,
+        'type': None
+    })
+
+    total_by_type = {
+        TransactionType.ENTRADA.value: 0.0,
+        TransactionType.SAIDA.value: 0.0
+    }
+
+    for t in transactions:
+        key = (t.category, t.subcategory, t.type)
+        category_data[key]['total_value'] += t.value
+        category_data[key]['transaction_count'] += 1
+        category_data[key]['type'] = t.type
+        total_by_type[t.type] += t.value
+
+    # Converter para lista de CategorySummary
+    result = []
+    for (category, subcategory, trans_type), data in category_data.items():
+        total_for_type = total_by_type[trans_type]
+        percentage = (data['total_value'] / total_for_type * 100) if total_for_type > 0 else 0
+        avg_value = data['total_value'] / data['transaction_count'] if data['transaction_count'] > 0 else 0
+
+        result.append(CategorySummary(
+            category=category,
+            subcategory=subcategory,
+            type=TransactionTypeEnum(trans_type),
+            total_value=data['total_value'],
+            transaction_count=data['transaction_count'],
+            percentage=percentage,
+            avg_value=avg_value
+        ))
+
+    # Ordenar por valor total decrescente
+    result.sort(key=lambda x: x.total_value, reverse=True)
+
+    return result
+
+
+@router.get("/analytics/by-account", response_model=List[AccountBalanceSummary])
+def get_by_account(
+    start_date: Optional[date] = Query(None, description="Data inicial para cálculos mensais"),
+    end_date: Optional[date] = Query(None, description="Data final para cálculos mensais"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Resumo por conta bancária
+
+    Mostra saldo atual e movimentações de cada conta.
+    """
+    # Buscar todas as contas ativas
+    accounts = db.query(BankAccount).filter(
+        and_(
+            BankAccount.workspace_id == current_user.workspace_id,
+            BankAccount.is_active == True
+        )
+    ).all()
+
+    # Se não houver datas, usar mês atual
+    if not start_date:
+        start_date = date.today().replace(day=1)
+    if not end_date:
+        end_date = date.today()
+
+    result = []
+    for account in accounts:
+        # Calcular movimentações do período
+        transactions = db.query(CashFlowTransaction).filter(
+            and_(
+                CashFlowTransaction.workspace_id == current_user.workspace_id,
+                CashFlowTransaction.account_id == account.id,
+                CashFlowTransaction.transaction_date >= datetime.combine(start_date, datetime.min.time()),
+                CashFlowTransaction.transaction_date <= datetime.combine(end_date, datetime.max.time())
+            )
+        ).all()
+
+        month_entries = sum(t.value for t in transactions if t.type == TransactionType.ENTRADA.value)
+        month_exits = sum(t.value for t in transactions if t.type == TransactionType.SAIDA.value)
+        month_net_flow = month_entries - month_exits
+
+        result.append(AccountBalanceSummary(
+            account_id=account.id,
+            bank_name=account.bank_name,
+            account_type=account.account_type,
+            current_balance=account.current_balance,
+            month_entries=month_entries,
+            month_exits=month_exits,
+            month_net_flow=month_net_flow
+        ))
+
+    return result
+
+
+@router.get("/analytics/balance-history", response_model=List[BalanceHistory])
+def get_balance_history(
+    start_date: date = Query(..., description="Data inicial"),
+    end_date: date = Query(..., description="Data final"),
+    account_id: Optional[int] = Query(None, description="Filtrar por conta"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Histórico diário de saldo
+
+    Retorna o saldo e movimentações para cada dia do período.
+    """
+    # Obter todas as transações do período
+    query = db.query(CashFlowTransaction).filter(
+        and_(
+            CashFlowTransaction.workspace_id == current_user.workspace_id,
+            CashFlowTransaction.transaction_date >= datetime.combine(start_date, datetime.min.time()),
+            CashFlowTransaction.transaction_date <= datetime.combine(end_date, datetime.max.time())
+        )
+    )
+
+    if account_id:
+        query = query.filter(CashFlowTransaction.account_id == account_id)
+
+    transactions = query.all()
+
+    # Agrupar por data
+    daily_data: Dict[date, Dict[str, float]] = defaultdict(lambda: {
+        'entries': 0.0,
+        'exits': 0.0
+    })
+
+    for t in transactions:
+        trans_date = t.transaction_date.date()
+        if t.type == TransactionType.ENTRADA.value:
+            daily_data[trans_date]['entries'] += t.value
+        else:
+            daily_data[trans_date]['exits'] += t.value
+
+    # Calcular saldo inicial
+    initial_balance = _calculate_balance_at_date(
+        db,
+        current_user.workspace_id,
+        start_date - timedelta(days=1),
+        account_id
+    )
+
+    # Gerar histórico diário
+    result = []
+    current_balance = initial_balance
+    current_date = start_date
+
+    while current_date <= end_date:
+        day_data = daily_data.get(current_date, {'entries': 0.0, 'exits': 0.0})
+        net_flow = day_data['entries'] - day_data['exits']
+        current_balance += net_flow
+
+        result.append(BalanceHistory(
+            date=current_date,
+            balance=current_balance,
+            entries=day_data['entries'],
+            exits=day_data['exits'],
+            net_flow=net_flow
+        ))
+
+        current_date += timedelta(days=1)
+
+    return result
+
+
+@router.get("/analytics/projection", response_model=List[CashFlowProjection])
+def get_projection(
+    days_ahead: int = Query(30, ge=1, le=365, description="Dias para projetar"),
+    method: str = Query("moving_average", description="Método: moving_average, linear_regression"),
+    account_id: Optional[int] = Query(None, description="Filtrar por conta"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Projeção de fluxo de caixa
+
+    Projeta saldo futuro baseado em médias históricas.
+    """
+    # Buscar últimos 90 dias de histórico
+    end_date = date.today()
+    start_date = end_date - timedelta(days=90)
+
+    query = db.query(CashFlowTransaction).filter(
+        and_(
+            CashFlowTransaction.workspace_id == current_user.workspace_id,
+            CashFlowTransaction.transaction_date >= datetime.combine(start_date, datetime.min.time()),
+            CashFlowTransaction.transaction_date <= datetime.combine(end_date, datetime.max.time())
+        )
+    )
+
+    if account_id:
+        query = query.filter(CashFlowTransaction.account_id == account_id)
+
+    transactions = query.all()
+
+    # Calcular médias
+    total_entries = sum(t.value for t in transactions if t.type == TransactionType.ENTRADA.value)
+    total_exits = sum(t.value for t in transactions if t.type == TransactionType.SAIDA.value)
+
+    days_count = 90
+    avg_daily_entry = total_entries / days_count
+    avg_daily_exit = total_exits / days_count
+
+    # Saldo atual
+    current_balance = _calculate_balance_at_date(db, current_user.workspace_id, end_date, account_id)
+
+    # Gerar projeções
+    projections = []
+    projected_balance = current_balance
+
+    for day in range(1, days_ahead + 1):
+        projection_date = end_date + timedelta(days=day)
+
+        # Projeção simples baseada em médias
+        projected_entries = avg_daily_entry
+        projected_exits = avg_daily_exit
+        projected_balance += (projected_entries - projected_exits)
+
+        # Confiança diminui com distância temporal
+        confidence = max(0.5, 1.0 - (day / days_ahead) * 0.5)
+
+        projections.append(CashFlowProjection(
+            projection_date=projection_date,
+            projected_balance=projected_balance,
+            projected_entries=projected_entries,
+            projected_exits=projected_exits,
+            confidence_level=confidence,
+            method=method
+        ))
+
+    return projections
+
+
+@router.get("/analytics/complete", response_model=CashFlowAnalytics)
+def get_complete_analytics(
+    start_date: date = Query(..., description="Data inicial"),
+    end_date: date = Query(..., description="Data final"),
+    account_id: Optional[int] = Query(None, description="Filtrar por conta"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Analytics completo de cash flow
+
+    Retorna todos os dados analíticos em uma única chamada.
+    """
+    # Obter cada componente
+    summary = get_cash_flow_summary(start_date, end_date, account_id, db, current_user)
+    by_category = get_by_category(start_date, end_date, None, db, current_user)
+    by_account = get_by_account(start_date, end_date, db, current_user)
+    balance_history = get_balance_history(start_date, end_date, account_id, db, current_user)
+
+    # Calcular métricas adicionais
+    burn_rate = summary.avg_daily_exit * 30  # Taxa de queima mensal
+    runway_months = None
+
+    if burn_rate > 0:
+        runway_months = summary.closing_balance / burn_rate
+
+    # Calcular health score (0-100)
+    health_score = _calculate_health_score(summary, runway_months)
+
+    return CashFlowAnalytics(
+        summary=summary,
+        by_category=by_category,
+        by_account=[acc.dict() for acc in by_account],
+        balance_history=balance_history,
+        burn_rate=burn_rate,
+        runway_months=runway_months,
+        health_score=health_score
+    )
+
+
+# ============================================
+# HELPER FUNCTIONS
+# ============================================
+
+def _calculate_balance_at_date(
+    db: Session,
+    workspace_id: int,
+    target_date: date,
+    account_id: Optional[int] = None
+) -> float:
+    """Calcula o saldo em uma data específica"""
+    query = db.query(CashFlowTransaction).filter(
+        and_(
+            CashFlowTransaction.workspace_id == workspace_id,
+            CashFlowTransaction.transaction_date <= datetime.combine(target_date, datetime.max.time())
+        )
+    )
+
+    if account_id:
+        query = query.filter(CashFlowTransaction.account_id == account_id)
+        # Adicionar saldo inicial da conta
+        account = db.query(BankAccount).filter(BankAccount.id == account_id).first()
+        initial_balance = account.initial_balance if account else 0.0
+    else:
+        # Somar saldo inicial de todas as contas
+        accounts = db.query(BankAccount).filter(
+            BankAccount.workspace_id == workspace_id
+        ).all()
+        initial_balance = sum(acc.initial_balance for acc in accounts)
+
+    transactions = query.all()
+
+    total_entries = sum(t.value for t in transactions if t.type == TransactionType.ENTRADA.value)
+    total_exits = sum(t.value for t in transactions if t.type == TransactionType.SAIDA.value)
+
+    return initial_balance + total_entries - total_exits
+
+
+def _calculate_health_score(summary: CashFlowSummary, runway_months: Optional[float]) -> float:
+    """
+    Calcula score de saúde financeira (0-100)
+
+    Critérios:
+    - Fluxo positivo: +30 pontos
+    - Saldo final positivo: +30 pontos
+    - Runway >= 6 meses: +40 pontos (proporcional)
+    """
+    score = 0.0
+
+    # Fluxo positivo
+    if summary.net_flow > 0:
+        score += 30.0
+
+    # Saldo positivo
+    if summary.closing_balance > 0:
+        score += 30.0
+
+    # Runway
+    if runway_months is not None and runway_months > 0:
+        runway_score = min(runway_months / 6.0, 1.0) * 40.0
+        score += runway_score
+
+    return min(score, 100.0)

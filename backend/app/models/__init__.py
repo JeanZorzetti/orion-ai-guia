@@ -11,6 +11,7 @@ from app.models.invoice_model import Invoice
 from app.models.product import Product
 from app.models.sale import Sale
 from app.models.accounts_receivable import AccountsReceivable
+from app.models.cash_flow import BankAccount, CashFlowTransaction
 
 __all__ = [
     "Base",
@@ -21,4 +22,6 @@ __all__ = [
     "Product",
     "Sale",
     "AccountsReceivable",
+    "BankAccount",
+    "CashFlowTransaction",
 ]
