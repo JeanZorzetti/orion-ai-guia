@@ -63,6 +63,11 @@ const navigation = [
     icon: DollarSign,
     children: [
       {
+        name: 'Dashboard',
+        href: '/admin/financeiro',
+        icon: LayoutDashboard,
+      },
+      {
         name: 'Contas a Pagar',
         href: '/admin/financeiro/contas-a-pagar',
         icon: FileText,
@@ -153,6 +158,11 @@ const navigation = [
     href: '/admin/estoque',
     icon: BarChart3,
     children: [
+      {
+        name: 'Dashboard',
+        href: '/admin/estoque',
+        icon: LayoutDashboard,
+      },
       {
         name: 'Vendas',
         href: '/admin/vendas',

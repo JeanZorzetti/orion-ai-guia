@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   ShoppingCart,
   Search,
@@ -22,7 +23,9 @@ import {
   Target,
   Truck,
   Store,
-  BarChart3
+  BarChart3,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import Link from 'next/link';
 import { saleService } from '@/services/sale';
@@ -54,6 +57,10 @@ const VendasPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  // Estados dos menus colapsáveis
+  const [modulesOpen, setModulesOpen] = useState(true);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   // Estados dos modais
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -375,150 +382,218 @@ const VendasPage: React.FC = () => {
     >
       <div className="space-y-6">
         <NoPrint>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-                <ShoppingCart className="h-8 w-8" />
-                Vendas
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Gerencie as vendas de produtos
-              </p>
+          <div className="space-y-4">
+            {/* Cabeçalho Principal */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+                  <ShoppingCart className="h-8 w-8" />
+                  Vendas
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                  Gerencie as vendas de produtos
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleExport}
+                  disabled={sales.length === 0}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Exportar CSV
+                </Button>
+                <PrintButton
+                  onClick={handlePrint}
+                  loading={isPrinting}
+                  label="Imprimir"
+                  variant="outline"
+                  disabled={sales.length === 0}
+                />
+                <Button size="lg" onClick={() => setCreateModalOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nova Venda
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Link href="/admin/vendas/funil">
-                <Button variant="outline" className="bg-purple-50">
-                  <Target className="h-4 w-4 mr-2" />
-                  Funil de Vendas
-                  <Badge className="ml-2 bg-green-600">Novo</Badge>
-                </Button>
-              </Link>
-              <Link href="/admin/vendas/logistica">
-                <Button variant="outline" className="bg-blue-50">
-                  <Truck className="h-4 w-4 mr-2" />
-                  Logística
-                  <Badge className="ml-2 bg-green-600">Novo</Badge>
-                </Button>
-              </Link>
-              <Link href="/admin/vendas/marketplace">
-                <Button variant="outline" className="bg-orange-50">
-                  <Store className="h-4 w-4 mr-2" />
-                  Marketplace
-                  <Badge className="ml-2 bg-green-600">Novo</Badge>
-                </Button>
-              </Link>
-              <Link href="/admin/vendas/analytics">
-                <Button variant="outline" className="bg-indigo-50">
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Analytics
-                  <Badge className="ml-2 bg-green-600">Novo</Badge>
-                </Button>
-              </Link>
-              <Button
-                variant="outline"
-                onClick={handleSyncShopify}
-                disabled={syncing}
-              >
-                {syncing ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Sincronizando...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Sincronizar Shopify
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleSyncMercadoLivre}
-                disabled={syncingML}
-              >
-                {syncingML ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Sincronizando ML...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Sincronizar ML
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleSyncWooCommerce}
-                disabled={syncingWC}
-              >
-                {syncingWC ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Sincronizando WC...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Sincronizar WC
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleSyncMagalu}
-                disabled={syncingMagalu}
-              >
-                {syncingMagalu ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Sincronizando Magalu...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Sincronizar Magalu
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleSyncTikTok}
-                disabled={syncingTikTok}
-              >
-                {syncingTikTok ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Sincronizando TikTok...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Sincronizar TikTok
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleExport}
-                disabled={sales.length === 0}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Exportar CSV
-              </Button>
-              <PrintButton
-                onClick={handlePrint}
-                loading={isPrinting}
-                label="Imprimir"
-                variant="outline"
-                disabled={sales.length === 0}
-              />
-              <Button size="lg" onClick={() => setCreateModalOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Nova Venda
-              </Button>
-            </div>
+
+            {/* Menu Colapsável: Módulos de Vendas */}
+            <Card>
+              <Collapsible open={modulesOpen} onOpenChange={setModulesOpen}>
+                <CardHeader className="pb-3">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full hover:opacity-80 transition-opacity">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-lg">Módulos de Vendas</CardTitle>
+                      <Badge variant="secondary" className="ml-2">4 módulos</Badge>
+                    </div>
+                    {modulesOpen ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </CollapsibleTrigger>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                      <Link href="/admin/vendas/funil" className="block">
+                        <Button variant="outline" className="w-full h-auto flex-col gap-2 py-4 bg-purple-50 hover:bg-purple-100 border-purple-200">
+                          <Target className="h-6 w-6 text-purple-600" />
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="font-semibold">Funil de Vendas</span>
+                            <Badge className="bg-green-600 hover:bg-green-700">Novo</Badge>
+                          </div>
+                        </Button>
+                      </Link>
+                      <Link href="/admin/vendas/logistica" className="block">
+                        <Button variant="outline" className="w-full h-auto flex-col gap-2 py-4 bg-blue-50 hover:bg-blue-100 border-blue-200">
+                          <Truck className="h-6 w-6 text-blue-600" />
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="font-semibold">Logística</span>
+                            <Badge className="bg-green-600 hover:bg-green-700">Novo</Badge>
+                          </div>
+                        </Button>
+                      </Link>
+                      <Link href="/admin/vendas/marketplace" className="block">
+                        <Button variant="outline" className="w-full h-auto flex-col gap-2 py-4 bg-orange-50 hover:bg-orange-100 border-orange-200">
+                          <Store className="h-6 w-6 text-orange-600" />
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="font-semibold">Marketplace</span>
+                            <Badge className="bg-green-600 hover:bg-green-700">Novo</Badge>
+                          </div>
+                        </Button>
+                      </Link>
+                      <Link href="/admin/vendas/analytics" className="block">
+                        <Button variant="outline" className="w-full h-auto flex-col gap-2 py-4 bg-indigo-50 hover:bg-indigo-100 border-indigo-200">
+                          <BarChart3 className="h-6 w-6 text-indigo-600" />
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="font-semibold">Analytics</span>
+                            <Badge className="bg-green-600 hover:bg-green-700">Novo</Badge>
+                          </div>
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
+
+            {/* Menu Colapsável: Sincronização de Marketplaces */}
+            <Card>
+              <Collapsible open={syncOpen} onOpenChange={setSyncOpen}>
+                <CardHeader className="pb-3">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full hover:opacity-80 transition-opacity">
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-lg">Sincronização de Marketplaces</CardTitle>
+                      <Badge variant="secondary" className="ml-2">5 plataformas</Badge>
+                    </div>
+                    {syncOpen ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </CollapsibleTrigger>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col gap-2 py-4"
+                        onClick={handleSyncShopify}
+                        disabled={syncing}
+                      >
+                        {syncing ? (
+                          <>
+                            <RefreshCw className="h-6 w-6 animate-spin text-green-600" />
+                            <span className="text-sm font-medium">Sincronizando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Store className="h-6 w-6 text-green-600" />
+                            <span className="text-sm font-medium">Shopify</span>
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col gap-2 py-4"
+                        onClick={handleSyncMercadoLivre}
+                        disabled={syncingML}
+                      >
+                        {syncingML ? (
+                          <>
+                            <RefreshCw className="h-6 w-6 animate-spin text-yellow-600" />
+                            <span className="text-sm font-medium">Sincronizando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Package className="h-6 w-6 text-yellow-600" />
+                            <span className="text-sm font-medium">Mercado Livre</span>
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col gap-2 py-4"
+                        onClick={handleSyncWooCommerce}
+                        disabled={syncingWC}
+                      >
+                        {syncingWC ? (
+                          <>
+                            <RefreshCw className="h-6 w-6 animate-spin text-purple-600" />
+                            <span className="text-sm font-medium">Sincronizando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="h-6 w-6 text-purple-600" />
+                            <span className="text-sm font-medium">WooCommerce</span>
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col gap-2 py-4"
+                        onClick={handleSyncMagalu}
+                        disabled={syncingMagalu}
+                      >
+                        {syncingMagalu ? (
+                          <>
+                            <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
+                            <span className="text-sm font-medium">Sincronizando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Store className="h-6 w-6 text-blue-600" />
+                            <span className="text-sm font-medium">Magalu</span>
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col gap-2 py-4"
+                        onClick={handleSyncTikTok}
+                        disabled={syncingTikTok}
+                      >
+                        {syncingTikTok ? (
+                          <>
+                            <RefreshCw className="h-6 w-6 animate-spin text-pink-600" />
+                            <span className="text-sm font-medium">Sincronizando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Store className="h-6 w-6 text-pink-600" />
+                            <span className="text-sm font-medium">TikTok Shop</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
           </div>
         </NoPrint>
 
