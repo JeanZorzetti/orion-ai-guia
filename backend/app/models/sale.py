@@ -76,6 +76,7 @@ class Sale(Base):
     # Relationships
     workspace = relationship("Workspace", back_populates="sales")
     product = relationship("Product", back_populates="sales")
+    receivables = relationship("AccountsReceivable", back_populates="sale", foreign_keys="[AccountsReceivable.sale_id]")
 
     def __repr__(self):
         return f"<Sale(id={self.id}, customer='{self.customer_name}', workspace_id={self.workspace_id})>"

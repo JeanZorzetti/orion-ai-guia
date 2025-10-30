@@ -101,6 +101,7 @@ class Workspace(Base):
     invoices = relationship("Invoice", back_populates="workspace", cascade="all, delete-orphan")
     products = relationship("Product", back_populates="workspace", cascade="all, delete-orphan")
     sales = relationship("Sale", back_populates="workspace", cascade="all, delete-orphan")
+    accounts_receivable = relationship("AccountsReceivable", back_populates="workspace", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Workspace(id={self.id}, name='{self.name}', slug='{self.slug}')>"

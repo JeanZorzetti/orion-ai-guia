@@ -10,6 +10,7 @@ from app.models.supplier_model import Supplier
 from app.models.invoice_model import Invoice
 from app.models.product import Product
 from app.models.sale import Sale
+from app.models.accounts_receivable import AccountsReceivable
 
 __all__ = [
     "Base",
@@ -19,4 +20,5 @@ __all__ = [
     "Invoice",
     "Product",
     "Sale",
+    "AccountsReceivable",
 ]
