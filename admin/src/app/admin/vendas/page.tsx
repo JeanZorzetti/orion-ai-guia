@@ -19,7 +19,8 @@ import {
   Download,
   AlertTriangle,
   RefreshCw,
-  Target
+  Target,
+  Truck
 } from 'lucide-react';
 import Link from 'next/link';
 import { saleService } from '@/services/sale';
@@ -387,6 +388,13 @@ const VendasPage: React.FC = () => {
                 <Button variant="outline" className="bg-purple-50">
                   <Target className="h-4 w-4 mr-2" />
                   Funil de Vendas
+                  <Badge className="ml-2 bg-green-600">Novo</Badge>
+                </Button>
+              </Link>
+              <Link href="/admin/vendas/logistica">
+                <Button variant="outline" className="bg-blue-50">
+                  <Truck className="h-4 w-4 mr-2" />
+                  Logística
                   <Badge className="ml-2 bg-green-600">Novo</Badge>
                 </Button>
               </Link>
