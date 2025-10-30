@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   RefreshCw,
   Target,
-  Truck
+  Truck,
+  Store
 } from 'lucide-react';
 import Link from 'next/link';
 import { saleService } from '@/services/sale';
@@ -395,6 +396,13 @@ const VendasPage: React.FC = () => {
                 <Button variant="outline" className="bg-blue-50">
                   <Truck className="h-4 w-4 mr-2" />
                   Logística
+                  <Badge className="ml-2 bg-green-600">Novo</Badge>
+                </Button>
+              </Link>
+              <Link href="/admin/vendas/marketplace">
+                <Button variant="outline" className="bg-orange-50">
+                  <Store className="h-4 w-4 mr-2" />
+                  Marketplace
                   <Badge className="ml-2 bg-green-600">Novo</Badge>
                 </Button>
               </Link>
