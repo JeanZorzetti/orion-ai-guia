@@ -75,7 +75,11 @@
       "Bash(git rm:*)",
       "Bash(timeout 120 npm run build)",
       "Bash(git restore:*)",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "Bash(./Scripts/alembic.exe revision:*)",
+      "Bash(\"C:\\Users\\jeanz\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" -m pip install python-jose[cryptography] passlib[bcrypt])",
+      "Bash(timeout:*)",
+      "Bash(ping:*)"
     ],
     "deny": [],
     "ask": []
