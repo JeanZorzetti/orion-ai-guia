@@ -269,6 +269,8 @@ const ContasAReceberPage: React.FC = () => {
     switch (status) {
       case 'pendente':
         return <Badge className="bg-blue-500">Pendente</Badge>;
+      case 'parcial':
+        return <Badge className="bg-yellow-500">Parcial</Badge>;
       case 'vencido':
         return <Badge variant="destructive">Vencido</Badge>;
       case 'recebido':
@@ -284,6 +286,8 @@ const ContasAReceberPage: React.FC = () => {
     switch (status) {
       case 'pendente':
         return <Clock className="h-4 w-4 text-blue-500" />;
+      case 'parcial':
+        return <Clock className="h-4 w-4 text-yellow-500" />;
       case 'vencido':
         return <AlertCircle className="h-4 w-4 text-red-500" />;
       case 'recebido':

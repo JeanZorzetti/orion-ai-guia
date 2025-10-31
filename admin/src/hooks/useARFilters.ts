@@ -13,7 +13,7 @@ export interface ContaReceber {
   dataVencimento: Date;
   valor: number;
   valorPago: number;
-  status: 'pendente' | 'vencido' | 'recebido' | 'cancelado';
+  status: 'pendente' | 'parcial' | 'vencido' | 'recebido' | 'cancelado';
   descricao: string;
   formaPagamento: string;
   categoriaRisco?: 'excelente' | 'bom' | 'regular' | 'ruim' | 'critico';
