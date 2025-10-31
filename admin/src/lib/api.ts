@@ -108,13 +108,14 @@ async function refreshAccessToken(): Promise<string | null> {
 // Cliente API com interceptor de autenticação
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean;
+  responseType?: 'json' | 'blob';
 }
 
 export async function apiClient<T>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { requiresAuth = true, headers = {}, ...restOptions } = options;
+  const { requiresAuth = true, responseType = 'json', headers = {}, ...restOptions } = options;
 
   const config: RequestInit = {
     ...restOptions,
@@ -157,7 +158,7 @@ export async function apiClient<T>(
           throw new Error(error.detail || 'Request failed');
         }
 
-        return retryResponse.json();
+        return responseType === 'blob' ? (retryResponse.blob() as unknown as T) : retryResponse.json();
       } else {
         // Redirecionar para login se não conseguir fazer refresh
         if (typeof window !== 'undefined') {
@@ -172,7 +173,7 @@ export async function apiClient<T>(
       throw new Error(error.detail || 'Request failed');
     }
 
-    return response.json();
+    return responseType === 'blob' ? (response.blob() as unknown as T) : response.json();
   } catch (error) {
     console.error('❌ API Error:', error);
     throw error;
