@@ -1,36 +1,41 @@
 import { AuthTokens, ApiError } from '@/types';
 
-// VERSÃO 5.0 - HTTPS ABSOLUTO
+// VERSÃO 6.0 - HTTPS ABSOLUTO ULTRA FORÇADO
 // Garantir que SEMPRE use HTTPS, não importa o que venha da env
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-// FUNÇÃO HELPER: Garantir HTTPS em qualquer URL
+// FUNÇÃO HELPER: Garantir HTTPS em qualquer URL - ULTRA PROTEÇÃO
 const forceHttps = (url: string): string => {
   if (!url) return 'https://orionback.roilabs.com.br/api/v1';
 
-  // Se já é HTTPS, retorna como está
-  if (url.startsWith('https://')) return url;
+  // Limpar qualquer protocolo existente e forçar HTTPS
+  let cleanUrl = url.replace(/^https?:\/\//, ''); // Remove http:// ou https://
 
-  // Se é HTTP, troca para HTTPS
-  if (url.startsWith('http://')) return url.replace('http://', 'https://');
+  // Se ainda tem algo suspeito, limpar mais
+  cleanUrl = cleanUrl.replace(/^\/\//, ''); // Remove // inicial
 
-  // Se não tem protocolo, adiciona HTTPS
-  if (!url.startsWith('http')) return `https://${url}`;
-
-  return url;
+  // Garantir que sempre inicia com https://
+  return `https://${cleanUrl}`;
 };
 
-// Aplicar forceHttps na URL da API
-const API_URL = forceHttps(rawApiUrl || 'https://orionback.roilabs.com.br/api/v1');
+// Aplicar forceHttps na URL da API - DUAS CAMADAS DE PROTEÇÃO
+let API_URL = forceHttps(rawApiUrl || 'https://orionback.roilabs.com.br/api/v1');
+
+// CAMADA EXTRA: Se por algum motivo ainda não for HTTPS, forçar novamente
+if (!API_URL.startsWith('https://')) {
+  console.error('⚠️ ALERTA: URL não é HTTPS, forçando conversão!');
+  API_URL = API_URL.replace(/^http:/, 'https:');
+}
 
 // Debug detalhado
 if (typeof window !== 'undefined') {
   console.log('═══════════════════════════════════════');
-  console.log('🔧 API Configuration [v5.0 - HTTPS ABSOLUTE]');
+  console.log('🔧 API Configuration [v6.0 - HTTPS ULTRA FORCED]');
   console.log('📝 Raw ENV:', rawApiUrl || '(undefined)');
   console.log('🌍 Environment:', process.env.NODE_ENV);
   console.log('✅ Final URL:', API_URL);
   console.log('🔒 Protocol:', API_URL.startsWith('https:') ? 'HTTPS ✓' : 'HTTP ✗');
+  console.log('⚠️  Mixed Content:', API_URL.startsWith('https:') ? 'PROTECTED ✓' : 'VULNERABLE ✗');
   console.log('═══════════════════════════════════════');
 }
 
