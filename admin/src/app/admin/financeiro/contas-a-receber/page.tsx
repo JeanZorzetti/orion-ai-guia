@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,8 @@ import {
   Plus,
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { ARDashboardKPIs } from '@/components/financeiro/contas-a-receber/ARDashboardKPIs';
 import { AgingReportTable } from '@/components/financeiro/contas-a-receber/AgingReportTable';
@@ -19,6 +20,7 @@ import { SavedViews, type SavedView } from '@/components/financeiro/contas-a-rec
 import { ExportDialog, type ExportOptions } from '@/components/financeiro/contas-a-receber/ExportDialog';
 import { GeneratePortalAccessDialog } from '@/components/financeiro/contas-a-receber/GeneratePortalAccessDialog';
 import { useARFilters, type ContaReceber } from '@/hooks/useARFilters';
+import { useAccountsReceivable } from '@/hooks/useAccountsReceivable';
 import { addDays } from 'date-fns';
 
 // Mock data expandido - em produção viria do banco
@@ -116,6 +118,38 @@ const mockContasReceber: ContaReceber[] = [
 ];
 
 const ContasAReceberPage: React.FC = () => {
+  // ========== INTEGRAÇÃO COM API REAL ==========
+  const {
+    receivables: apiReceivables,
+    analytics,
+    agingReport,
+    loading,
+    loadingAnalytics,
+    error
+  } = useAccountsReceivable();
+
+  // Converter dados da API para formato do componente
+  const contasReceber = useMemo<ContaReceber[]>(() => {
+    return apiReceivables.map(ar => ({
+      id: ar.id.toString(),
+      numeroDocumento: ar.document_number,
+      clienteId: ar.customer_id.toString(),
+      clienteNome: ar.customer_name || `Cliente #${ar.customer_id}`,
+      dataEmissao: new Date(ar.issue_date),
+      dataVencimento: new Date(ar.due_date),
+      valor: ar.value,
+      valorPago: ar.paid_value,
+      status: ar.status,
+      descricao: ar.description || '',
+      formaPagamento: ar.payment_method || '',
+      categoriaRisco: ar.risk_category,
+      diasVencido: ar.days_overdue,
+    }));
+  }, [apiReceivables]);
+
+  // Fallback para mock data durante desenvolvimento
+  const dataSource = contasReceber.length > 0 ? contasReceber : mockContasReceber;
+
   // State para visualizações salvas
   const [savedViews, setSavedViews] = useState<SavedView[]>([
     {
@@ -156,14 +190,14 @@ const ContasAReceberPage: React.FC = () => {
     },
   ]);
 
-  // Hook de filtros
+  // Hook de filtros (agora usando dados reais ou fallback)
   const {
     filters,
     setFilters,
     filteredData,
     totalResults,
     isFiltering,
-  } = useARFilters(mockContasReceber);
+  } = useARFilters(dataSource);
 
   // Seleção de registros
   const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
@@ -221,7 +255,7 @@ const ContasAReceberPage: React.FC = () => {
   const getRecordCount = (scope: ExportOptions['scope']): number => {
     switch (scope) {
       case 'all':
-        return mockContasReceber.length;
+        return dataSource.length;
       case 'filtered':
         return filteredData.length;
       case 'selected':
@@ -261,6 +295,26 @@ const ContasAReceberPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-muted-foreground">Carregando contas a receber...</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <Card className="border-red-500 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              <span className="font-medium">Erro ao carregar dados: {error}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
@@ -269,16 +323,21 @@ const ContasAReceberPage: React.FC = () => {
           </h1>
           <p className="text-muted-foreground mt-1">
             Gerencie recebimentos de clientes com filtros avançados
+            {contasReceber.length > 0 && (
+              <Badge variant="outline" className="ml-2">
+                Dados Reais da API
+              </Badge>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <ExportDialog
-            totalRecords={mockContasReceber.length}
+            totalRecords={dataSource.length}
             filteredRecords={filteredData.length}
             selectedRecords={selectedRecords.length}
             onExport={handleExport}
           />
-          <Button size="lg">
+          <Button size="lg" disabled={loading}>
             <Plus className="mr-2 h-4 w-4" />
             Nova Conta a Receber
           </Button>
@@ -322,7 +381,7 @@ const ContasAReceberPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <CardTitle>
               Contas a Receber ({filteredData.length}
-              {isFiltering && ` de ${mockContasReceber.length}`})
+              {isFiltering && ` de ${dataSource.length}`})
             </CardTitle>
             {isFiltering && (
               <Badge variant="secondary" className="text-xs">
