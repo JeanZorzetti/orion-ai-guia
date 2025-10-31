@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -28,8 +28,36 @@ import { generateAllFinancialAlerts } from '@/lib/financial-alerts';
 import { InsightsPanel } from '@/components/financeiro/InsightsPanel';
 import { generateFinancialInsights } from '@/lib/financial-insights-ai';
 import { startOfMonth, endOfMonth, addDays, subDays } from 'date-fns';
+import { useAccountsReceivable } from '@/hooks/useAccountsReceivable';
+import { useCashFlow } from '@/hooks/useCashFlow';
+import { Loader2 } from 'lucide-react';
 
 const FinanceiroPage: React.FC = () => {
+  // Evitar problemas de hidratação SSR
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // ========== INTEGRAÇÃO COM API REAL ==========
+  const {
+    receivables: apiReceivables,
+    analytics: arAnalytics,
+    loading: loadingAR,
+    error: errorAR
+  } = useAccountsReceivable();
+
+  const {
+    transactions,
+    bankAccounts,
+    summary: cashFlowSummary,
+    loadingTransactions,
+    loadingAccounts,
+    loadingAnalytics,
+    error: errorCF
+  } = useCashFlow();
+
   // Estado dos filtros
   const [filters, setFilters] = useState<FinancialFilters>({
     dateRange: {
@@ -92,13 +120,30 @@ const FinanceiroPage: React.FC = () => {
     });
   };
 
-  // Dados atuais
-  const resumoFinanceiro = {
-    contasAPagar: 15420.50,
-    contasAReceber: 28350.00,
-    saldoAtual: 45280.30,
-    vencendoHoje: 3,
-  };
+  // Calcular dados reais da API
+  const resumoFinanceiro = useMemo(() => {
+    // Contas a Receber: total pendente + parcial
+    const contasAReceber = arAnalytics?.total_to_receive || 0;
+
+    // Saldo Atual: do Cash Flow
+    const saldoAtual = cashFlowSummary?.closing_balance || 0;
+
+    // Contas a Pagar: calcular despesas pendentes
+    const contasAPagar = Math.abs(cashFlowSummary?.total_exits || 0);
+
+    // Vencendo hoje: contas com vencimento hoje
+    const hoje = new Date().toISOString().split('T')[0];
+    const vencendoHoje = apiReceivables.filter(ar =>
+      ar.due_date === hoje && ar.status === 'pendente'
+    ).length;
+
+    return {
+      contasAPagar,
+      contasAReceber,
+      saldoAtual,
+      vencendoHoje,
+    };
+  }, [arAnalytics, cashFlowSummary, apiReceivables]);
 
   // Dados históricos para sparklines (últimos 6 meses simulados)
   const sparklineData = {
@@ -317,8 +362,42 @@ const FinanceiroPage: React.FC = () => {
     },
   ];
 
+  // Verificar loading geral
+  const isLoading = loadingAR || loadingTransactions || loadingAccounts || loadingAnalytics;
+
+  // Evitar hidratação de conteúdo dinâmico
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Carregando...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-muted-foreground">Carregando dados financeiros...</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      {(errorAR || errorCF) && (
+        <Card className="border-red-500 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-red-600">
+              <span className="font-medium">
+                Erro ao carregar dados: {errorAR || errorCF}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Gestão Financeira</h1>
