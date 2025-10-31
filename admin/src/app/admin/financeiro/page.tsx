@@ -12,22 +12,8 @@ import {
   CreditCard,
   ArrowRight
 } from 'lucide-react';
-import { FinancialSparkline } from '@/components/ui/financial-sparkline';
-import { TrendBadge } from '@/components/ui/trend-badge';
-// Fase 6: Lazy loading dos gráficos para melhor performance
-import {
-  LazyCashFlowChart as CashFlowChart,
-  LazyAgingChart as AgingChart,
-  LazyDREWaterfallChart as DREWaterfallChart,
-  LazyExpensesByCategoryChart as ExpensesByCategoryChart,
-} from '@/components/financeiro/LazyCharts';
 import { FilterBar, FinancialFilters } from '@/components/financeiro/FilterBar';
-import { AlertsPanel } from '@/components/financeiro/AlertsPanel';
-import { FinancialAlertData } from '@/components/financeiro/FinancialAlert';
-import { generateAllFinancialAlerts } from '@/lib/financial-alerts';
-import { InsightsPanel } from '@/components/financeiro/InsightsPanel';
-import { generateFinancialInsights } from '@/lib/financial-insights-ai';
-import { startOfMonth, endOfMonth, addDays, subDays } from 'date-fns';
+import { startOfMonth, endOfMonth } from 'date-fns';
 import { useAccountsReceivable } from '@/hooks/useAccountsReceivable';
 import { useCashFlow } from '@/hooks/useCashFlow';
 import { Loader2 } from 'lucide-react';
@@ -68,8 +54,8 @@ const FinanceiroPage: React.FC = () => {
     status: 'all',
   });
 
-  // Estado dos alertas (alertas dismissados)
-  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  // Alertas desabilitados - aguardando endpoints reais
+  // const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   const handleFiltersChange = (newFilters: FinancialFilters) => {
     setFilters(newFilters);
@@ -145,187 +131,14 @@ const FinanceiroPage: React.FC = () => {
     };
   }, [arAnalytics, cashFlowSummary, apiReceivables]);
 
-  // Dados históricos para sparklines (últimos 6 meses simulados)
-  const sparklineData = {
-    saldo: [38000, 39500, 42000, 41000, 43500, 45280.30],
-    contasAPagar: [18000, 17500, 16200, 14800, 16100, 15420.50],
-    contasAReceber: [22000, 24500, 26000, 25500, 27800, 28350.00],
-  };
+  // TODO: Implementar histórico real quando endpoints estiverem disponíveis
+  // Dados mockados removidos - aguardando implementação de endpoints backend
 
-  // Comparações com mês anterior (percentuais)
-  const comparacoes = {
-    saldo: +3.9, // +3.9% vs mês anterior
-    contasAPagar: -4.2, // -4.2% vs mês anterior
-    contasAReceber: +1.9, // +1.9% vs mês anterior
-    resultado: +8.5, // +8.5% vs mês anterior
-  };
+  // Alertas removidos - aguardando implementação de endpoints backend
+  // TODO: Implementar sistema de alertas quando tivermos endpoints de monitoramento
 
-  // Dados para Fluxo de Caixa (12 semanas)
-  const cashFlowData = [
-    { week: 'Sem 1', entrada: 15000, saida: 12000, saldo: 48280, projecao: false },
-    { week: 'Sem 2', entrada: 18000, saida: 14000, saldo: 52280, projecao: false },
-    { week: 'Sem 3', entrada: 16000, saida: 15000, saldo: 53280, projecao: false },
-    { week: 'Sem 4', entrada: 20000, saida: 13000, saldo: 60280, projecao: false },
-    { week: 'Sem 5', entrada: 17000, saida: 16000, saldo: 61280, projecao: true },
-    { week: 'Sem 6', entrada: 19000, saida: 14500, saldo: 65780, projecao: true },
-    { week: 'Sem 7', entrada: 21000, saida: 15000, saldo: 71780, projecao: true },
-    { week: 'Sem 8', entrada: 18000, saida: 16000, saldo: 73780, projecao: true },
-    { week: 'Sem 9', entrada: 22000, saida: 14000, saldo: 81780, projecao: true },
-    { week: 'Sem 10', entrada: 20000, saida: 15500, saldo: 86280, projecao: true },
-    { week: 'Sem 11', entrada: 19000, saida: 17000, saldo: 88280, projecao: true },
-    { week: 'Sem 12', entrada: 23000, saida: 16000, saldo: 95280, projecao: true },
-  ];
-
-  // Dados para Aging de Recebíveis
-  const agingReceivableData = [
-    { range: '0-30 dias (Atual)', value: 15200, count: 8 },
-    { range: '31-60 dias', value: 8500, count: 4 },
-    { range: '61-90 dias', value: 3200, count: 2 },
-    { range: '90+ dias (Vencido)', value: 1450, count: 1 },
-  ];
-
-  // Dados para Aging de Pagáveis
-  const agingPayableData = [
-    { range: '0-30 dias (Atual)', value: 9200, count: 5 },
-    { range: '31-60 dias', value: 4500, count: 3 },
-    { range: '61-90 dias', value: 1200, count: 1 },
-    { range: '90+ dias (Vencido)', value: 520, count: 1 },
-  ];
-
-  // Dados para DRE (Waterfall)
-  const dreData = [
-    { category: 'Receita Bruta', value: 125000, isTotal: false },
-    { category: 'Deduções', value: -8000, isTotal: false },
-    { category: 'Receita Líquida', value: 117000, isTotal: true },
-    { category: 'CMV', value: -45000, isTotal: false },
-    { category: 'Lucro Bruto', value: 72000, isTotal: true },
-    { category: 'Despesas Op.', value: -32000, isTotal: false },
-    { category: 'EBITDA', value: 40000, isTotal: true },
-    { category: 'Deprec./Amort.', value: -3000, isTotal: false },
-    { category: 'Juros', value: -2000, isTotal: false },
-    { category: 'IR/CSLL', value: -7000, isTotal: false },
-    { category: 'Lucro Líquido', value: 28000, isTotal: true },
-  ];
-
-  // Dados para Despesas por Categoria
-  const expensesCategoryData = [
-    { category: 'Fornecedores', value: 18500, percentage: 42.5 },
-    { category: 'Pessoal', value: 12000, percentage: 27.6 },
-    { category: 'Impostos', value: 7800, percentage: 17.9 },
-    { category: 'Aluguel', value: 3200, percentage: 7.4 },
-    { category: 'Marketing', value: 1500, percentage: 3.4 },
-    { category: 'Outros', value: 500, percentage: 1.2 },
-  ];
-
-  // Dados simulados para geração de alertas
-  const financialDataForAlerts = {
-    cashFlow: {
-      currentBalance: resumoFinanceiro.saldoAtual,
-      projectedBalance: 52000, // Projeção positiva
-      monthlyRevenue: 125000,
-      monthlyExpenses: 93000,
-    },
-    payments: [
-      {
-        id: '1',
-        description: 'Fornecedor ABC - Nota 12345',
-        amount: 3200,
-        dueDate: subDays(new Date(), 5), // 5 dias vencido
-        status: 'overdue' as const,
-        category: 'expense',
-      },
-      {
-        id: '2',
-        description: 'Aluguel - Dezembro',
-        amount: 4500,
-        dueDate: new Date(), // Vence hoje
-        status: 'pending' as const,
-        category: 'expense',
-      },
-      {
-        id: '3',
-        description: 'Fornecedor XYZ - Nota 67890',
-        amount: 2100,
-        dueDate: addDays(new Date(), 2), // Vence em 2 dias
-        status: 'pending' as const,
-        category: 'expense',
-      },
-    ],
-    receipts: [
-      {
-        id: '4',
-        description: 'Cliente ABC - Fatura 001',
-        amount: 8500,
-        dueDate: subDays(new Date(), 18), // 18 dias de atraso
-        status: 'pending' as const,
-        category: 'revenue',
-      },
-    ],
-    budgets: [
-      {
-        category: 'Marketing',
-        limit: 5000,
-        spent: 4800,
-        percentage: 96, // 96% utilizado - crítico
-      },
-      {
-        category: 'Fornecedores',
-        limit: 20000,
-        spent: 18500,
-        percentage: 92.5, // 92.5% utilizado - aviso
-      },
-    ],
-  };
-
-  // Gerar alertas usando useMemo para performance
-  const alerts = useMemo(() => {
-    const generated = generateAllFinancialAlerts(financialDataForAlerts);
-    // Filtrar alertas dismissados
-    return generated.filter((alert) => !dismissedAlerts.has(alert.id));
-  }, [dismissedAlerts]);
-
-  // Handlers de alertas
-  const handleAlertAction = (alert: FinancialAlertData) => {
-    console.log('Ação do alerta:', alert);
-    if (alert.actionUrl) {
-      // Em produção, usar Next.js router
-      window.location.href = alert.actionUrl;
-    }
-  };
-
-  const handleAlertDismiss = (alertId: string) => {
-    setDismissedAlerts((prev) => new Set([...prev, alertId]));
-  };
-
-  const handleClearAllAlerts = () => {
-    const dismissableIds = alerts
-      .filter((a) => a.dismissable)
-      .map((a) => a.id);
-    setDismissedAlerts((prev) => new Set([...prev, ...dismissableIds]));
-  };
-
-  // Gerar insights de IA - Fase 7
-  const insights = useMemo(() => {
-    return generateFinancialInsights({
-      currentBalance: resumoFinanceiro.saldoAtual,
-      monthlyRevenue: 125000,
-      monthlyExpenses: 93000,
-      revenue30Days: 125000,
-      revenue60Days: 118000,
-      revenue90Days: 110000,
-      expenses30Days: 93000,
-      expenses60Days: 88000,
-      expenses90Days: 85000,
-      overduePayments: 3200,
-      overdueReceipts: 8500,
-      categoryExpenses: expensesCategoryData.map((cat) => ({
-        category: cat.category,
-        value: cat.value,
-        percentage: cat.percentage,
-        trend: Math.random() * 30 - 10, // Tendência simulada -10% a +20%
-      })),
-    });
-  }, [resumoFinanceiro.saldoAtual]);
+  // Insights de IA removidos - aguardando dados reais de histórico e análise preditiva
+  // TODO: Implementar quando tivermos endpoints de histórico e análise preditiva
 
   const acoesRapidas = [
     {
@@ -415,16 +228,8 @@ const FinanceiroPage: React.FC = () => {
         onExport={handleExport}
       />
 
-      {/* Central de Alertas - Fase 4 */}
-      {alerts.length > 0 && (
-        <AlertsPanel
-          alerts={alerts}
-          onAlertAction={handleAlertAction}
-          onAlertDismiss={handleAlertDismiss}
-          onClearAll={handleClearAllAlerts}
-          compact
-        />
-      )}
+      {/* Central de Alertas - Removida (aguardando endpoints) */}
+      {/* TODO: Implementar quando endpoints de monitoramento estiverem disponíveis */}
 
       {/* Cards de Resumo - Layout Hierárquico */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -438,15 +243,8 @@ const FinanceiroPage: React.FC = () => {
             <div className="text-4xl font-bold text-blue-600">
               R$ {resumoFinanceiro.saldoAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
-            <FinancialSparkline
-              data={sparklineData.saldo}
-              color="#3B82F6"
-              height={60}
-              showArea={true}
-              showGradient={true}
-            />
-            <div className="flex items-center justify-between">
-              <TrendBadge value={comparacoes.saldo} size="md" />
+            {/* TODO: Implementar histórico de saldo quando endpoint estiver disponível */}
+            <div className="flex items-center justify-between pt-3">
               <span className="text-sm text-muted-foreground">
                 Atualizado agora
               </span>
@@ -464,12 +262,7 @@ const FinanceiroPage: React.FC = () => {
             <div className="text-2xl font-bold text-red-600">
               R$ {resumoFinanceiro.contasAPagar.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
-            <FinancialSparkline
-              data={sparklineData.contasAPagar}
-              color="#EF4444"
-              height={32}
-            />
-            <TrendBadge value={comparacoes.contasAPagar} size="sm" />
+            {/* TODO: Implementar histórico quando endpoint estiver disponível */}
             <p className="text-xs text-muted-foreground mt-1">
               {resumoFinanceiro.vencendoHoje} vencendo hoje
             </p>
@@ -485,14 +278,9 @@ const FinanceiroPage: React.FC = () => {
             <div className="text-2xl font-bold text-green-600">
               R$ {resumoFinanceiro.contasAReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
-            <FinancialSparkline
-              data={sparklineData.contasAReceber}
-              color="#10B981"
-              height={32}
-            />
-            <TrendBadge value={comparacoes.contasAReceber} size="sm" />
+            {/* TODO: Implementar histórico quando endpoint estiver disponível */}
             <p className="text-xs text-muted-foreground mt-1">
-              Previsão próximos 30 dias
+              Total pendente
             </p>
           </CardContent>
         </Card>
@@ -508,35 +296,21 @@ const FinanceiroPage: React.FC = () => {
           <div className="text-2xl font-bold text-purple-600">
             R$ {(resumoFinanceiro.contasAReceber - resumoFinanceiro.contasAPagar).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
-          <TrendBadge value={comparacoes.resultado} size="sm" />
+          {/* TODO: Implementar histórico quando endpoint estiver disponível */}
           <p className="text-xs text-muted-foreground mt-1">
-            Projeção do mês
+            Diferença entre receber e pagar
           </p>
         </CardContent>
       </Card>
 
-      {/* Gráficos Financeiros - Fase 2 */}
-      <div className="space-y-6">
-        <h2 className="text-xl font-semibold">Análises Financeiras</h2>
-
-        {/* Fluxo de Caixa - Full Width */}
-        <CashFlowChart data={cashFlowData} />
-
-        {/* Aging Reports - Grid 2 Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AgingChart type="receivable" data={agingReceivableData} />
-          <AgingChart type="payable" data={agingPayableData} />
-        </div>
-
-        {/* DRE e Despesas - Grid 2 Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DREWaterfallChart data={dreData} />
-          <ExpensesByCategoryChart data={expensesCategoryData} />
-        </div>
-      </div>
-
-      {/* Insights de IA - Fase 7 */}
-      <InsightsPanel insights={insights} />
+      {/*
+        Análises Financeiras Removidas - Aguardando implementação de endpoints backend:
+        - Fluxo de Caixa Projetado (12 semanas)
+        - Aging de Recebíveis e Pagáveis
+        - DRE Mensal
+        - Despesas por Categoria
+        - Insights Financeiros com IA
+      */}
 
       {/* Ações Rápidas */}
       <div>
