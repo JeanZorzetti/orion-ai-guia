@@ -39,7 +39,7 @@ export const cashFlowService = {
 
     const query = queryParams.toString();
     const response = await api.get<CashFlowTransaction[]>(
-      `/cash-flow/transactions/${query ? `?${query}` : ''}`
+      `/cash-flow/transactions${query ? `?${query}` : ''}`
     );
     return response;
   },
@@ -103,7 +103,7 @@ export const cashFlowService = {
 
     const query = queryParams.toString();
     const response = await api.get<BankAccountData[]>(
-      `/cash-flow/bank-accounts/${query ? `?${query}` : ''}`
+      `/cash-flow/bank-accounts${query ? `?${query}` : ''}`
     );
     return response;
   },
