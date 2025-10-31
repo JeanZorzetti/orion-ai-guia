@@ -32,14 +32,9 @@ export function usePendingApprovals(usuarioId?: string) {
         setError(null);
 
         // Buscar faturas com status 'pending' ou 'validated' (aguardando aprovação)
-        const response = await api.get<APInvoice[]>('/accounts-payable/invoices', {
-          params: {
-            status: 'pending,validated',
-            limit: 100,
-          },
-        });
+        const response = await api.get<APInvoice[]>('/accounts-payable/invoices?status=pending&status=validated&limit=100');
 
-        setInvoices(response.data || []);
+        setInvoices(response || []);
       } catch (err: any) {
         console.error('Erro ao buscar faturas pendentes:', err);
         setError(err.message || 'Erro ao buscar faturas pendentes');
@@ -116,13 +111,8 @@ export function usePendingApprovals(usuarioId?: string) {
       });
 
       // Recarregar lista após aprovação
-      const response = await api.get<APInvoice[]>('/accounts-payable/invoices', {
-        params: {
-          status: 'pending,validated',
-          limit: 100,
-        },
-      });
-      setInvoices(response.data || []);
+      const response = await api.get<APInvoice[]>('/accounts-payable/invoices?status=pending&status=validated&limit=100');
+      setInvoices(response || []);
     } catch (err: any) {
       console.error('Erro ao aprovar fatura:', err);
       throw new Error(err.response?.data?.detail || 'Erro ao aprovar fatura');
@@ -136,13 +126,8 @@ export function usePendingApprovals(usuarioId?: string) {
       });
 
       // Recarregar lista após rejeição
-      const response = await api.get<APInvoice[]>('/accounts-payable/invoices', {
-        params: {
-          status: 'pending,validated',
-          limit: 100,
-        },
-      });
-      setInvoices(response.data || []);
+      const response = await api.get<APInvoice[]>('/accounts-payable/invoices?status=pending&status=validated&limit=100');
+      setInvoices(response || []);
     } catch (err: any) {
       console.error('Erro ao rejeitar fatura:', err);
       throw new Error(err.response?.data?.detail || 'Erro ao rejeitar fatura');
