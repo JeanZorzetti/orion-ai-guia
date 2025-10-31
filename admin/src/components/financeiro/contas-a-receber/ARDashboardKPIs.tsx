@@ -5,9 +5,14 @@ import { Clock, AlertTriangle, TrendingUp, Target, DollarSign, Calendar } from '
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendBadge } from '@/components/ui/TrendBadge';
 import { useARKPIs } from '@/hooks/useARKPIs';
+import { ARAnalytics } from '@/types/financeiro';
 
-export const ARDashboardKPIs: React.FC = () => {
-  const kpis = useARKPIs();
+interface ARDashboardKPIsProps {
+  analytics?: ARAnalytics | null;
+}
+
+export const ARDashboardKPIs: React.FC<ARDashboardKPIsProps> = ({ analytics }) => {
+  const kpis = useARKPIs(analytics);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

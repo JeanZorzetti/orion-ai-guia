@@ -345,13 +345,13 @@ const ContasAReceberPage: React.FC = () => {
       </div>
 
       {/* Dashboard de KPIs Avançados */}
-      <ARDashboardKPIs />
+      <ARDashboardKPIs analytics={analytics} />
 
       {/* Gráficos de Análise */}
       <ARCharts />
 
       {/* Relatório de Aging */}
-      <AgingReportTable />
+      <AgingReportTable agingReport={agingReport} />
 
       {/* Visualizações Salvas */}
       <SavedViews

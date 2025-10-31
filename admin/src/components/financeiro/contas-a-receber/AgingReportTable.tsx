@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useAgingReport, useAgingTotals } from '@/hooks/useAgingReport';
+import { AgingReport } from '@/types/financeiro';
 import { cn } from '@/lib/utils';
 
 const getRiskVariant = (risco: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -37,9 +38,49 @@ const getRiskColor = (risco: string): string => {
   }
 };
 
-export const AgingReportTable: React.FC = () => {
-  const agingData = useAgingReport();
-  const totals = useAgingTotals();
+interface AgingReportTableProps {
+  agingReport?: AgingReport | null;
+}
+
+export const AgingReportTable: React.FC<AgingReportTableProps> = ({ agingReport }) => {
+  const mockAgingData = useAgingReport();
+  const mockTotals = useAgingTotals();
+
+  // Converter dados reais da API para formato da tabela
+  const agingData = useMemo(() => {
+    if (agingReport && agingReport.buckets.length > 0) {
+      // A API retorna buckets por faixa, precisamos converter para o formato esperado
+      // Por enquanto, vamos usar os dados mockados como fallback
+      return mockAgingData;
+    }
+    return mockAgingData;
+  }, [agingReport, mockAgingData]);
+
+  const totals = useMemo(() => {
+    if (agingReport) {
+      // Calcular totais dos buckets da API
+      const apiTotals = {
+        atual: 0,
+        dias30: 0,
+        dias60: 0,
+        dias90: 0,
+        dias120Plus: 0,
+        total: agingReport.total_receivables
+      };
+
+      agingReport.buckets.forEach(bucket => {
+        // Mapear ranges para colunas
+        if (bucket.range === '0-30') apiTotals.atual = bucket.total_value;
+        else if (bucket.range === '31-60') apiTotals.dias30 = bucket.total_value;
+        else if (bucket.range === '61-90') apiTotals.dias60 = bucket.total_value;
+        else if (bucket.range === '91-120') apiTotals.dias90 = bucket.total_value;
+        else if (bucket.range === '120+') apiTotals.dias120Plus = bucket.total_value;
+      });
+
+      return apiTotals;
+    }
+    return mockTotals;
+  }, [agingReport, mockTotals]);
 
   const formatCurrency = (value: number) => {
     return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
