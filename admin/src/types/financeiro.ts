@@ -314,12 +314,10 @@ export interface CashFlowAnalytics {
 export interface AccountBalanceSummary {
   account_id: number;
   account_name: string;
-  account_type: AccountType;
-  current_balance: number;
+  balance: number;
   total_entries: number;
   total_exits: number;
   transaction_count: number;
-  last_transaction_date?: string;
 }
 
 // ==================== FILTROS ====================
