@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +10,11 @@ import {
   DollarSign,
   ArrowUpCircle,
   ArrowDownCircle,
-  Filter
+  Filter,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
+import { useCashFlow } from '@/hooks/useCashFlow';
 import { CashFlowProjection } from '@/components/financeiro/fluxo-caixa/CashFlowProjection';
 import { ScenarioAnalysis } from '@/components/financeiro/fluxo-caixa/ScenarioAnalysis';
 import { ImpactSimulator } from '@/components/financeiro/fluxo-caixa/ImpactSimulator';
@@ -22,7 +27,20 @@ import { AIRecommendations } from '@/components/financeiro/fluxo-caixa/AIRecomme
 import { ReportGenerator } from '@/components/financeiro/fluxo-caixa/ReportGenerator';
 
 const FluxoCaixaPage: React.FC = () => {
-  const movimentacoes = [
+  // ========== INTEGRAÇÃO COM API REAL ==========
+  const {
+    transactions,
+    bankAccounts,
+    summary,
+    completeAnalytics,
+    loadingTransactions,
+    loadingAccounts,
+    loadingAnalytics,
+    error
+  } = useCashFlow();
+
+  // Mock data como fallback
+  const movimentacoes_MOCK = [
     { data: '2024-01-15', tipo: 'entrada', descricao: 'Recebimento Cliente ABC', valor: 5800.00, categoria: 'Vendas' },
     { data: '2024-01-15', tipo: 'saida', descricao: 'Pagamento Fornecedor XYZ', valor: 2300.00, categoria: 'Compras' },
     { data: '2024-01-14', tipo: 'entrada', descricao: 'Recebimento Cliente 123', valor: 3200.00, categoria: 'Vendas' },
@@ -32,23 +50,67 @@ const FluxoCaixaPage: React.FC = () => {
     { data: '2024-01-12', tipo: 'entrada', descricao: 'Recebimento Cliente Tech', valor: 8950.00, categoria: 'Vendas' },
   ];
 
-  const fluxoSemanal = [
-    { dia: 'Seg', entradas: 5800, saidas: 2300, saldo: 3500 },
-    { dia: 'Ter', entradas: 3200, saidas: 8500, saldo: -5300 },
-    { dia: 'Qua', entradas: 1250, saidas: 450, saldo: 800 },
-    { dia: 'Qui', entradas: 8950, saidas: 1200, saldo: 7750 },
-    { dia: 'Sex', entradas: 4500, saidas: 3100, saldo: 1400 },
-    { dia: 'Sáb', entradas: 2100, saidas: 500, saldo: 1600 },
-    { dia: 'Dom', entradas: 0, saidas: 0, saldo: 0 },
-  ];
+  // Calcular totais dos dados reais ou mock
+  const movimentacoes = useMemo(() => {
+    if (transactions.length > 0) {
+      return transactions.map(t => ({
+        data: new Date(t.transaction_date).toLocaleDateString('pt-BR'),
+        tipo: t.type,
+        descricao: t.description,
+        valor: t.value,
+        categoria: t.category
+      }));
+    }
+    return movimentacoes_MOCK;
+  }, [transactions]);
 
-  const totalEntradas = movimentacoes.filter(m => m.tipo === 'entrada').reduce((sum, m) => sum + m.valor, 0);
-  const totalSaidas = movimentacoes.filter(m => m.tipo === 'saida').reduce((sum, m) => sum + m.valor, 0);
-  const saldoPeriodo = totalEntradas - totalSaidas;
-  const saldoAtual = 45280.30;
+  const totalEntradas = useMemo(() => {
+    if (summary) return summary.total_entries;
+    return movimentacoes.filter(m => m.tipo === 'entrada').reduce((sum, m) => sum + m.valor, 0);
+  }, [summary, movimentacoes]);
+
+  const totalSaidas = useMemo(() => {
+    if (summary) return summary.total_exits;
+    return movimentacoes.filter(m => m.tipo === 'saida').reduce((sum, m) => sum + m.valor, 0);
+  }, [summary, movimentacoes]);
+
+  const saldoPeriodo = useMemo(() => {
+    if (summary) return summary.net_flow;
+    return totalEntradas - totalSaidas;
+  }, [summary, totalEntradas, totalSaidas]);
+
+  const saldoAtual = useMemo(() => {
+    if (summary) return summary.closing_balance;
+    if (bankAccounts.length > 0) {
+      return bankAccounts.reduce((sum, acc) => sum + acc.current_balance, 0);
+    }
+    return 45280.30; // Fallback mock
+  }, [summary, bankAccounts]);
+
+  const isLoading = loadingTransactions || loadingAccounts || loadingAnalytics;
 
   return (
     <div className="space-y-6">
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-muted-foreground">Carregando fluxo de caixa...</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <Card className="border-red-500 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              <span className="font-medium">Erro ao carregar dados: {error}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
@@ -57,10 +119,15 @@ const FluxoCaixaPage: React.FC = () => {
           </h1>
           <p className="text-muted-foreground mt-1">
             Visualize entrada e saída de recursos
+            {transactions.length > 0 && (
+              <Badge variant="outline" className="ml-2">
+                Dados Reais da API
+              </Badge>
+            )}
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" disabled={isLoading}>
             <Filter className="mr-2 h-4 w-4" />
             Filtrar Período
           </Button>
