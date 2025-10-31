@@ -58,7 +58,7 @@ class AccountsPayableInvoice(Base):
     # Pagamento
     payment_method = Column(SQLEnum(PaymentMethod))
     payment_reference = Column(String(255))  # Referência do pagamento (ex: número do cheque)
-    bank_account_id = Column(Integer, ForeignKey("cash_flow_bank_accounts.id"))  # Conta bancária usada
+    bank_account_id = Column(Integer)  # Conta bancária usada (sem FK - tabela não existe)
 
     # Status
     status = Column(SQLEnum(InvoiceStatus), default=InvoiceStatus.PENDING, index=True)
@@ -145,7 +145,7 @@ class PaymentHistory(Base):
     payment_reference = Column(String(255))
 
     # Banco
-    bank_account_id = Column(Integer, ForeignKey("cash_flow_bank_accounts.id"))
+    bank_account_id = Column(Integer)  # Sem FK - tabela não existe ainda
 
     # Observações
     notes = Column(Text)
@@ -156,7 +156,6 @@ class PaymentHistory(Base):
 
     # Relacionamentos
     invoice = relationship("AccountsPayableInvoice", back_populates="payment_history")
-    bank_account = relationship("BankAccount", foreign_keys=[bank_account_id])
 
 
 class SupplierContact(Base):
