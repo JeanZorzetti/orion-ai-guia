@@ -105,14 +105,26 @@ export function useAccountsReceivable(
     setLoadingAnalytics(true);
 
     try {
-      const data = await accountsReceivableService.getCompleteAnalytics(startDate, endDate);
-      setAnalytics(data.summary);
-      setAgingReport(data.aging);
-      setCustomerRisk(data.customer_risk);
-      setRiskDistribution(data.risk_distribution);
+      // Chamar endpoints separados que realmente existem
+      const [analyticsData, agingData] = await Promise.all([
+        accountsReceivableService.getAnalytics(startDate, endDate),
+        accountsReceivableService.getAgingReport(startDate, endDate)
+      ]);
+
+      setAnalytics(analyticsData);
+      setAgingReport(agingData);
+
+      // customer_risk e risk_distribution virão depois se necessário
+      setCustomerRisk([]);
+      setRiskDistribution([]);
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.detail || 'Erro ao carregar analytics completo';
-      toast.error(errorMessage);
+      const status = err?.response?.status;
+      // Não exibir erro se for 401 ou 404 durante carregamento inicial
+      if (status !== 401 && status !== 404) {
+        const errorMessage = err?.response?.data?.detail || 'Erro ao carregar analytics completo';
+        toast.error(errorMessage);
+      }
+      console.debug('Analytics loading skipped:', err.message);
     } finally {
       setLoadingAnalytics(false);
     }

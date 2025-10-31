@@ -56,7 +56,7 @@ export const cashFlowService = {
    * Criar nova transação
    */
   async createTransaction(data: CashFlowTransactionCreate): Promise<CashFlowTransaction> {
-    const response = await api.post<CashFlowTransaction>('/cash-flow/transactions/', data);
+    const response = await api.post<CashFlowTransaction>('/cash-flow/transactions', data);
     return response;
   },
 
@@ -120,7 +120,7 @@ export const cashFlowService = {
    * Criar nova conta bancária
    */
   async createBankAccount(data: BankAccountCreate): Promise<BankAccountData> {
-    const response = await api.post<BankAccountData>('/cash-flow/bank-accounts/', data);
+    const response = await api.post<BankAccountData>('/cash-flow/bank-accounts', data);
     return response;
   },
 
