@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,13 @@ import { AIRecommendations } from '@/components/financeiro/fluxo-caixa/AIRecomme
 import { ReportGenerator } from '@/components/financeiro/fluxo-caixa/ReportGenerator';
 
 const FluxoCaixaPage: React.FC = () => {
+  // Evitar problemas de hidratação SSR
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // ========== INTEGRAÇÃO COM API REAL ==========
   const {
     transactions,
@@ -99,6 +106,16 @@ const FluxoCaixaPage: React.FC = () => {
   ];
 
   const isLoading = loadingTransactions || loadingAccounts || loadingAnalytics;
+
+  // Evitar hidratação de conteúdo dinâmico (datas, valores formatados)
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Carregando...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
