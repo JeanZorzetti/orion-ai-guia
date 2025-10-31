@@ -582,9 +582,7 @@ const FinanceiroPage: React.FC = () => {
         {/* DRE e Despesas - Grid 2 Columns */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <DREWaterfallChart data={dreData} />
-          {expensesCategoryData.length > 0 && (
-            <ExpensesByCategoryChart data={expensesCategoryData} />
-          )}
+          <ExpensesByCategoryChart data={expensesCategoryData} />
         </div>
       </div>
 
