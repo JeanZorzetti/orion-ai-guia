@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { differenceInDays } from 'date-fns';
+import { useCashFlow } from './useCashFlow';
 
 export interface APAgingBucket {
   fornecedorId: string;
@@ -25,110 +26,6 @@ export interface APAgingTotals {
   total: number;
 }
 
-// Mock data
-const mockInvoices = [
-  {
-    id: 1,
-    invoice_number: 'NF-001',
-    supplier_id: 1,
-    supplier: { id: 1, name: 'Fornecedor Alpha Ltda' },
-    invoice_date: new Date('2025-10-01'),
-    due_date: new Date('2025-10-25'),
-    total_value: 5000,
-    status: 'pending',
-  },
-  {
-    id: 2,
-    invoice_number: 'NF-002',
-    supplier_id: 2,
-    supplier: { id: 2, name: 'Beta Fornecimentos S.A.' },
-    invoice_date: new Date('2025-10-05'),
-    due_date: new Date('2025-10-20'),
-    total_value: 8000,
-    status: 'pending',
-  },
-  {
-    id: 3,
-    invoice_number: 'NF-003',
-    supplier_id: 1,
-    supplier: { id: 1, name: 'Fornecedor Alpha Ltda' },
-    invoice_date: new Date('2025-09-15'),
-    due_date: new Date('2025-10-15'),
-    total_value: 12000,
-    status: 'pending',
-  },
-  {
-    id: 4,
-    invoice_number: 'NF-004',
-    supplier_id: 3,
-    supplier: { id: 3, name: 'Gamma Comércio Ltda' },
-    invoice_date: new Date('2025-10-10'),
-    due_date: new Date('2025-11-02'),
-    total_value: 3500,
-    status: 'validated',
-  },
-  {
-    id: 5,
-    invoice_number: 'NF-005',
-    supplier_id: 2,
-    supplier: { id: 2, name: 'Beta Fornecimentos S.A.' },
-    invoice_date: new Date('2025-09-20'),
-    due_date: new Date('2025-10-28'),
-    total_value: 15000,
-    status: 'validated',
-  },
-  {
-    id: 6,
-    invoice_number: 'NF-006',
-    supplier_id: 4,
-    supplier: { id: 4, name: 'Delta Distribuidora ME' },
-    invoice_date: new Date('2025-10-15'),
-    due_date: new Date('2025-11-05'),
-    total_value: 6800,
-    status: 'pending',
-  },
-  {
-    id: 7,
-    invoice_number: 'NF-007',
-    supplier_id: 5,
-    supplier: { id: 5, name: 'Epsilon Materiais Ltda' },
-    invoice_date: new Date('2025-09-25'),
-    due_date: new Date('2025-10-28'),
-    total_value: 4200,
-    status: 'pending',
-  },
-  {
-    id: 8,
-    invoice_number: 'NF-008',
-    supplier_id: 1,
-    supplier: { id: 1, name: 'Fornecedor Alpha Ltda' },
-    invoice_date: new Date('2025-09-01'),
-    due_date: new Date('2025-09-25'),
-    total_value: 9500,
-    status: 'pending',
-  },
-  {
-    id: 9,
-    invoice_number: 'NF-009',
-    supplier_id: 3,
-    supplier: { id: 3, name: 'Gamma Comércio Ltda' },
-    invoice_date: new Date('2025-08-20'),
-    due_date: new Date('2025-09-20'),
-    total_value: 7800,
-    status: 'pending',
-  },
-  {
-    id: 10,
-    invoice_number: 'NF-010',
-    supplier_id: 4,
-    supplier: { id: 4, name: 'Delta Distribuidora ME' },
-    invoice_date: new Date('2025-10-20'),
-    due_date: new Date('2025-11-10'),
-    total_value: 5500,
-    status: 'validated',
-  },
-];
-
 function calculateUrgency(bucket: Omit<APAgingBucket, 'urgencia'>): 'baixa' | 'media' | 'alta' | 'critica' {
   const totalVencido = bucket.vencido1a7 + bucket.vencido8a15 + bucket.vencido16a30 + bucket.vencido30Plus;
   const percentualVencido = bucket.total > 0 ? (totalVencido / bucket.total) * 100 : 0;
@@ -152,25 +49,36 @@ function calculateUrgency(bucket: Omit<APAgingBucket, 'urgencia'>): 'baixa' | 'm
   return 'baixa';
 }
 
+/**
+ * Hook que calcula Aging Report de Contas a Pagar baseado nas transações do Cash Flow
+ *
+ * NOTA: Este hook usa transações de saída do Cash Flow como proxy para Contas a Pagar
+ * até que o módulo completo de Accounts Payable seja implementado no backend.
+ *
+ * Agrupa por 'category' (proxy para fornecedor) e calcula períodos de vencimento
+ * baseado em transaction_date.
+ */
 export function useAPAgingReport(): APAgingBucket[] {
+  const { transactions } = useCashFlow();
+
   return useMemo(() => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
-    // Filtrar apenas faturas pendentes e validadas (não pagas)
-    const faturasAbertas = mockInvoices.filter(
-      (invoice) => invoice.status === 'pending' || invoice.status === 'validated'
+    // Filtrar apenas transações de saída não reconciliadas (pendentes)
+    const transacoesPendentes = transactions.filter(
+      t => t.type === 'saida' && !t.is_reconciled
     );
 
-    // Agrupar por fornecedor
-    const agrupamento = faturasAbertas.reduce((acc, invoice) => {
-      const fornecedorId = invoice.supplier?.id || invoice.supplier_id;
-      const fornecedorNome = invoice.supplier?.name || 'Desconhecido';
+    // Agrupar por categoria (proxy para fornecedor)
+    const agrupamento = transacoesPendentes.reduce((acc, transaction) => {
+      const categoriaId = transaction.category || 'sem-categoria';
+      const categoriaNome = transaction.category || 'Sem Categoria';
 
-      if (!acc[fornecedorId]) {
-        acc[fornecedorId] = {
-          fornecedorId: fornecedorId.toString(),
-          fornecedorNome,
+      if (!acc[categoriaId]) {
+        acc[categoriaId] = {
+          fornecedorId: categoriaId,
+          fornecedorNome: categoriaNome,
           aVencer: 0,
           vencendoHoje: 0,
           vencido1a7: 0,
@@ -182,46 +90,42 @@ export function useAPAgingReport(): APAgingBucket[] {
         };
       }
 
-      const bucket = acc[fornecedorId];
-      bucket.total += invoice.total_value;
+      const bucket = acc[categoriaId];
+      const valor = Math.abs(transaction.value);
+      bucket.total += valor;
       bucket.quantidadeTitulos += 1;
 
-      if (!invoice.due_date) {
-        bucket.aVencer += invoice.total_value;
-        return acc;
-      }
-
-      const dueDate = new Date(invoice.due_date);
-      dueDate.setHours(0, 0, 0, 0);
-      const diasDiferenca = differenceInDays(hoje, dueDate);
+      const transactionDate = new Date(transaction.transaction_date);
+      transactionDate.setHours(0, 0, 0, 0);
+      const diasDiferenca = differenceInDays(hoje, transactionDate);
 
       // Vencendo hoje
       if (diasDiferenca === 0) {
-        bucket.vencendoHoje += invoice.total_value;
+        bucket.vencendoHoje += valor;
       }
-      // A vencer (futuro)
+      // A vencer (futuro - transações futuras)
       else if (diasDiferenca < 0) {
-        bucket.aVencer += invoice.total_value;
+        bucket.aVencer += valor;
       }
       // Vencido 1-7 dias
       else if (diasDiferenca >= 1 && diasDiferenca <= 7) {
-        bucket.vencido1a7 += invoice.total_value;
+        bucket.vencido1a7 += valor;
       }
       // Vencido 8-15 dias
       else if (diasDiferenca >= 8 && diasDiferenca <= 15) {
-        bucket.vencido8a15 += invoice.total_value;
+        bucket.vencido8a15 += valor;
       }
       // Vencido 16-30 dias
       else if (diasDiferenca >= 16 && diasDiferenca <= 30) {
-        bucket.vencido16a30 += invoice.total_value;
+        bucket.vencido16a30 += valor;
       }
       // Vencido 30+ dias
       else {
-        bucket.vencido30Plus += invoice.total_value;
+        bucket.vencido30Plus += valor;
       }
 
       return acc;
-    }, {} as Record<number, Omit<APAgingBucket, 'urgencia'>>);
+    }, {} as Record<string, Omit<APAgingBucket, 'urgencia'>>);
 
     // Converter para array e calcular urgência
     const result = Object.values(agrupamento).map((bucket) => ({
@@ -238,7 +142,7 @@ export function useAPAgingReport(): APAgingBucket[] {
     });
 
     return result;
-  }, []);
+  }, [transactions]);
 }
 
 export function useAPAgingTotals(): APAgingTotals {
