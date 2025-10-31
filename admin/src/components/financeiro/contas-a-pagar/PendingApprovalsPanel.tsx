@@ -13,16 +13,26 @@ import { EmptyState } from '@/components/ui/empty-state';
 export const PendingApprovalsPanel: React.FC = () => {
   // TODO: Pegar usuário do contexto de autenticação
   const userId = '1'; // Mock: Carlos Silva
-  const { approvalRequests, approve, reject } = usePendingApprovals(userId);
+  const { approvalRequests, approve, reject, loading, error } = usePendingApprovals(userId);
 
   const handleApprove = async (requestId: string) => {
-    await approve(requestId);
-    // TODO: Mostrar toast de sucesso e recarregar
+    try {
+      await approve(requestId);
+      // TODO: Mostrar toast de sucesso
+    } catch (error) {
+      console.error('Erro ao aprovar:', error);
+      // TODO: Mostrar toast de erro
+    }
   };
 
   const handleReject = async (requestId: string) => {
-    await reject(requestId, 'Rejeitado pelo aprovador');
-    // TODO: Mostrar toast e recarregar
+    try {
+      await reject(requestId, 'Rejeitado pelo aprovador');
+      // TODO: Mostrar toast de sucesso
+    } catch (error) {
+      console.error('Erro ao rejeitar:', error);
+      // TODO: Mostrar toast de erro
+    }
   };
 
   const handleViewInvoice = (faturaId: string) => {
@@ -36,7 +46,7 @@ export const PendingApprovalsPanel: React.FC = () => {
         <CardTitle className="flex items-center gap-2">
           <CheckCircle2 className="h-5 w-5" />
           Aprovações Pendentes
-          {approvalRequests.length > 0 && (
+          {!loading && approvalRequests.length > 0 && (
             <Badge variant="destructive" className="ml-2">
               {approvalRequests.length}
             </Badge>
@@ -44,7 +54,17 @@ export const PendingApprovalsPanel: React.FC = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {approvalRequests.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : error ? (
+          <EmptyState
+            icon={XCircle}
+            title="Erro ao carregar aprovações"
+            description={error}
+          />
+        ) : approvalRequests.length === 0 ? (
           <EmptyState
             icon={CheckCircle2}
             title="Nenhuma aprovação pendente"
