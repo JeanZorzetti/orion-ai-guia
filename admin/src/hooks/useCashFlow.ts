@@ -107,9 +107,12 @@ export function useCashFlow(
       setTransactions(data);
       setCurrentFilters(filters || currentFilters);
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.detail || 'Erro ao carregar transações';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      const status = err?.response?.status;
+      if (status !== 401 && status !== 404) {
+        const errorMessage = err?.response?.data?.detail || 'Erro ao carregar transações';
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
     } finally {
       setLoadingTransactions(false);
     }
@@ -197,8 +200,11 @@ export function useCashFlow(
       const data = await cashFlowService.getBankAccounts(activeOnly);
       setBankAccounts(data);
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.detail || 'Erro ao carregar contas bancárias';
-      toast.error(errorMessage);
+      const status = err?.response?.status;
+      if (status !== 401 && status !== 404) {
+        const errorMessage = err?.response?.data?.detail || 'Erro ao carregar contas bancárias';
+        toast.error(errorMessage);
+      }
     } finally {
       setLoadingAccounts(false);
     }
@@ -293,8 +299,11 @@ export function useCashFlow(
       const data = await cashFlowService.getSummary(startDate, endDate, accountId);
       setSummary(data);
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.detail || 'Erro ao carregar resumo';
-      toast.error(errorMessage);
+      const status = err?.response?.status;
+      if (status !== 401 && status !== 404) {
+        const errorMessage = err?.response?.data?.detail || 'Erro ao carregar resumo';
+        toast.error(errorMessage);
+      }
     } finally {
       setLoadingAnalytics(false);
     }
@@ -309,8 +318,11 @@ export function useCashFlow(
       const data = await cashFlowService.getByCategory(startDate, endDate, accountId);
       setCategoryAnalysis(data);
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.detail || 'Erro ao carregar análise por categoria';
-      toast.error(errorMessage);
+      const status = err?.response?.status;
+      if (status !== 401 && status !== 404) {
+        const errorMessage = err?.response?.data?.detail || 'Erro ao carregar análise por categoria';
+        toast.error(errorMessage);
+      }
     }
   }, []);
 
@@ -319,8 +331,11 @@ export function useCashFlow(
       const data = await cashFlowService.getByAccount();
       setAccountSummary(data);
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.detail || 'Erro ao carregar resumo de contas';
-      toast.error(errorMessage);
+      const status = err?.response?.status;
+      if (status !== 401 && status !== 404) {
+        const errorMessage = err?.response?.data?.detail || 'Erro ao carregar resumo de contas';
+        toast.error(errorMessage);
+      }
     }
   }, []);
 
@@ -333,8 +348,11 @@ export function useCashFlow(
       const data = await cashFlowService.getBalanceHistory(startDate, endDate, accountId);
       setBalanceHistory(data);
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.detail || 'Erro ao carregar histórico de saldo';
-      toast.error(errorMessage);
+      const status = err?.response?.status;
+      if (status !== 401 && status !== 404) {
+        const errorMessage = err?.response?.data?.detail || 'Erro ao carregar histórico de saldo';
+        toast.error(errorMessage);
+      }
     }
   }, []);
 
@@ -346,8 +364,11 @@ export function useCashFlow(
       const data = await cashFlowService.getProjection(daysAhead, accountId);
       setProjection(data);
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.detail || 'Erro ao carregar projeção';
-      toast.error(errorMessage);
+      const status = err?.response?.status;
+      if (status !== 401 && status !== 404) {
+        const errorMessage = err?.response?.data?.detail || 'Erro ao carregar projeção';
+        toast.error(errorMessage);
+      }
     }
   }, []);
 
@@ -366,8 +387,13 @@ export function useCashFlow(
       setAccountSummary(data.by_account);
       setBalanceHistory(data.balance_history);
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.detail || 'Erro ao carregar analytics completo';
-      toast.error(errorMessage);
+      // Não exibir erro se for 401 (não autenticado) ou 404 durante carregamento inicial
+      const status = err?.response?.status;
+      if (status !== 401 && status !== 404) {
+        const errorMessage = err?.response?.data?.detail || 'Erro ao carregar analytics completo';
+        toast.error(errorMessage);
+      }
+      console.debug('Analytics loading skipped:', err.message);
     } finally {
       setLoadingAnalytics(false);
     }
