@@ -95,8 +95,7 @@ class AccountsPayableInvoice(Base):
 
     # Relacionamentos
     workspace = relationship("Workspace")
-    supplier = relationship("Supplier", back_populates="invoices")
-    bank_account = relationship("BankAccount", foreign_keys=[bank_account_id])
+    supplier = relationship("Supplier", back_populates="ap_invoices")
     parent_invoice = relationship("AccountsPayableInvoice", remote_side=[id])
     installments = relationship("InvoiceInstallment", back_populates="invoice", cascade="all, delete-orphan")
     payment_history = relationship("PaymentHistory", back_populates="invoice", cascade="all, delete-orphan")
