@@ -139,18 +139,36 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return null;
 };
 
-export const ARCharts: React.FC = () => {
+interface ARChartsProps {
+  // Props opcionais para dados reais (quando disponíveis do backend)
+  agingChartData?: typeof agingChartData;
+  trendData?: typeof trendData;
+}
+
+export const ARCharts: React.FC<ARChartsProps> = ({
+  agingChartData: customAgingData,
+  trendData: customTrendData
+}) => {
+  // Usar dados personalizados se fornecidos, senão usar mock
+  const chartAgingData = customAgingData || agingChartData;
+  const chartTrendData = customTrendData || trendData;
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {/* Gráfico de Aging - Barras Empilhadas */}
       <Card>
         <CardHeader>
           <CardTitle>Distribuição por Período</CardTitle>
-          <CardDescription>Evolução dos títulos por faixa de vencimento</CardDescription>
+          <CardDescription>
+            Evolução dos títulos por faixa de vencimento
+            {!customAgingData && (
+              <span className="text-xs text-muted-foreground ml-2">(dados mockados)</span>
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={agingChartData}>
+            <BarChart data={chartAgingData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis
                 dataKey="mes"
@@ -181,11 +199,16 @@ export const ARCharts: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Evolução de Indicadores</CardTitle>
-          <CardDescription>DSO, Inadimplência e Eficiência ao longo do tempo</CardDescription>
+          <CardDescription>
+            DSO, Inadimplência e Eficiência ao longo do tempo
+            {!customTrendData && (
+              <span className="text-xs text-muted-foreground ml-2">(dados mockados)</span>
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={trendData}>
+            <LineChart data={chartTrendData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis
                 dataKey="mes"
