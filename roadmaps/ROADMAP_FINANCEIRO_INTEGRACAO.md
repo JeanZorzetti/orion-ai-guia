@@ -2,17 +2,17 @@
 
 **Objetivo:** Substituir dados mockados por integração real com backend e banco de dados
 
-**Status Atual:** 75% integrado (Contas a Pagar ✅ | Contas a Receber ✅ BACKEND | Fluxo de Caixa ✅ BACKEND)
+**Status Atual:** 80% integrado (Backend 100% ✅ | Frontend 60% ⏳)
 
 **Prazo Estimado:** 6-8 semanas (3 fases principais)
 
-**Última Atualização:** 2025-01-30 - Fase 2.1 e 2.2 COMPLETAS ✅
+**Última Atualização:** 2025-01-30 - Fase 3 Sprint 3.1 e 3.2 (parcial) COMPLETOS ✅
 
 ---
 
 ## 📊 VISÃO GERAL
 
-### ✅ Já Integrado (75%)
+### ✅ Já Integrado (80%)
 - Dashboard Principal (`/admin/dashboard`)
 - Contas a Pagar (`/admin/financeiro/contas-a-pagar`) - COMPLETO
 - Faturas (Invoices) - CRUD completo
@@ -23,7 +23,7 @@
   - 11 Endpoints REST (680+ linhas)
   - Migration SQL (300+ linhas)
   - 8 índices, 3 triggers, 6 constraints
-- **Fluxo de Caixa (BACKEND)** - ✅ **NOVO! COMPLETO**
+- **Fluxo de Caixa (BACKEND)** - ✅ COMPLETO
   - Modelo BankAccount + CashFlowTransaction (192 linhas)
   - 22 Schemas Pydantic (310 linhas)
   - 18 Endpoints REST (970+ linhas)
@@ -31,15 +31,30 @@
   - 11 índices, 2 triggers, 4 views analíticas
   - Analytics: Projeções, Burn Rate, Runway, Health Score
 
-### ⏳ Em Andamento (0%)
+- **Integração Frontend (FASE 3)** - ⏳ **60% COMPLETO**
+  - ✅ Sprint 3.1 - Tipos, Serviços e Hooks (100%)
+    - Tipos TypeScript (350+ linhas, 15+ interfaces)
+    - Serviços API: accounts-receivable.ts (200 linhas), cash-flow.ts (320 linhas)
+    - Hooks React: useAccountsReceivable (250 linhas), useCashFlow (380 linhas)
+  - ⏳ Sprint 3.2 - Contas a Receber (50%)
+    - ✅ Página principal integrada com API real
+    - ⏳ Componentes de dashboard pendentes
+  - ⏳ Sprint 3.3 - Fluxo de Caixa (0%)
+    - Página principal e componentes pendentes
 
-- (Aguardando aplicação da Migration 013)
+### ⏳ Em Andamento
 
-### ❌ Pendente de Integração (25%)
+- Sprint 3.2: Componentes de dashboard Contas a Receber (50%)
+- Sprint 3.3: Integração completa Fluxo de Caixa (0%)
 
-- Página Principal Financeiro (`/admin/financeiro`) - Dashboard mockado
-- Contas a Receber (FRONTEND) - Integração pendente
-- Fluxo de Caixa (FRONTEND) - Integração pendente
+### ❌ Pendente de Integração (20%)
+
+- Componentes de dashboard Contas a Receber:
+  - ARDashboardKPIs (usar analytics do hook)
+  - AgingReportTable (usar agingReport do hook)
+  - ARCharts (usar dados reais)
+- Página Fluxo de Caixa completa (Sprint 3.3)
+- Modais de CRUD (criar, editar, registrar recebimento)
 - Relatórios Financeiros (`/admin/financeiro/relatorios`) - Mockado
 
 ---
@@ -229,13 +244,33 @@
 
 ---
 
-## 🎯 FASE 3: FRONTEND - Integração dos Componentes (2-3 semanas)
+## 🎯 FASE 3: FRONTEND - Integração dos Componentes ⏳ **60% COMPLETO** (2025-01-30)
 
-### **Sprint 3.1: Serviços e Tipos TypeScript** (3 dias)
+### **Sprint 3.1: Serviços e Tipos TypeScript** ✅ **COMPLETO** (3 dias)
 
-#### 📋 Tarefas:
+**Implementado:**
+- ✅ Tipos TypeScript completos ([admin/src/types/financeiro.ts](admin/src/types/financeiro.ts)) - 350+ linhas
+  - 15+ interfaces para Contas a Receber e Fluxo de Caixa
+  - 6 Enums tipados (Status, RiskCategory, TransactionType, PaymentMethod, etc)
+  - Tipos de Analytics, Filtros e Operações CRUD
+- ✅ Serviço API Contas a Receber ([admin/src/services/accounts-receivable.ts](admin/src/services/accounts-receivable.ts)) - 200 linhas
+  - CRUD completo + operações de pagamento
+  - 4 endpoints de analytics
+  - Batch operations e export
+- ✅ Serviço API Fluxo de Caixa ([admin/src/services/cash-flow.ts](admin/src/services/cash-flow.ts)) - 320 linhas
+  - CRUD transações e contas bancárias
+  - Transferências entre contas
+  - 6 endpoints de analytics com projeções
+- ✅ Hook useAccountsReceivable ([admin/src/hooks/useAccountsReceivable.ts](admin/src/hooks/useAccountsReceivable.ts)) - 250 linhas
+  - Gerenciamento completo de estado
+  - Auto-loading, error handling, toast feedback
+- ✅ Hook useCashFlow ([admin/src/hooks/useCashFlow.ts](admin/src/hooks/useCashFlow.ts)) - 380 linhas
+  - Gerenciamento de transações, contas e analytics
+  - Múltiplos loading states
 
-1. **Criar tipos TypeScript** (`admin/src/types/financeiro.ts`)
+#### 📋 Tarefas (referência):
+
+1. ✅ **Criar tipos TypeScript** ([admin/src/types/financeiro.ts](admin/src/types/financeiro.ts))
    ```typescript
    export interface AccountsReceivable {
      id: number;
@@ -388,15 +423,27 @@
 
 ---
 
-### **Sprint 3.2: Integrar Contas a Receber** (4-5 dias)
+### **Sprint 3.2: Integrar Contas a Receber** ⏳ **50% COMPLETO** (4-5 dias)
 
-#### 📋 Tarefas:
+**Implementado:**
+- ✅ Página principal integrada com API ([admin/src/app/admin/financeiro/contas-a-receber/page.tsx](admin/src/app/admin/financeiro/contas-a-receber/page.tsx))
+  - useAccountsReceivable hook conectado
+  - Conversão automática de dados API → UI (useMemo)
+  - Estados de loading e error com UI feedback
+  - Fallback para mock data durante desenvolvimento
+  - Badge "Dados Reais da API" quando conectado
+- ⏳ Componentes de dashboard pendentes:
+  - ARDashboardKPIs - precisa usar analytics do hook
+  - AgingReportTable - precisa usar agingReport do hook
+  - ARCharts - precisa usar dados reais para gráficos
 
-1. **Atualizar página principal** (`admin/src/app/admin/financeiro/contas-a-receber/page.tsx`)
-   - Remover `mockContasReceber`
-   - Adicionar `useEffect` para carregar dados reais
-   - Implementar estados de loading e error
-   - Conectar com `accountsReceivableService`
+#### 📋 Tarefas (referência):
+
+1. ✅ **Atualizar página principal** ([admin/src/app/admin/financeiro/contas-a-receber/page.tsx](admin/src/app/admin/financeiro/contas-a-receber/page.tsx))
+   - ✅ Hook useAccountsReceivable integrado
+   - ✅ Estados de loading e error implementados
+   - ✅ Conversão de dados API → UI
+   - ✅ Fallback para mock data
 
 2. **Criar hook customizado** (`admin/src/hooks/useAccountsReceivable.ts`)
    ```typescript
