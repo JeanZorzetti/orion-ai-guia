@@ -13,6 +13,7 @@ from app.api.api_v1.endpoints import (
     fiscal,
     integrations,
     accounts_receivable,
+    accounts_payable,
     cash_flow,
     cash_flow_analytics
 )
@@ -27,6 +28,7 @@ api_router.include_router(invoices.router, prefix="/invoices", tags=["invoices"]
 api_router.include_router(products.router, prefix="/products", tags=["products"])
 api_router.include_router(sales.router, prefix="/sales", tags=["sales"])
 api_router.include_router(accounts_receivable.router, prefix="/accounts-receivable", tags=["accounts-receivable"])
+api_router.include_router(accounts_payable.router, prefix="/accounts-payable", tags=["accounts-payable"])
 api_router.include_router(cash_flow.router, prefix="/cash-flow", tags=["cash-flow"])
 api_router.include_router(cash_flow_analytics.router, prefix="/cash-flow", tags=["cash-flow-analytics"])
 api_router.include_router(fiscal.router, prefix="/fiscal", tags=["fiscal"])
