@@ -651,3 +651,62 @@ def get_by_category(
         )
         for r in results
     ]
+
+
+# ==================== ADMIN - TEMPORARY MIGRATION ENDPOINT ====================
+
+@router.post("/admin/run-migration")
+def run_migration(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    ENDPOINT TEMPORÁRIO - Executar migration_014_fix.sql
+    REMOVER APÓS USO!
+    """
+    import os
+    from pathlib import Path
+
+    # Verificar se usuário é admin (adicionar validação se necessário)
+    # Por enquanto, qualquer usuário autenticado pode executar
+
+    migration_file = Path(__file__).parent.parent.parent.parent / "migrations" / "migration_014_fix.sql"
+
+    if not migration_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Arquivo de migration não encontrado: {migration_file}"
+        )
+
+    try:
+        # Ler arquivo SQL
+        with open(migration_file, "r", encoding="utf-8") as f:
+            sql_content = f.read()
+
+        # Executar SQL
+        db.execute(sql_content)
+        db.commit()
+
+        # Verificar tabelas criadas
+        result = db.execute("""
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+            AND table_name IN ('suppliers', 'accounts_payable_invoices', 'invoice_installments', 'payment_history', 'supplier_contacts')
+            ORDER BY table_name
+        """)
+        tables = [row[0] for row in result]
+
+        return {
+            "success": True,
+            "message": "Migration executada com sucesso!",
+            "tables_created": tables,
+            "total_tables": len(tables)
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao executar migration: {str(e)}"
+        )

@@ -28,6 +28,7 @@ class Supplier(Base):
     # Relationships
     workspace = relationship("Workspace", back_populates="suppliers")
     invoices = relationship("Invoice", back_populates="supplier", cascade="all, delete-orphan")
+    ap_invoices = relationship("AccountsPayableInvoice", back_populates="supplier", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Supplier(id={self.id}, name='{self.name}', workspace_id={self.workspace_id})>"

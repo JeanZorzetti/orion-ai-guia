@@ -3,6 +3,8 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 from app.core.database import Base
+# Importar Supplier existente ao invés de redefini-lo
+from app.models.supplier_model import Supplier
 
 
 class InvoiceStatus(str, enum.Enum):
@@ -25,62 +27,6 @@ class PaymentMethod(str, enum.Enum):
     PIX = "pix"
     BOLETO = "boleto"
     OTHER = "other"
-
-
-class Supplier(Base):
-    """Modelo de Fornecedor"""
-    __tablename__ = "suppliers"
-
-    id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False)
-
-    # Dados básicos
-    name = Column(String(255), nullable=False, index=True)
-    legal_name = Column(String(255))
-    cnpj = Column(String(18), index=True)
-    cpf = Column(String(14), index=True)
-
-    # Contato
-    email = Column(String(255))
-    phone = Column(String(20))
-    mobile = Column(String(20))
-
-    # Endereço
-    address_street = Column(String(255))
-    address_number = Column(String(20))
-    address_complement = Column(String(100))
-    address_neighborhood = Column(String(100))
-    address_city = Column(String(100))
-    address_state = Column(String(2))
-    address_zipcode = Column(String(10))
-
-    # Dados bancários
-    bank_name = Column(String(100))
-    bank_code = Column(String(10))
-    agency = Column(String(20))
-    account_number = Column(String(30))
-    account_type = Column(String(20))  # corrente, poupança
-    pix_key = Column(String(255))
-    pix_key_type = Column(String(20))  # cpf, cnpj, email, phone, random
-
-    # Configurações
-    payment_term_days = Column(Integer, default=30)  # Prazo padrão de pagamento
-    credit_limit = Column(Float, default=0)
-    discount_percentage = Column(Float, default=0)  # Desconto padrão
-
-    # Status
-    is_active = Column(Boolean, default=True)
-    notes = Column(Text)
-    tags = Column(JSON)
-
-    # Auditoria
-    created_by = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relacionamentos
-    workspace = relationship("Workspace", back_populates="suppliers")
-    invoices = relationship("AccountsPayableInvoice", back_populates="supplier", cascade="all, delete-orphan")
 
 
 class AccountsPayableInvoice(Base):
