@@ -108,7 +108,7 @@ export function useAccountsReceivable(
       // Chamar endpoints separados que realmente existem
       const [analyticsData, agingData] = await Promise.all([
         accountsReceivableService.getAnalytics(startDate, endDate),
-        accountsReceivableService.getAgingReport(startDate, endDate)
+        accountsReceivableService.getAgingReport()
       ]);
 
       setAnalytics(analyticsData);
