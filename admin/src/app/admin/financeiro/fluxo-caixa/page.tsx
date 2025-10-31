@@ -87,6 +87,17 @@ const FluxoCaixaPage: React.FC = () => {
     return 45280.30; // Fallback mock
   }, [summary, bankAccounts]);
 
+  // Dados mockados para gráfico semanal (até implementar endpoint de histórico)
+  const fluxoSemanal = [
+    { dia: 'Seg', entradas: 5800, saidas: 2300, saldo: 3500 },
+    { dia: 'Ter', entradas: 3200, saidas: 8500, saldo: -5300 },
+    { dia: 'Qua', entradas: 1250, saidas: 450, saldo: 800 },
+    { dia: 'Qui', entradas: 8950, saidas: 1200, saldo: 7750 },
+    { dia: 'Sex', entradas: 4500, saidas: 3100, saldo: 1400 },
+    { dia: 'Sáb', entradas: 2100, saidas: 500, saldo: 1600 },
+    { dia: 'Dom', entradas: 0, saidas: 0, saldo: 0 },
+  ];
+
   const isLoading = loadingTransactions || loadingAccounts || loadingAnalytics;
 
   return (
