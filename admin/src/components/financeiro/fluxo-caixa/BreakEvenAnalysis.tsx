@@ -191,13 +191,17 @@ export const BreakEvenAnalysis: React.FC = () => {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Aumento de receita necessário:</span>
                 <span className="font-semibold">
-                  +{((breakEven.receitaBreakEven / 78500 - 1) * 100).toFixed(1)}%
+                  {breakEven.current_revenue > 0
+                    ? `+${((breakEven.receitaBreakEven / breakEven.current_revenue - 1) * 100).toFixed(1)}%`
+                    : 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Ou redução de custos:</span>
                 <span className="font-semibold">
-                  -{((1 - breakEven.receitaBreakEven / 78500) * 100).toFixed(1)}%
+                  {breakEven.current_total_costs > 0
+                    ? `-${((breakEven.revenue_gap / breakEven.current_total_costs) * 100).toFixed(1)}%`
+                    : 'N/A'}
                 </span>
               </div>
             </CardContent>
@@ -210,11 +214,15 @@ export const BreakEvenAnalysis: React.FC = () => {
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Receita mensal média:</span>
-                <span className="font-semibold">R$ 78.5k</span>
+                <span className="font-semibold">
+                  R$ {(breakEven.current_revenue / 1000).toFixed(1)}k
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Custos fixos + variáveis:</span>
-                <span className="font-semibold">R$ 63.0k</span>
+                <span className="font-semibold">
+                  R$ {(breakEven.current_total_costs / 1000).toFixed(1)}k
+                </span>
               </div>
             </CardContent>
           </Card>
