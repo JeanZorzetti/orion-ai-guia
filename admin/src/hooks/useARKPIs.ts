@@ -39,10 +39,10 @@ export function useARKPIs(analytics?: ARAnalytics | null): AdvancedKPIs {
     if (analytics) {
       console.log('✅ [useARKPIs] Usando dados reais da API');
       // DSO = average_days_to_receive (já calculado pela API)
-      const dso = Math.round(analytics.avg_days_to_receive);
+      const dso = Math.round(analytics.avg_days_to_receive) || 0;
 
       // Tendência DSO - usar mock até termos histórico
-      const dsoTrend = ((dso - mockData.dsoAnterior) / mockData.dsoAnterior) * 100;
+      const dsoTrend = dso > 0 ? ((dso - mockData.dsoAnterior) / mockData.dsoAnterior) * 100 : 0;
 
       // Taxa de Inadimplência (default_rate já é porcentagem)
       const taxaInadimplencia = analytics.default_rate;
@@ -55,23 +55,31 @@ export function useARKPIs(analytics?: ARAnalytics | null): AdvancedKPIs {
       const eficienciaCobranca = 100 - taxaInadimplencia;
 
       // Concentração de Risco - usar mock até termos customer analytics
-      const concentracaoRisco = (mockData.top5Clientes / analytics.total_to_receive) * 100;
+      const concentracaoRisco = analytics.total_to_receive > 0
+        ? (mockData.top5Clientes / analytics.total_to_receive) * 100
+        : 0;
 
-      // Previsão 30 dias - usar received_this_month como base
-      const previsaoRecebimento30d = analytics.received_this_month * 1.1; // 10% a mais no próximo mês
+      // A API retorna total_overdue, não overdue_amount
+      const overdueAmount = (analytics as any).total_overdue || analytics.overdue_amount || 0;
+
+      // A API retorna total_received, não received_this_month
+      const receivedThisMonth = (analytics as any).total_received || analytics.received_this_month || 0;
+
+      // Previsão 30 dias - usar total_received como base
+      const previsaoRecebimento30d = receivedThisMonth * 1.1; // 10% a mais no próximo mês
 
       const result = {
         dso,
         dsoTrend,
         taxaInadimplencia,
-        valorVencido: analytics.overdue_amount,
+        valorVencido: overdueAmount,
         ticketMedioAR,
         previsaoRecebimento30d,
         eficienciaCobranca,
         concentracaoRisco,
         totalAReceber: analytics.total_to_receive,
-        totalRecebidoMes: analytics.received_this_month,
-        proximoVencimento30d: analytics.total_to_receive - analytics.overdue_amount, // Aproximação
+        totalRecebidoMes: receivedThisMonth,
+        proximoVencimento30d: analytics.total_to_receive - overdueAmount, // Aproximação
       };
 
       console.log('📊 [useARKPIs] KPIs calculados (API):', result);

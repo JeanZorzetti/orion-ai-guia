@@ -81,11 +81,18 @@ export interface ReceivePaymentRequest {
 
 export interface ARAnalytics {
   total_to_receive: number;
-  overdue_amount: number;
+  total_received: number;
+  total_overdue: number;
   overdue_count: number;
-  received_this_month: number;
-  avg_days_to_receive: number;
+  pending_count: number;
+  average_days_to_receive: number;
+  avg_days_to_receive: number; // Alias para compatibilidade
   default_rate: number;
+  total_by_status: Record<string, number>;
+  total_by_risk: Record<string, number>;
+  // Campos antigos mantidos para compatibilidade
+  overdue_amount?: number;
+  received_this_month?: number;
 }
 
 export interface AgingBucket {
