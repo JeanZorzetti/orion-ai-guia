@@ -21,8 +21,11 @@ from sqlalchemy import and_, or_, func, extract, case, desc
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date, timedelta
 from collections import defaultdict
+import logging
 
 from app.core.deps import get_current_user, get_db
+
+logger = logging.getLogger(__name__)
 from app.models.user import User
 from app.models.cash_flow import BankAccount, CashFlowTransaction, TransactionType
 from app.models.accounts_receivable import AccountsReceivable
