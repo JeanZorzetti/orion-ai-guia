@@ -899,14 +899,14 @@ def calculate_scenarios(
         )
     )).scalar() or 0.0
 
-    # Contas a receber pendentes
-    pending_receivables = db.query(func.sum(AccountsReceivable.valor_aberto)).filter(
+    # Contas a receber pendentes (valor total - valor pago)
+    pending_receivables = db.query(func.sum(AccountsReceivable.value - AccountsReceivable.paid_value)).filter(
         AccountsReceivable.workspace_id == workspace_id,
         AccountsReceivable.status.in_(['pendente', 'vencida', 'parcialmente_paga'])
     ).scalar() or 0.0
 
-    # Contas a pagar pendentes
-    pending_payables = db.query(func.sum(AccountsPayableInvoice.valor_aberto)).filter(
+    # Contas a pagar pendentes (valor total - valor pago)
+    pending_payables = db.query(func.sum(AccountsPayableInvoice.total_value - AccountsPayableInvoice.paid_value)).filter(
         AccountsPayableInvoice.workspace_id == workspace_id,
         AccountsPayableInvoice.status.in_(['pendente', 'vencida', 'parcialmente_paga'])
     ).scalar() or 0.0
@@ -1151,14 +1151,14 @@ def get_current_scenario(
     monthly_expenses = total_exits
     net_monthly_flow = monthly_revenue - monthly_expenses
 
-    # Contas a receber pendentes
-    pending_receivables = db.query(func.sum(AccountsReceivable.valor_aberto)).filter(
+    # Contas a receber pendentes (valor total - valor pago)
+    pending_receivables = db.query(func.sum(AccountsReceivable.value - AccountsReceivable.paid_value)).filter(
         AccountsReceivable.workspace_id == workspace_id,
         AccountsReceivable.status.in_(['pendente', 'vencida', 'parcialmente_paga'])
     ).scalar() or 0.0
 
-    # Contas a pagar pendentes
-    pending_payables = db.query(func.sum(AccountsPayableInvoice.valor_aberto)).filter(
+    # Contas a pagar pendentes (valor total - valor pago)
+    pending_payables = db.query(func.sum(AccountsPayableInvoice.total_value - AccountsPayableInvoice.paid_value)).filter(
         AccountsPayableInvoice.workspace_id == workspace_id,
         AccountsPayableInvoice.status.in_(['pendente', 'vencida', 'parcialmente_paga'])
     ).scalar() or 0.0
