@@ -1,11 +1,18 @@
 import { useMemo } from 'react';
 import { SupplierComparison } from '@/types/supplier-performance';
 import { useAllSupplierPerformances } from './useSupplierPerformance';
+import { useSuppliers } from './useSuppliers';
 
-export function useSupplierComparison(): SupplierComparison[] {
+interface UseSupplierComparisonReturn {
+  suppliers: SupplierComparison[];
+  loading: boolean;
+}
+
+export function useSupplierComparison(): UseSupplierComparisonReturn {
   const allPerformances = useAllSupplierPerformances();
+  const { loading: suppliersLoading } = useSuppliers();
 
-  return useMemo(() => {
+  const suppliers = useMemo(() => {
     return allPerformances.map((perf) => ({
       fornecedorId: perf.fornecedorId,
       fornecedorNome: perf.fornecedorNome,
@@ -18,4 +25,9 @@ export function useSupplierComparison(): SupplierComparison[] {
       categoria: perf.categoria,
     }));
   }, [allPerformances]);
+
+  return {
+    suppliers,
+    loading: suppliersLoading,
+  };
 }

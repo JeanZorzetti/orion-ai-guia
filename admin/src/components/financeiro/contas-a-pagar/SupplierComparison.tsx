@@ -12,8 +12,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useSupplierComparison } from '@/hooks/useSupplierComparison';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 
 const getCategoryVariant = (categoria: string) => {
   const variants = {
@@ -27,7 +28,7 @@ const getCategoryVariant = (categoria: string) => {
 };
 
 export const SupplierComparison: React.FC = () => {
-  const suppliers = useSupplierComparison();
+  const { suppliers, loading } = useSupplierComparison();
   const [sortField, setSortField] = React.useState<'score' | 'totalComprado' | 'pontualidade'>('score');
   const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('desc');
 
@@ -57,10 +58,21 @@ export const SupplierComparison: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Fornecedor</TableHead>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : suppliers.length === 0 ? (
+          <EmptyState
+            icon={AlertCircle}
+            title="Nenhum fornecedor para comparar"
+            description="Cadastre fornecedores e realize compras para visualizar a comparação."
+          />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fornecedor</TableHead>
               <TableHead>
                 <Button
                   variant="ghost"
@@ -136,6 +148,7 @@ export const SupplierComparison: React.FC = () => {
             ))}
           </TableBody>
         </Table>
+        )}
       </CardContent>
     </Card>
   );
