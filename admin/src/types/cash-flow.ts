@@ -115,6 +115,9 @@ export interface BreakEvenAnalysis {
   receitaBreakEven: number;
   dataPrevist: Date;
   margemAtual: number;
+  current_revenue: number;
+  current_total_costs: number;
+  revenue_gap: number;
   projecao: {
     mes: string;
     receitas: number;

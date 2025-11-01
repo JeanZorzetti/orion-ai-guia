@@ -93,6 +93,9 @@ export const useBreakEvenAnalysis = (periodDays: number = 30): UseBreakEvenAnaly
         receitaBreakEven: breakEvenRevenue,
         dataPrevist,
         margemAtual,
+        current_revenue: response.current_revenue,
+        current_total_costs: response.current_total_costs,
+        revenue_gap: response.revenue_gap,
         projecao
       };
 
