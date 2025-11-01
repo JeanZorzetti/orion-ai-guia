@@ -14,6 +14,15 @@ interface ARDashboardKPIsProps {
 export const ARDashboardKPIs: React.FC<ARDashboardKPIsProps> = ({ analytics }) => {
   const kpis = useARKPIs(analytics);
 
+  console.log('🔍 [ARDashboardKPIs] Renderizando com KPIs:', {
+    kpis,
+    analytics,
+    valorVencido: kpis.valorVencido,
+    valorVencidoType: typeof kpis.valorVencido,
+    previsaoRecebimento30d: kpis.previsaoRecebimento30d,
+    previsaoType: typeof kpis.previsaoRecebimento30d,
+  });
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {/* DSO - Days Sales Outstanding */}
@@ -55,7 +64,7 @@ export const ARDashboardKPIs: React.FC<ARDashboardKPIsProps> = ({ analytics }) =
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-blue-600">
-            R$ {kpis.previsaoRecebimento30d.toLocaleString('pt-BR')}
+            R$ {(kpis.previsaoRecebimento30d || 0).toLocaleString('pt-BR')}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             Baseado em IA preditiva

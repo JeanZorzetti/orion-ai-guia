@@ -135,8 +135,17 @@ const ContasAReceberPage: React.FC = () => {
     error
   } = useAccountsReceivable();
 
+  console.log('🔍 [ContasAReceberPage] Dados da API:', {
+    apiReceivables: apiReceivables.length,
+    analytics,
+    loading,
+    loadingAnalytics,
+    error,
+  });
+
   // Converter dados da API para formato do componente
   const contasReceber = useMemo<ContaReceber[]>(() => {
+    console.log('🔄 [ContasAReceberPage] Convertendo receivables:', apiReceivables);
     return apiReceivables.map(ar => ({
       id: ar.id.toString(),
       numeroDocumento: ar.document_number,
@@ -156,6 +165,12 @@ const ContasAReceberPage: React.FC = () => {
 
   // Fallback para mock data durante desenvolvimento
   const dataSource = contasReceber.length > 0 ? contasReceber : mockContasReceber;
+
+  console.log('📊 [ContasAReceberPage] DataSource final:', {
+    source: contasReceber.length > 0 ? 'API' : 'Mock',
+    count: dataSource.length,
+    firstItem: dataSource[0],
+  });
 
   // State para visualizações salvas
   const [savedViews, setSavedViews] = useState<SavedView[]>([

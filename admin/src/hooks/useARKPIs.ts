@@ -33,8 +33,11 @@ const mockData = {
 
 export function useARKPIs(analytics?: ARAnalytics | null): AdvancedKPIs {
   const kpis = useMemo(() => {
+    console.log('🔍 [useARKPIs] Calculando KPIs com analytics:', analytics);
+
     // Se temos dados reais da API, usar eles
     if (analytics) {
+      console.log('✅ [useARKPIs] Usando dados reais da API');
       // DSO = average_days_to_receive (já calculado pela API)
       const dso = Math.round(analytics.avg_days_to_receive);
 
@@ -57,7 +60,7 @@ export function useARKPIs(analytics?: ARAnalytics | null): AdvancedKPIs {
       // Previsão 30 dias - usar received_this_month como base
       const previsaoRecebimento30d = analytics.received_this_month * 1.1; // 10% a mais no próximo mês
 
-      return {
+      const result = {
         dso,
         dsoTrend,
         taxaInadimplencia,
@@ -70,9 +73,13 @@ export function useARKPIs(analytics?: ARAnalytics | null): AdvancedKPIs {
         totalRecebidoMes: analytics.received_this_month,
         proximoVencimento30d: analytics.total_to_receive - analytics.overdue_amount, // Aproximação
       };
+
+      console.log('📊 [useARKPIs] KPIs calculados (API):', result);
+      return result;
     }
 
     // Fallback para mock data
+    console.log('⚠️ [useARKPIs] Usando mock data (analytics não disponível)');
     const vendasDiariasMedias = mockData.vendasDiarias;
     const dso = Math.round(mockData.totalAReceber / vendasDiariasMedias);
     const dsoTrend = ((dso - mockData.dsoAnterior) / mockData.dsoAnterior) * 100;
@@ -82,7 +89,7 @@ export function useARKPIs(analytics?: ARAnalytics | null): AdvancedKPIs {
     const concentracaoRisco = (mockData.top5Clientes / mockData.totalAReceber) * 100;
     const previsaoRecebimento30d = mockData.proximoVencimento30d * 0.85;
 
-    return {
+    const mockResult = {
       dso,
       dsoTrend,
       taxaInadimplencia,
@@ -95,7 +102,11 @@ export function useARKPIs(analytics?: ARAnalytics | null): AdvancedKPIs {
       totalRecebidoMes: mockData.totalRecebidoMes,
       proximoVencimento30d: mockData.proximoVencimento30d,
     };
+
+    console.log('📊 [useARKPIs] KPIs calculados (Mock):', mockResult);
+    return mockResult;
   }, [analytics]);
 
+  console.log('🎯 [useARKPIs] Retornando KPIs finais:', kpis);
   return kpis;
 }

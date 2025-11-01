@@ -65,15 +65,18 @@ export function useAccountsReceivable(
    * Carregar lista de contas a receber
    */
   const loadReceivables = useCallback(async (filters?: AccountsReceivableFilters) => {
+    console.log('🔍 [useAccountsReceivable] Carregando receivables com filtros:', filters || currentFilters);
     setLoading(true);
     setError(null);
 
     try {
       const data = await accountsReceivableService.getAll(filters || currentFilters);
+      console.log('✅ [useAccountsReceivable] Receivables carregados:', data);
       setReceivables(data);
       setCurrentFilters(filters || currentFilters);
     } catch (err: any) {
       const errorMessage = err?.response?.data?.detail || 'Erro ao carregar contas a receber';
+      console.error('❌ [useAccountsReceivable] Erro ao carregar receivables:', err);
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -85,13 +88,16 @@ export function useAccountsReceivable(
    * Carregar analytics básico
    */
   const loadAnalytics = useCallback(async (startDate?: string, endDate?: string) => {
+    console.log('🔍 [useAccountsReceivable] Carregando analytics:', { startDate, endDate });
     setLoadingAnalytics(true);
 
     try {
       const data = await accountsReceivableService.getAnalytics(startDate, endDate);
+      console.log('✅ [useAccountsReceivable] Analytics carregado:', data);
       setAnalytics(data);
     } catch (err: any) {
       const errorMessage = err?.response?.data?.detail || 'Erro ao carregar analytics';
+      console.error('❌ [useAccountsReceivable] Erro ao carregar analytics:', err);
       toast.error(errorMessage);
     } finally {
       setLoadingAnalytics(false);
