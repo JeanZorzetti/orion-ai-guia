@@ -105,7 +105,7 @@ export const useBankTransactions = (conciliado?: boolean) => {
     fetchTransactions();
   }, [conciliado]);
 
-  return transactions;
+  return { transactions, loading, error };
 };
 
 // ===== HOOK para buscar faturas pendentes de conciliação =====
@@ -167,7 +167,7 @@ export const usePendingInvoices = (conciliado?: boolean) => {
     fetchInvoices();
   }, [conciliado]);
 
-  return invoices;
+  return { invoices, loading, error };
 };
 
 // ===== Algoritmo de sugestão de conciliação (mantido igual) =====
@@ -271,8 +271,8 @@ const generateSuggestions = (
 // ===== HOOK para sugestões de conciliação =====
 
 export const useReconciliationSuggestions = () => {
-  const transactions = useBankTransactions(false);
-  const invoices = usePendingInvoices(false);
+  const { transactions } = useBankTransactions(false);
+  const { invoices } = usePendingInvoices(false);
 
   return useMemo(() => {
     return generateSuggestions(transactions, invoices);
@@ -282,8 +282,8 @@ export const useReconciliationSuggestions = () => {
 // ===== HOOK para sumário de conciliação =====
 
 export const useReconciliationSummary = (): ReconciliationSummary => {
-  const allTransactions = useBankTransactions();
-  const allInvoices = usePendingInvoices();
+  const { transactions: allTransactions } = useBankTransactions();
+  const { invoices: allInvoices } = usePendingInvoices();
 
   return useMemo(() => {
     const totalTransacoes = allTransactions.length;

@@ -33,21 +33,16 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 export const BankReconciliation: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const transactions = useBankTransactions(false); // Apenas não conciliadas
-  const invoices = usePendingInvoices(false); // Apenas não conciliadas
+  const { transactions, loading: transactionsLoading } = useBankTransactions(false); // Apenas não conciliadas
+  const { invoices, loading: invoicesLoading } = usePendingInvoices(false); // Apenas não conciliadas
+  const { transactions: reconciledTransactions } = useBankTransactions(true); // Apenas conciliadas (para histórico)
   const summary = useReconciliationSummary();
+
+  const loading = transactionsLoading || invoicesLoading;
 
   const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
-
-  // Simular loading enquanto dados estão sendo carregados
-  React.useEffect(() => {
-    // Aguardar um pouco para dar tempo dos hooks carregarem
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleReconcile = async () => {
     if (!selectedTransaction || !selectedInvoice) return;
@@ -329,9 +324,7 @@ export const BankReconciliation: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {useBankTransactions(true)
-                .slice(0, 5)
-                .map((transaction) => (
+              {reconciledTransactions.slice(0, 5).map((transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell>
                       {format(transaction.data, 'dd/MM/yyyy', { locale: ptBR })}
@@ -362,7 +355,7 @@ export const BankReconciliation: React.FC = () => {
             </TableBody>
           </Table>
 
-          {useBankTransactions(true).length === 0 && (
+          {reconciledTransactions.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               Nenhuma conciliação realizada ainda
             </div>

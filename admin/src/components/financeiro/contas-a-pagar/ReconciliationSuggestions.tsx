@@ -30,15 +30,9 @@ const getConfidenceBadgeVariant = (confidence: number): 'default' | 'secondary' 
 };
 
 export const ReconciliationSuggestions: React.FC = () => {
-  const [loading, setLoading] = useState(true);
   const suggestions = useReconciliationSuggestions();
   const [processing, setProcessing] = useState<string | null>(null);
-
-  // Simular loading enquanto dados estão sendo carregados
-  React.useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+  const [loading, setLoading] = useState(false); // Não precisa de loading aqui, as sugestões são calculadas instantaneamente
 
   const handleAccept = async (suggestionId: string) => {
     setProcessing(suggestionId);
