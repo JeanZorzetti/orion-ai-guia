@@ -33,7 +33,8 @@ function useInvoicesWithDiscount() {
         setLoading(true);
         setError(null);
         // Buscar faturas que têm desconto disponível (discount_percentage > 0)
-        const response = await api.get<APInvoice[]>('/accounts-payable/invoices/?limit=10000');
+        // IMPORTANTE: SEM trailing slash para evitar redirect HTTP do FastAPI
+        const response = await api.get<APInvoice[]>('/accounts-payable/invoices?limit=10000');
 
         // Filtrar apenas faturas com desconto e que ainda não foram pagas
         const withDiscount = (response || []).filter(inv =>
