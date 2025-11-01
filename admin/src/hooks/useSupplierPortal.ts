@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { SupplierPortalData, SupplierPortalAccess } from '@/types/supplier-portal';
+import { SupplierPortalData, SupplierPortalAccess, SupplierPortalInvoice } from '@/types/supplier-portal';
 import { subMonths, format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { api } from '@/lib/api';
@@ -136,19 +136,31 @@ export const useSupplierPortal = (token: string) => {
         }
 
         // Converter faturas para o formato do portal
-        const portalInvoices = allInvoices.map(inv => ({
-          id: inv.id.toString(),
-          invoice_number: inv.invoice_number,
-          invoice_date: new Date(inv.invoice_date),
-          due_date: new Date(inv.due_date),
-          payment_date: inv.payment_date ? new Date(inv.payment_date) : undefined,
-          total_value: inv.total_value,
-          status: inv.status as any,
-          status_aprovacao: inv.status === 'pending' ? 'aguardando' :
-                           inv.status === 'validated' || inv.status === 'approved' ? 'aprovada' :
-                           undefined,
-          descricao: inv.description || `Fatura ${inv.invoice_number}`,
-        }));
+        const portalInvoices: SupplierPortalInvoice[] = allInvoices.map(inv => {
+          // Mapear status do backend para o portal
+          let portalStatus: 'pendente' | 'validada' | 'paga' | 'cancelada' = 'pendente';
+          if (inv.status === 'paid') portalStatus = 'paga';
+          else if (inv.status === 'validated' || inv.status === 'approved') portalStatus = 'validada';
+          else if (inv.status === 'cancelled') portalStatus = 'cancelada';
+
+          // Mapear status de aprovação
+          let statusAprovacao: 'aguardando' | 'aprovada' | 'rejeitada' | undefined;
+          if (inv.status === 'pending') statusAprovacao = 'aguardando';
+          else if (inv.status === 'validated' || inv.status === 'approved') statusAprovacao = 'aprovada';
+          else if (inv.status === 'rejected') statusAprovacao = 'rejeitada';
+
+          return {
+            id: inv.id.toString(),
+            invoice_number: inv.invoice_number,
+            invoice_date: new Date(inv.invoice_date),
+            due_date: new Date(inv.due_date),
+            payment_date: inv.payment_date ? new Date(inv.payment_date) : undefined,
+            total_value: inv.total_value,
+            status: portalStatus,
+            status_aprovacao: statusAprovacao,
+            descricao: inv.description || `Fatura ${inv.invoice_number}`,
+          };
+        });
 
         const portalData: SupplierPortalData = {
           fornecedor: {
