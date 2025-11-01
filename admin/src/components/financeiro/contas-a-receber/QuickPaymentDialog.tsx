@@ -125,7 +125,7 @@ export const QuickPaymentDialog: React.FC<QuickPaymentDialogProps> = ({
             <div>
               <Label className="text-xs text-muted-foreground">Valor Original</Label>
               <p className="text-lg font-bold">
-                R$ {contaReceber.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {(contaReceber.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </div>
             <div>
@@ -310,7 +310,7 @@ export const QuickPaymentDialog: React.FC<QuickPaymentDialogProps> = ({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Valor Recebido:</span>
                 <span className="font-medium">
-                  R$ {formData.valorRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  R$ {(formData.valorRecebido || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               {formData.desconto > 0 && (

@@ -42,7 +42,7 @@ export const ARDashboardKPIs: React.FC<ARDashboardKPIsProps> = ({ analytics }) =
             {kpis.taxaInadimplencia.toFixed(1)}%
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            R$ {kpis.valorVencido.toLocaleString('pt-BR')} vencidos
+            R$ {(kpis.valorVencido || 0).toLocaleString('pt-BR')} vencidos
           </p>
         </CardContent>
       </Card>
