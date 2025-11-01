@@ -146,7 +146,22 @@ export async function apiClient<T>(
 
   // GARANTIR HTTPS - camada tripla de proteção
   let url = `${API_URL}${endpoint}`;
+
+  // Remover barras duplas que podem aparecer na junção
+  url = url.replace(/([^:]\/)\/+/g, '$1');
+
+  // Forçar HTTPS
   url = url.replace(/^http:/, 'https:');
+
+  // Debug para identificar problemas
+  if (typeof window !== 'undefined' && url.includes('suppliers')) {
+    console.log('🔍 URL Debug:', {
+      API_URL,
+      endpoint,
+      'URL final': url,
+      'É HTTPS?': url.startsWith('https:'),
+    });
+  }
 
   try {
     const response = await fetch(url, config);
