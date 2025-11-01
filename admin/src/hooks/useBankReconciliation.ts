@@ -1,170 +1,177 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   BankTransaction,
   PendingInvoice,
   ReconciliationSuggestion,
   ReconciliationSummary,
 } from '@/types/bank-reconciliation';
-import { subDays, differenceInDays } from 'date-fns';
+import { differenceInDays } from 'date-fns';
+import { api } from '@/lib/api';
 
-// Mock data - Transações bancárias
-const mockBankTransactions: BankTransaction[] = [
-  {
-    id: 'trans-001',
-    data: subDays(new Date(), 2),
-    descricao: 'TED ALPHA DISTRIBUIDORA LTDA',
-    valor: 15000,
-    tipo: 'debito',
-    categoria: 'Fornecedores',
-    conciliado: false,
-    banco: 'Banco do Brasil',
-    contaBancaria: '0001-5',
-    documento: '12345678',
-  },
-  {
-    id: 'trans-002',
-    data: subDays(new Date(), 5),
-    descricao: 'PIX BETA SUPRIMENTOS S.A.',
-    valor: 8500,
-    tipo: 'debito',
-    categoria: 'Fornecedores',
-    conciliado: false,
-    banco: 'Banco do Brasil',
-    contaBancaria: '0001-5',
-    documento: '87654321',
-  },
-  {
-    id: 'trans-003',
-    data: subDays(new Date(), 10),
-    descricao: 'BOLETO GAMMA INDUSTRIA',
-    valor: 22000,
-    tipo: 'debito',
-    categoria: 'Fornecedores',
-    conciliado: true,
-    faturaId: 'fatura-003',
-    banco: 'Banco do Brasil',
-    contaBancaria: '0001-5',
-  },
-  {
-    id: 'trans-004',
-    data: subDays(new Date(), 3),
-    descricao: 'TED DELTA COMERCIAL',
-    valor: 5020,
-    tipo: 'debito',
-    categoria: 'Fornecedores',
-    conciliado: false,
-    banco: 'Itaú',
-    contaBancaria: '1234-6',
-    documento: '45678901',
-  },
-  {
-    id: 'trans-005',
-    data: subDays(new Date(), 7),
-    descricao: 'PIX EPSILON MATERIAIS',
-    valor: 12500,
-    tipo: 'debito',
-    categoria: 'Fornecedores',
-    conciliado: false,
-    banco: 'Itaú',
-    contaBancaria: '1234-6',
-  },
-  {
-    id: 'trans-006',
-    data: subDays(new Date(), 1),
-    descricao: 'TED ZETA EQUIPAMENTOS',
-    valor: 30000,
-    tipo: 'debito',
-    categoria: 'Fornecedores',
-    conciliado: false,
-    banco: 'Banco do Brasil',
-    contaBancaria: '0001-5',
-  },
-  {
-    id: 'trans-007',
-    data: subDays(new Date(), 15),
-    descricao: 'PIX ALPHA DISTRIBUIDORA',
-    valor: 18000,
-    tipo: 'debito',
-    categoria: 'Fornecedores',
-    conciliado: true,
-    faturaId: 'fatura-007',
-    banco: 'Banco do Brasil',
-    contaBancaria: '0001-5',
-  },
-];
+// ===== INTERFACES para dados da API =====
 
-// Mock data - Faturas pendentes
-const mockPendingInvoices: PendingInvoice[] = [
-  {
-    id: 'fatura-001',
-    invoiceNumber: 'INV-2025-001',
-    fornecedor: 'Alpha Distribuidora Ltda',
-    fornecedorId: 'fornecedor-alpha',
-    valor: 15000,
-    dataVencimento: subDays(new Date(), 3),
-    dataPagamento: subDays(new Date(), 2),
-    status: 'paga',
-    conciliado: false,
-  },
-  {
-    id: 'fatura-002',
-    invoiceNumber: 'INV-2025-002',
-    fornecedor: 'Beta Suprimentos S.A.',
-    fornecedorId: 'fornecedor-beta',
-    valor: 8500,
-    dataVencimento: subDays(new Date(), 7),
-    dataPagamento: subDays(new Date(), 5),
-    status: 'paga',
-    conciliado: false,
-  },
-  {
-    id: 'fatura-003',
-    invoiceNumber: 'INV-2025-003',
-    fornecedor: 'Gamma Indústria Ltda',
-    fornecedorId: 'fornecedor-gamma',
-    valor: 22000,
-    dataVencimento: subDays(new Date(), 12),
-    dataPagamento: subDays(new Date(), 10),
-    status: 'paga',
-    conciliado: true,
-    transacaoId: 'trans-003',
-  },
-  {
-    id: 'fatura-004',
-    invoiceNumber: 'INV-2025-004',
-    fornecedor: 'Delta Comercial Ltda',
-    fornecedorId: 'fornecedor-delta',
-    valor: 5000,
-    dataVencimento: subDays(new Date(), 5),
-    dataPagamento: subDays(new Date(), 3),
-    status: 'paga',
-    conciliado: false,
-  },
-  {
-    id: 'fatura-005',
-    invoiceNumber: 'INV-2025-005',
-    fornecedor: 'Epsilon Materiais S.A.',
-    fornecedorId: 'fornecedor-epsilon',
-    valor: 12500,
-    dataVencimento: subDays(new Date(), 9),
-    dataPagamento: subDays(new Date(), 7),
-    status: 'paga',
-    conciliado: false,
-  },
-  {
-    id: 'fatura-006',
-    invoiceNumber: 'INV-2025-006',
-    fornecedor: 'Zeta Equipamentos Ltda',
-    fornecedorId: 'fornecedor-zeta',
-    valor: 30000,
-    dataVencimento: subDays(new Date(), 2),
-    dataPagamento: subDays(new Date(), 1),
-    status: 'paga',
-    conciliado: false,
-  },
-];
+interface CashFlowTransactionAPI {
+  id: number;
+  transaction_date: string;
+  type: 'entrada' | 'saida';
+  category: string;
+  subcategory?: string;
+  description: string;
+  value: number;
+  payment_method?: string;
+  account_id?: number;
+  reference_type?: string;
+  reference_id?: number;
+  is_reconciled: boolean;
+  reconciled_at?: string;
+  created_at: string;
+  account?: {
+    id: number;
+    bank_name: string;
+    account_number?: string;
+    agency?: string;
+  };
+}
 
-// Algoritmo de sugestão de conciliação
+interface APInvoiceAPI {
+  id: number;
+  invoice_number: string;
+  supplier_id: number;
+  supplier?: {
+    id: number;
+    name: string;
+  };
+  total_value: number;
+  due_date: string;
+  payment_date?: string;
+  status: string;
+  // Campo de reconciliação (pode não existir ainda - vamos tratar isso)
+  reconciled_transaction_id?: number;
+}
+
+// ===== HOOK para buscar transações bancárias =====
+
+export const useBankTransactions = (conciliado?: boolean) => {
+  const [transactions, setTransactions] = useState<BankTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        console.log('🔍 [useBankReconciliation] Buscando transações do cash flow...');
+
+        // Buscar transações do cash flow (apenas saídas para conciliar com AP)
+        const response = await api.get<CashFlowTransactionAPI[]>('/cash-flow/transactions?limit=1000');
+        console.log('✅ [useBankReconciliation] Transações recebidas:', response);
+
+        // Converter para formato BankTransaction
+        const allTransactions: BankTransaction[] = (response || [])
+          .filter(t => t.type === 'saida') // Apenas saídas (pagamentos)
+          .map(t => ({
+            id: t.id.toString(),
+            data: new Date(t.transaction_date),
+            descricao: t.description,
+            valor: t.value,
+            tipo: 'debito' as const,
+            categoria: t.category || 'Outros',
+            conciliado: t.is_reconciled,
+            banco: t.account?.bank_name || 'Não especificado',
+            contaBancaria: t.account?.account_number || '',
+            documento: t.reference_id?.toString(),
+            faturaId: t.reference_type === 'payable' && t.reference_id ? t.reference_id.toString() : undefined,
+          }));
+
+        // Aplicar filtro de conciliado
+        const filtered = conciliado !== undefined
+          ? allTransactions.filter(t => t.conciliado === conciliado)
+          : allTransactions;
+
+        const sorted = filtered.sort((a, b) => b.data.getTime() - a.data.getTime());
+        console.log(`📊 [useBankReconciliation] Transações processadas: ${sorted.length} (conciliado: ${conciliado})`);
+
+        setTransactions(sorted);
+      } catch (err: any) {
+        console.error('❌ [useBankReconciliation] Erro ao buscar transações:', err);
+        setError(err.message || 'Erro ao buscar transações');
+        setTransactions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [conciliado]);
+
+  return transactions;
+};
+
+// ===== HOOK para buscar faturas pendentes de conciliação =====
+
+export const usePendingInvoices = (conciliado?: boolean) => {
+  const [invoices, setInvoices] = useState<PendingInvoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        console.log('🔍 [useBankReconciliation] Buscando faturas pagas...');
+
+        // Buscar faturas que foram pagas (status = paid)
+        const response = await api.get<APInvoiceAPI[]>('/accounts-payable/invoices?status=paid&limit=1000');
+        console.log('✅ [useBankReconciliation] Faturas recebidas:', response);
+
+        // Converter para formato PendingInvoice
+        const allInvoices: PendingInvoice[] = (response || [])
+          .filter(inv => inv.payment_date) // Apenas faturas com data de pagamento
+          .map(inv => ({
+            id: inv.id.toString(),
+            invoiceNumber: inv.invoice_number,
+            fornecedor: inv.supplier?.name || `Fornecedor #${inv.supplier_id}`,
+            fornecedorId: inv.supplier_id.toString(),
+            valor: inv.total_value,
+            dataVencimento: new Date(inv.due_date),
+            dataPagamento: inv.payment_date ? new Date(inv.payment_date) : undefined,
+            status: 'paga',
+            conciliado: !!inv.reconciled_transaction_id,
+            transacaoId: inv.reconciled_transaction_id?.toString(),
+          }));
+
+        // Aplicar filtro de conciliado
+        const filtered = conciliado !== undefined
+          ? allInvoices.filter(i => i.conciliado === conciliado)
+          : allInvoices;
+
+        const sorted = filtered.sort((a, b) => {
+          const dateA = a.dataPagamento || a.dataVencimento;
+          const dateB = b.dataPagamento || b.dataVencimento;
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        console.log(`📊 [useBankReconciliation] Faturas processadas: ${sorted.length} (conciliado: ${conciliado})`);
+        setInvoices(sorted);
+      } catch (err: any) {
+        console.error('❌ [useBankReconciliation] Erro ao buscar faturas:', err);
+        setError(err.message || 'Erro ao buscar faturas');
+        setInvoices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvoices();
+  }, [conciliado]);
+
+  return invoices;
+};
+
+// ===== Algoritmo de sugestão de conciliação (mantido igual) =====
+
 const generateSuggestions = (
   transactions: BankTransaction[],
   invoices: PendingInvoice[]
@@ -261,33 +268,7 @@ const generateSuggestions = (
   return suggestions.sort((a, b) => b.confianca - a.confianca);
 };
 
-export const useBankTransactions = (conciliado?: boolean) => {
-  return useMemo(() => {
-    let transactions = mockBankTransactions;
-
-    if (conciliado !== undefined) {
-      transactions = transactions.filter((t) => t.conciliado === conciliado);
-    }
-
-    return transactions.sort((a, b) => b.data.getTime() - a.data.getTime());
-  }, [conciliado]);
-};
-
-export const usePendingInvoices = (conciliado?: boolean) => {
-  return useMemo(() => {
-    let invoices = mockPendingInvoices;
-
-    if (conciliado !== undefined) {
-      invoices = invoices.filter((i) => i.conciliado === conciliado);
-    }
-
-    return invoices.sort((a, b) => {
-      const dateA = a.dataPagamento || a.dataVencimento;
-      const dateB = b.dataPagamento || b.dataVencimento;
-      return dateB.getTime() - dateA.getTime();
-    });
-  }, [conciliado]);
-};
+// ===== HOOK para sugestões de conciliação =====
 
 export const useReconciliationSuggestions = () => {
   const transactions = useBankTransactions(false);
@@ -297,6 +278,8 @@ export const useReconciliationSuggestions = () => {
     return generateSuggestions(transactions, invoices);
   }, [transactions, invoices]);
 };
+
+// ===== HOOK para sumário de conciliação =====
 
 export const useReconciliationSummary = (): ReconciliationSummary => {
   const allTransactions = useBankTransactions();
@@ -332,36 +315,55 @@ export const useReconciliationSummary = (): ReconciliationSummary => {
   }, [allTransactions, allInvoices]);
 };
 
-export const reconcileManually = (
+// ===== Funções de ação (conectadas ao backend) =====
+
+export const reconcileManually = async (
   transacaoId: string,
   faturaId: string,
   observacoes?: string
 ): Promise<boolean> => {
-  // TODO: Implementar chamada à API
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log('Conciliação manual realizada:', { transacaoId, faturaId, observacoes });
-      resolve(true);
-    }, 500);
-  });
+  try {
+    console.log('🔄 [useBankReconciliation] Conciliando manualmente:', { transacaoId, faturaId, observacoes });
+
+    // Atualizar transação no cash flow
+    await api.patch(`/cash-flow/transactions/${transacaoId}`, {
+      is_reconciled: true,
+      reference_type: 'payable',
+      reference_id: parseInt(faturaId),
+      notes: observacoes || `Conciliado com fatura ${faturaId}`,
+    });
+
+    // TODO: Quando o campo reconciled_transaction_id existir no AP, atualizar também:
+    // await api.patch(`/accounts-payable/invoices/${faturaId}`, {
+    //   reconciled_transaction_id: parseInt(transacaoId),
+    // });
+
+    console.log('✅ [useBankReconciliation] Conciliação realizada com sucesso');
+    return true;
+  } catch (error) {
+    console.error('❌ [useBankReconciliation] Erro ao conciliar:', error);
+    throw error;
+  }
 };
 
-export const acceptSuggestion = (suggestionId: string): Promise<boolean> => {
-  // TODO: Implementar chamada à API
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log('Sugestão aceita:', suggestionId);
-      resolve(true);
-    }, 500);
-  });
+export const acceptSuggestion = async (suggestionId: string): Promise<boolean> => {
+  try {
+    // Parse do ID da sugestão: "suggestion-{transacaoId}-{faturaId}"
+    const parts = suggestionId.split('-');
+    const transacaoId = parts[1];
+    const faturaId = parts[2];
+
+    console.log('✅ [useBankReconciliation] Aceitando sugestão:', { suggestionId, transacaoId, faturaId });
+
+    return await reconcileManually(transacaoId, faturaId, 'Conciliado automaticamente pela IA');
+  } catch (error) {
+    console.error('❌ [useBankReconciliation] Erro ao aceitar sugestão:', error);
+    throw error;
+  }
 };
 
-export const rejectSuggestion = (suggestionId: string): Promise<boolean> => {
-  // TODO: Implementar chamada à API
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log('Sugestão rejeitada:', suggestionId);
-      resolve(true);
-    }, 500);
-  });
+export const rejectSuggestion = async (suggestionId: string): Promise<boolean> => {
+  // Por enquanto, apenas logar (no futuro podemos salvar rejeições para melhorar a IA)
+  console.log('❌ [useBankReconciliation] Sugestão rejeitada:', suggestionId);
+  return Promise.resolve(true);
 };

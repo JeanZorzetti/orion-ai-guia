@@ -33,6 +33,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 export const BankReconciliation: React.FC = () => {
+  const [loading, setLoading] = useState(true);
   const transactions = useBankTransactions(false); // Apenas não conciliadas
   const invoices = usePendingInvoices(false); // Apenas não conciliadas
   const summary = useReconciliationSummary();
@@ -40,6 +41,13 @@ export const BankReconciliation: React.FC = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+
+  // Simular loading enquanto dados estão sendo carregados
+  React.useEffect(() => {
+    // Aguardar um pouco para dar tempo dos hooks carregarem
+    const timer = setTimeout(() => setLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleReconcile = async () => {
     if (!selectedTransaction || !selectedInvoice) return;
@@ -59,6 +67,14 @@ export const BankReconciliation: React.FC = () => {
   };
 
   const canReconcile = selectedTransaction && selectedInvoice;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
