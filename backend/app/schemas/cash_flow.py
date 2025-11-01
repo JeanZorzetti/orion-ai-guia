@@ -10,6 +10,8 @@ Fase: 2.1 - Sprint Backend Cash Flow
 Referência: roadmaps/ROADMAP_FINANCEIRO_INTEGRACAO.md
 """
 
+from __future__ import annotations
+
 from pydantic import BaseModel, Field, validator, constr
 from typing import Optional, List, Dict, Any
 from datetime import datetime, date
