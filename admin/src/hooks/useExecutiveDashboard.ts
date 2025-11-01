@@ -192,13 +192,20 @@ export const useExecutiveDashboard = (): UseExecutiveDashboardReturn => {
     const newBookmark: ExecutiveDashboardBookmark = {
       id: `bookmark-${Date.now()}`,
       nome,
-      filtro: { ...filter },
-      criado_em: new Date(),
+      filtros: { ...filter },
+      kpisVisiveis: kpis.map(k => k.id),
+      graficosVisiveis: graficos.map(g => g.id),
+      criadoEm: new Date(),
+      criadoPor: {
+        id: 'current-user',
+        nome: 'Usuário Atual'
+      },
+      publico: false,
       favorito: false
     };
     setBookmarks(prev => [...prev, newBookmark]);
     console.log('Bookmark salvo:', nome);
-  }, [filter]);
+  }, [filter, kpis, graficos]);
 
   const toggleFavoriteBookmark = useCallback((id: string) => {
     setBookmarks(prev =>
