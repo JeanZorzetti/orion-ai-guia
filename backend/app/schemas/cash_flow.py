@@ -357,13 +357,15 @@ class BreakEvenPoint(BaseModel):
     """
     Ponto de Break-Even para um período específico
     """
-    date: date = Field(..., description="Data do ponto")
+    period_date: date = Field(..., description="Data do ponto", alias="date")
     revenue: float = Field(..., description="Receita projetada")
     fixed_costs: float = Field(..., description="Custos fixos")
     variable_costs: float = Field(..., description="Custos variáveis")
     total_costs: float = Field(..., description="Custos totais (fixos + variáveis)")
     profit: float = Field(..., description="Lucro/Prejuízo")
     is_break_even: bool = Field(..., description="Indica se este é o ponto de equilíbrio")
+
+    model_config = {"populate_by_name": True}
 
 
 class BreakEvenAnalysis(BaseModel):
@@ -445,12 +447,14 @@ class ScenarioProjectionPoint(BaseModel):
     """
     Ponto de projeção em um cenário
     """
-    date: date = Field(..., description="Data da projeção")
+    projection_date: date = Field(..., description="Data da projeção", alias="date")
     projected_balance: float = Field(..., description="Saldo projetado")
     projected_entries: float = Field(..., description="Entradas projetadas")
     projected_exits: float = Field(..., description="Saídas projetadas")
     net_flow: float = Field(..., description="Fluxo líquido projetado")
     confidence_level: float = Field(..., ge=0, le=1, description="Nível de confiança (0-1)")
+
+    model_config = {"populate_by_name": True}
 
 
 class ScenarioAnalysisResult(BaseModel):

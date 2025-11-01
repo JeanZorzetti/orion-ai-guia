@@ -735,7 +735,7 @@ def get_break_even_analysis(
         is_break_even = abs(profit_point) < (max_revenue * 0.02)  # Margem de 2%
 
         chart_data.append(BreakEvenPoint(
-            date=start_date + timedelta(days=int((i / 10) * period_days)),
+            period_date=start_date + timedelta(days=int((i / 10) * period_days)),
             revenue=round(revenue_point, 2),
             fixed_costs=round(fixed_costs, 2),
             variable_costs=round(variable_cost_point, 2),
@@ -969,7 +969,7 @@ def calculate_scenarios(
 
             # Criar ponto de projeção
             projections.append(ScenarioProjectionPoint(
-                date=projection_date,
+                projection_date=projection_date,
                 projected_balance=running_balance,
                 projected_entries=daily_entries,
                 projected_exits=daily_exits,
@@ -1316,7 +1316,7 @@ def simulate_scenario(
         confidence = max(0.5, 1.0 - (day / request.days_ahead) * 0.5)
 
         projections.append(ScenarioProjectionPoint(
-            date=projection_date,
+            projection_date=projection_date,
             projected_balance=running_balance,
             projected_entries=daily_entries,
             projected_exits=daily_exits,
