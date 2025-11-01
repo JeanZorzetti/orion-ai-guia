@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,58 +17,32 @@ import { GenerateSupplierAccessDialog } from '@/components/financeiro/contas-a-p
 import { ExternalLink, Plus, Search, Shield, ShieldOff, Eye, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-// Mock data de fornecedores
-const mockSuppliers = [
-  {
-    id: 'fornecedor-alpha',
-    nome: 'Alpha Distribuidora Ltda',
-    cnpj: '12.345.678/0001-90',
-    hasAccess: true,
-    token: 'token-alpha-2025',
-    lastAccess: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    accessCount: 15,
-  },
-  {
-    id: 'fornecedor-beta',
-    nome: 'Beta Suprimentos S.A.',
-    cnpj: '98.765.432/0001-10',
-    hasAccess: true,
-    token: 'token-beta-2025',
-    lastAccess: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    accessCount: 28,
-  },
-  {
-    id: 'fornecedor-gamma',
-    nome: 'Gamma Indústria Ltda',
-    cnpj: '11.222.333/0001-44',
-    hasAccess: true,
-    token: 'token-gamma-2025',
-    lastAccess: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    accessCount: 8,
-  },
-  {
-    id: 'fornecedor-delta',
-    nome: 'Delta Comercial Ltda',
-    cnpj: '55.666.777/0001-88',
-    hasAccess: false,
-  },
-  {
-    id: 'fornecedor-epsilon',
-    nome: 'Epsilon Materiais S.A.',
-    cnpj: '99.888.777/0001-66',
-    hasAccess: false,
-  },
-];
+import { useSuppliers } from '@/hooks/useSuppliers';
 
 export default function PortalFornecedorPage() {
+  const { suppliers, loading } = useSuppliers();
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<{ id: string; nome: string } | null>(
     null
   );
 
-  const filteredSuppliers = mockSuppliers.filter(
+  // Converter suppliers para o formato esperado pela UI
+  const suppliersList = useMemo(() => {
+    return suppliers.map(supplier => ({
+      id: supplier.id.toString(),
+      nome: supplier.name,
+      cnpj: supplier.cnpj || supplier.cpf || '-',
+      // TODO: Quando implementarmos o sistema de portal access no backend,
+      // buscar dados reais de acesso. Por enquanto, simular baseado no ID
+      hasAccess: supplier.id <= 3, // Primeiros 3 fornecedores têm acesso (mock temporário)
+      token: `supplier-${supplier.id}`,
+      lastAccess: supplier.id <= 3 ? new Date(Date.now() - supplier.id * 24 * 60 * 60 * 1000) : undefined,
+      accessCount: supplier.id <= 3 ? Math.floor(Math.random() * 30) + 5 : undefined,
+    }));
+  }, [suppliers]);
+
+  const filteredSuppliers = suppliersList.filter(
     (supplier) =>
       supplier.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       supplier.cnpj.includes(searchTerm)
@@ -91,6 +65,14 @@ export default function PortalFornecedorPage() {
     const url = `${baseUrl}/portal/fornecedor/${token}`;
     window.open(url, '_blank');
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -121,7 +103,7 @@ export default function PortalFornecedorPage() {
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockSuppliers.length}</div>
+            <div className="text-2xl font-bold">{suppliersList.length}</div>
             <p className="text-xs text-muted-foreground mt-1">cadastrados no sistema</p>
           </CardContent>
         </Card>
@@ -133,7 +115,7 @@ export default function PortalFornecedorPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {mockSuppliers.filter((s) => s.hasAccess).length}
+              {suppliersList.filter((s) => s.hasAccess).length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">acessos ativos</p>
           </CardContent>
@@ -146,7 +128,7 @@ export default function PortalFornecedorPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {mockSuppliers.filter((s) => !s.hasAccess).length}
+              {suppliersList.filter((s) => !s.hasAccess).length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">aguardando acesso</p>
           </CardContent>
