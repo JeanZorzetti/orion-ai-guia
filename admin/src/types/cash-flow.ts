@@ -45,31 +45,31 @@ export interface ImpactSimulation {
 
 export interface FinancialKPIs {
   // Liquidez
-  liquidezImediata: number; // Caixa / Passivo Circulante
-  liquidezCorrente: number; // Ativo Circulante / Passivo Circulante
+  liquidezImediata?: number; // Caixa / Passivo Circulante
+  liquidezCorrente?: number; // Ativo Circulante / Passivo Circulante
 
   // Ciclo Financeiro
-  pmp: number; // Prazo Médio de Pagamento (dias)
-  pmr: number; // Prazo Médio de Recebimento (dias)
-  cicloFinanceiro: number; // PMR - PMP
+  pmr?: number; // Prazo Médio de Recebimento (dias)
+  pmp?: number; // Prazo Médio de Pagamento (dias)
+  cicloFinanceiro?: number; // PMR - PMP
 
   // Rentabilidade
-  margemLiquida: number; // Lucro Líquido / Receita Total
-  margemEbitda: number; // EBITDA / Receita Total
-
-  // Endividamento
-  endividamentoTotal: number; // Passivo / Ativo
-  coberturaDivida: number; // EBITDA / Dívida
+  margemLiquida?: number; // Lucro Líquido / Receita Total
+  margemEbitda?: number; // EBITDA / Receita Total
 
   // Eficiência
-  giroAtivo: number; // Receita / Ativo Total
-  returnOnAssets: number; // Lucro / Ativo Total (ROA)
-  returnOnEquity: number; // Lucro / Patrimônio Líquido (ROE)
+  returnOnAssets?: number; // Lucro / Ativo Total (ROA)
+  returnOnEquity?: number; // Lucro / Patrimônio Líquido (ROE)
 
   // Fluxo de Caixa
-  burnRate: number; // Taxa de queima de caixa mensal
-  runway: number; // Meses até acabar o caixa
-  breakEven: Date; // Data prevista para equilíbrio
+  burnRate?: number; // Taxa de queima de caixa mensal
+  runway?: number; // Meses até acabar o caixa
+  endividamentoTotal?: number; // Passivo / Ativo
+
+  // Campos adicionais (para compatibilidade com dados mockados antigos)
+  coberturaDivida?: number; // EBITDA / Dívida
+  giroAtivo?: number; // Receita / Ativo Total
+  breakEven?: Date; // Data prevista para equilíbrio
 }
 
 export interface IncomeStatement {

@@ -290,3 +290,58 @@ class CashFlowFilters(BaseModel):
     min_value: Optional[float] = Field(None, gt=0)
     max_value: Optional[float] = Field(None, gt=0)
     search: Optional[str] = Field(None, description="Busca textual em description/notes")
+
+
+# ============================================
+# FINANCIAL KPIs SCHEMA
+# ============================================
+
+class FinancialKPIs(BaseModel):
+    """
+    Indicadores Financeiros (KPIs)
+
+    Cálculos baseados em demonstrativos contábeis e fluxo de caixa.
+    """
+    # Indicadores de Liquidez
+    liquidez_imediata: Optional[float] = Field(None, description="Liquidez Imediata = Saldo Caixa / Passivo Circulante")
+    liquidez_corrente: Optional[float] = Field(None, description="Liquidez Corrente = Ativo Circulante / Passivo Circulante")
+
+    # Ciclo Financeiro
+    pmr: Optional[float] = Field(None, description="Prazo Médio Recebimento (dias)")
+    pmp: Optional[float] = Field(None, description="Prazo Médio Pagamento (dias)")
+    ciclo_financeiro: Optional[float] = Field(None, description="Ciclo Financeiro = PMR - PMP (dias)")
+
+    # Rentabilidade e Eficiência
+    margem_liquida: Optional[float] = Field(None, description="Margem Líquida (%)")
+    margem_ebitda: Optional[float] = Field(None, description="Margem EBITDA (%)")
+    roa: Optional[float] = Field(None, description="ROA - Return on Assets (%)")
+    roe: Optional[float] = Field(None, description="ROE - Return on Equity (%)")
+
+    # Análise de Fluxo de Caixa
+    burn_rate: Optional[float] = Field(None, description="Taxa de queima mensal (R$)")
+    runway: Optional[float] = Field(None, description="Runway - Meses de caixa disponível")
+    endividamento_total: Optional[float] = Field(None, description="Endividamento Total (%)")
+
+    # Metadados
+    calculation_date: date = Field(..., description="Data do cálculo")
+    period_days: int = Field(..., description="Período analisado (dias)")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "liquidez_imediata": 0.53,
+                "liquidez_corrente": 1.76,
+                "pmr": 45.2,
+                "pmp": 30.5,
+                "ciclo_financeiro": 14.7,
+                "margem_liquida": 12.5,
+                "margem_ebitda": 18.3,
+                "roa": 8.2,
+                "roe": 15.4,
+                "burn_rate": 85000.0,
+                "runway": 6.5,
+                "endividamento_total": 42.3,
+                "calculation_date": "2025-01-30",
+                "period_days": 30
+            }
+        }

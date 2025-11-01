@@ -1,105 +1,81 @@
-import { useState, useEffect } from 'react';
-import { addMonths } from 'date-fns';
+import { useState, useEffect, useCallback } from 'react';
 import type { FinancialKPIs } from '@/types/cash-flow';
+import { apiClient } from '@/lib/api';
 
 interface UseFinancialKPIsReturn {
   kpis: FinancialKPIs | null;
   loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
 }
 
-export const useFinancialKPIs = (): UseFinancialKPIsReturn => {
+interface FinancialKPIsAPIResponse {
+  liquidez_imediata?: number | null;
+  liquidez_corrente?: number | null;
+  pmr?: number | null;
+  pmp?: number | null;
+  ciclo_financeiro?: number | null;
+  margem_liquida?: number | null;
+  margem_ebitda?: number | null;
+  roa?: number | null;
+  roe?: number | null;
+  burn_rate?: number | null;
+  runway?: number | null;
+  endividamento_total?: number | null;
+  calculation_date: string;
+  period_days: number;
+}
+
+export const useFinancialKPIs = (periodDays: number = 30): UseFinancialKPIsReturn => {
   const [kpis, setKpis] = useState<FinancialKPIs | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchKPIs = useCallback(async () => {
+    console.log('🔄 [useFinancialKPIs] Carregando KPIs financeiros para', periodDays, 'dias');
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await apiClient.get<FinancialKPIsAPIResponse>(
+        `/cash-flow/analytics/kpis?period_days=${periodDays}`
+      );
+
+      console.log('✅ [useFinancialKPIs] KPIs recebidos:', response);
+
+      // Transformar snake_case para camelCase e filtrar nulls
+      const transformedKPIs: FinancialKPIs = {
+        liquidezImediata: response.liquidez_imediata ?? undefined,
+        liquidezCorrente: response.liquidez_corrente ?? undefined,
+        pmr: response.pmr ?? undefined,
+        pmp: response.pmp ?? undefined,
+        cicloFinanceiro: response.ciclo_financeiro ?? undefined,
+        margemLiquida: response.margem_liquida ?? undefined,
+        margemEbitda: response.margem_ebitda ?? undefined,
+        returnOnAssets: response.roa ?? undefined,
+        returnOnEquity: response.roe ?? undefined,
+        burnRate: response.burn_rate ?? undefined,
+        runway: response.runway ?? undefined,
+        endividamentoTotal: response.endividamento_total ?? undefined,
+      };
+
+      setKpis(transformedKPIs);
+    } catch (err) {
+      console.error('❌ [useFinancialKPIs] Erro ao buscar KPIs:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao carregar KPIs financeiros');
+    } finally {
+      setLoading(false);
+    }
+  }, [periodDays]);
 
   useEffect(() => {
-    const calculateKPIs = () => {
-      setLoading(true);
-      try {
-        // TODO: Integrar com API real quando disponível
-        // Por enquanto, calcular com dados mockados
-
-        const saldoAtual = 45280.30;
-        const ativoCirculante = 150000;
-        const passivoCirculante = 85000;
-        const ativoTotal = 300000;
-        const receitaMensal = 78500;
-        const custosProdutos = 32000;
-        const despesasOperacionais = 28500;
-        const despesasFinanceiras = 2500;
-        const receitasFinanceiras = 1200;
-
-        // Calcular valores
-        const receitaLiquida = receitaMensal * 0.91; // Descontando impostos (9%)
-        const lucroBruto = receitaLiquida - custosProdutos;
-        const ebitda = lucroBruto - despesasOperacionais;
-        const lucroLiquido = ebitda - despesasFinanceiras + receitasFinanceiras;
-
-        const contasAReceber = 95000;
-        const contasAPagar = 62000;
-        const valorVendasMes = receitaMensal;
-        const valorComprasMes = custosProdutos + despesasOperacionais;
-
-        // Liquidez
-        const liquidezImediata = saldoAtual / passivoCirculante;
-        const liquidezCorrente = ativoCirculante / passivoCirculante;
-
-        // Ciclo Financeiro
-        const pmr = (contasAReceber / valorVendasMes) * 30; // dias
-        const pmp = (contasAPagar / valorComprasMes) * 30; // dias
-        const cicloFinanceiro = pmr - pmp;
-
-        // Rentabilidade
-        const margemLiquida = (lucroLiquido / receitaLiquida) * 100;
-        const margemEbitda = (ebitda / receitaLiquida) * 100;
-
-        // Endividamento
-        const divida = 85000;
-        const endividamentoTotal = passivoCirculante / ativoTotal;
-        const coberturaDivida = ebitda / divida;
-
-        // Eficiência
-        const giroAtivo = receitaMensal / ativoTotal;
-        const returnOnAssets = (lucroLiquido / ativoTotal) * 100;
-        const patrimonioLiquido = ativoTotal - passivoCirculante;
-        const returnOnEquity = (lucroLiquido / patrimonioLiquido) * 100;
-
-        // Fluxo de Caixa
-        const despesasMensais = despesasOperacionais + despesasFinanceiras;
-        const burnRate = despesasMensais - receitasFinanceiras;
-        const runway = saldoAtual / burnRate;
-        const breakEven = addMonths(new Date(), Math.ceil(runway));
-
-        const calculatedKPIs: FinancialKPIs = {
-          liquidezImediata,
-          liquidezCorrente,
-          pmp,
-          pmr,
-          cicloFinanceiro,
-          margemLiquida,
-          margemEbitda,
-          endividamentoTotal,
-          coberturaDivida,
-          giroAtivo,
-          returnOnAssets,
-          returnOnEquity,
-          burnRate,
-          runway,
-          breakEven
-        };
-
-        setKpis(calculatedKPIs);
-      } catch (error) {
-        console.error('Erro ao calcular KPIs:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    calculateKPIs();
-  }, []);
+    fetchKPIs();
+  }, [fetchKPIs]);
 
   return {
     kpis,
-    loading
+    loading,
+    error,
+    refetch: fetchKPIs
   };
 };

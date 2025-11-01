@@ -25,6 +25,8 @@ from collections import defaultdict
 from app.core.deps import get_current_user, get_db
 from app.models.user import User
 from app.models.cash_flow import BankAccount, CashFlowTransaction, TransactionType
+from app.models.accounts_receivable import AccountsReceivable
+from app.models.accounts_payable import AccountsPayableInvoice
 from app.schemas.cash_flow import (
     CashFlowSummary,
     CategorySummary,
@@ -33,6 +35,7 @@ from app.schemas.cash_flow import (
     CashFlowAnalytics,
     AccountBalanceSummary,
     TransactionTypeEnum,
+    FinancialKPIs,
 )
 
 router = APIRouter()
@@ -406,6 +409,179 @@ def get_complete_analytics(
         burn_rate=burn_rate,
         runway_months=runway_months,
         health_score=health_score
+    )
+
+
+@router.get("/analytics/kpis", response_model=FinancialKPIs)
+def get_financial_kpis(
+    period_days: int = Query(30, ge=7, le=365, description="Período de análise em dias"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Indicadores Financeiros (KPIs)
+
+    Retorna indicadores de liquidez, ciclo financeiro, rentabilidade e análise de fluxo de caixa.
+
+    **Indicadores calculados:**
+    - Liquidez Imediata e Corrente
+    - PMR (Prazo Médio Recebimento) e PMP (Prazo Médio Pagamento)
+    - Ciclo Financeiro
+    - Margens (Líquida e EBITDA)
+    - ROA e ROE
+    - Burn Rate e Runway
+    - Endividamento Total
+    """
+    calculation_date = date.today()
+    start_date = calculation_date - timedelta(days=period_days)
+
+    # ========================================
+    # 1. DADOS BASE - Cash Flow
+    # ========================================
+
+    # Saldo total em caixa
+    total_cash_balance = db.query(func.sum(BankAccount.current_balance)).filter(
+        and_(
+            BankAccount.workspace_id == current_user.workspace_id,
+            BankAccount.is_active == True
+        )
+    ).scalar() or 0.0
+
+    # Transações do período
+    transactions = db.query(CashFlowTransaction).filter(
+        and_(
+            CashFlowTransaction.workspace_id == current_user.workspace_id,
+            CashFlowTransaction.transaction_date >= datetime.combine(start_date, datetime.min.time()),
+            CashFlowTransaction.transaction_date <= datetime.combine(calculation_date, datetime.max.time())
+        )
+    ).all()
+
+    total_entries = sum(t.value for t in transactions if t.type == TransactionType.ENTRADA.value)
+    total_exits = sum(t.value for t in transactions if t.type == TransactionType.SAIDA.value)
+    net_revenue = total_entries  # Receita líquida do período
+
+    # ========================================
+    # 2. DADOS BASE - Contas a Receber
+    # ========================================
+
+    # Contas a receber pendentes (Ativo Circulante)
+    receivables_pending = db.query(func.sum(AccountsReceivable.value - AccountsReceivable.paid_value)).filter(
+        and_(
+            AccountsReceivable.workspace_id == current_user.workspace_id,
+            AccountsReceivable.status.in_(['pendente', 'parcial', 'vencido'])
+        )
+    ).scalar() or 0.0
+
+    # Total de vendas do período (para PMR)
+    total_sales_period = db.query(func.sum(AccountsReceivable.value)).filter(
+        and_(
+            AccountsReceivable.workspace_id == current_user.workspace_id,
+            AccountsReceivable.issue_date >= start_date,
+            AccountsReceivable.issue_date <= calculation_date
+        )
+    ).scalar() or 0.0
+
+    # ========================================
+    # 3. DADOS BASE - Contas a Pagar
+    # ========================================
+
+    # Contas a pagar pendentes (Passivo Circulante)
+    payables_pending = db.query(func.sum(AccountsPayableInvoice.gross_value - AccountsPayableInvoice.paid_value)).filter(
+        and_(
+            AccountsPayableInvoice.workspace_id == current_user.workspace_id,
+            AccountsPayableInvoice.due_date >= calculation_date,  # Não vencidas
+            func.coalesce(AccountsPayableInvoice.paid_value, 0) < AccountsPayableInvoice.gross_value
+        )
+    ).scalar() or 0.0
+
+    # Total de compras do período (para PMP)
+    total_purchases_period = db.query(func.sum(AccountsPayableInvoice.gross_value)).filter(
+        and_(
+            AccountsPayableInvoice.workspace_id == current_user.workspace_id,
+            AccountsPayableInvoice.invoice_date >= start_date,
+            AccountsPayableInvoice.invoice_date <= calculation_date
+        )
+    ).scalar() or 0.0
+
+    # ========================================
+    # 4. CÁLCULO DOS KPIs
+    # ========================================
+
+    # --- LIQUIDEZ ---
+    # Liquidez Imediata = Saldo Caixa / Passivo Circulante
+    liquidez_imediata = (total_cash_balance / payables_pending) if payables_pending > 0 else None
+
+    # Liquidez Corrente = (Caixa + Contas a Receber) / Passivo Circulante
+    ativo_circulante = total_cash_balance + receivables_pending
+    liquidez_corrente = (ativo_circulante / payables_pending) if payables_pending > 0 else None
+
+    # --- CICLO FINANCEIRO ---
+    # PMR = (Contas a Receber / Vendas do Período) * period_days
+    pmr = (receivables_pending / total_sales_period * period_days) if total_sales_period > 0 else None
+
+    # PMP = (Contas a Pagar / Compras do Período) * period_days
+    pmp = (payables_pending / total_purchases_period * period_days) if total_purchases_period > 0 else None
+
+    # Ciclo Financeiro = PMR - PMP
+    ciclo_financeiro = (pmr - pmp) if (pmr is not None and pmp is not None) else None
+
+    # --- RENTABILIDADE ---
+    # Para cálculos de margem, precisamos de lucro líquido
+    # Simplificação: Lucro Líquido ≈ Receitas - Despesas
+    lucro_liquido = total_entries - total_exits
+
+    # Margem Líquida = (Lucro Líquido / Receita Líquida) * 100
+    margem_liquida = (lucro_liquido / net_revenue * 100) if net_revenue > 0 else None
+
+    # Margem EBITDA - Simplificação: assumir EBITDA ≈ Lucro Líquido + 10%
+    # (Em produção, calcular com dados reais de depreciação/amortização)
+    ebitda = lucro_liquido * 1.1
+    margem_ebitda = (ebitda / net_revenue * 100) if net_revenue > 0 else None
+
+    # ROA = (Lucro Líquido / Ativo Total) * 100
+    # Ativo Total ≈ Caixa + Contas a Receber
+    ativo_total = ativo_circulante
+    roa = (lucro_liquido / ativo_total * 100) if ativo_total > 0 else None
+
+    # ROE = (Lucro Líquido / Patrimônio Líquido) * 100
+    # Patrimônio Líquido ≈ Ativo Total - Passivo Total
+    patrimonio_liquido = ativo_total - payables_pending
+    roe = (lucro_liquido / patrimonio_liquido * 100) if patrimonio_liquido > 0 else None
+
+    # --- FLUXO DE CAIXA ---
+    # Burn Rate = Média mensal de despesas
+    burn_rate = (total_exits / period_days * 30) if period_days > 0 else None
+
+    # Runway = Saldo Caixa / Burn Rate Mensal (em meses)
+    runway = (total_cash_balance / burn_rate) if burn_rate and burn_rate > 0 else None
+
+    # Endividamento Total = (Passivo Circulante / Ativo Total) * 100
+    endividamento_total = (payables_pending / ativo_total * 100) if ativo_total > 0 else None
+
+    return FinancialKPIs(
+        # Liquidez
+        liquidez_imediata=round(liquidez_imediata, 2) if liquidez_imediata is not None else None,
+        liquidez_corrente=round(liquidez_corrente, 2) if liquidez_corrente is not None else None,
+
+        # Ciclo Financeiro
+        pmr=round(pmr, 1) if pmr is not None else None,
+        pmp=round(pmp, 1) if pmp is not None else None,
+        ciclo_financeiro=round(ciclo_financeiro, 1) if ciclo_financeiro is not None else None,
+
+        # Rentabilidade
+        margem_liquida=round(margem_liquida, 2) if margem_liquida is not None else None,
+        margem_ebitda=round(margem_ebitda, 2) if margem_ebitda is not None else None,
+        roa=round(roa, 2) if roa is not None else None,
+        roe=round(roe, 2) if roe is not None else None,
+
+        # Fluxo de Caixa
+        burn_rate=round(burn_rate, 2) if burn_rate is not None else None,
+        runway=round(runway, 1) if runway is not None else None,
+        endividamento_total=round(endividamento_total, 2) if endividamento_total is not None else None,
+
+        # Metadados
+        calculation_date=calculation_date,
+        period_days=period_days
     )
 
 
