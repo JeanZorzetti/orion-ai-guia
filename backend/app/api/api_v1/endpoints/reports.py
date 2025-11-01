@@ -31,7 +31,7 @@ from app.schemas.report import (
     ComparisonMetric,
     Insight
 )
-from app.api.dependencies import get_current_user
+from app.core.deps import get_current_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
