@@ -147,18 +147,30 @@ export async function apiClient<T>(
   // GARANTIR HTTPS - camada tripla de proteção
   let url = `${API_URL}${endpoint}`;
 
+  // Debug ANTES das transformações
+  if (typeof window !== 'undefined' && endpoint.includes('suppliers')) {
+    console.log('🔍 URL Debug (ANTES):', {
+      'API_URL': API_URL,
+      'API_URL protocol': API_URL.substring(0, 10),
+      'endpoint': endpoint,
+      'URL concatenada': url,
+      'URL protocol': url.substring(0, 10),
+    });
+  }
+
   // Remover barras duplas que podem aparecer na junção
   url = url.replace(/([^:]\/)\/+/g, '$1');
 
-  // Forçar HTTPS
-  url = url.replace(/^http:/, 'https:');
+  // Forçar HTTPS - SEMPRE, mesmo que já seja HTTPS
+  if (url.startsWith('http://')) {
+    url = url.replace(/^http:\/\//, 'https://');
+  }
 
-  // Debug para identificar problemas
-  if (typeof window !== 'undefined' && url.includes('suppliers')) {
-    console.log('🔍 URL Debug:', {
-      API_URL,
-      endpoint,
+  // Debug DEPOIS das transformações
+  if (typeof window !== 'undefined' && endpoint.includes('suppliers')) {
+    console.log('🔍 URL Debug (DEPOIS):', {
       'URL final': url,
+      'URL protocol': url.substring(0, 10),
       'É HTTPS?': url.startsWith('https:'),
     });
   }
