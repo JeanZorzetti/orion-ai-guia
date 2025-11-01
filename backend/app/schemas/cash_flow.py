@@ -619,21 +619,6 @@ class Alert(BaseModel):
     threshold: Optional[float] = Field(None, description="Threshold que disparou o alerta")
     is_read: bool = Field(False, description="Alerta foi lido?")
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "id": "alert_001",
-                "type": "low_balance",
-                "severity": "warning",
-                "title": "Saldo Baixo Detectado",
-                "message": "Saldo atual de R$ 5.000 está abaixo do mínimo recomendado de R$ 10.000",
-                "date": "2025-01-30T14:30:00",
-                "value": 5000.0,
-                "threshold": 10000.0,
-                "is_read": False
-            }
-        }
-
 
 class RecommendationTypeEnum(str, Enum):
     """Tipos de recomendação"""
@@ -666,45 +651,9 @@ class Recommendation(BaseModel):
     created_at: datetime = Field(..., description="Data de criação")
     is_implemented: bool = Field(False, description="Já foi implementada?")
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "id": "rec_001",
-                "type": "increase_collection",
-                "priority": "high",
-                "title": "Acelere a Cobrança de Recebíveis",
-                "description": "Você tem R$ 50.000 em recebíveis vencidos há mais de 15 dias",
-                "potential_impact": "Melhorar fluxo de caixa em até R$ 35.000 nos próximos 30 dias",
-                "suggested_actions": [
-                    "Enviar lembretes automáticos para clientes",
-                    "Oferecer desconto de 5% para pagamento antecipado",
-                    "Revisar política de crédito"
-                ],
-                "estimated_value": 35000.0,
-                "confidence_score": 0.85,
-                "created_at": "2025-01-30T10:00:00",
-                "is_implemented": False
-            }
-        }
-
 
 class AlertsAndRecommendationsResponse(BaseModel):
     """Response com alertas e recomendações"""
     alerts: List[Alert] = Field(..., description="Lista de alertas ativos")
     recommendations: List[Recommendation] = Field(..., description="Lista de recomendações")
     summary: Dict[str, Any] = Field(..., description="Resumo executivo")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "alerts": [],
-                "recommendations": [],
-                "summary": {
-                    "total_alerts": 3,
-                    "critical_alerts": 1,
-                    "total_recommendations": 5,
-                    "high_priority_recommendations": 2,
-                    "estimated_total_impact": 75000.0
-                }
-            }
-        }
