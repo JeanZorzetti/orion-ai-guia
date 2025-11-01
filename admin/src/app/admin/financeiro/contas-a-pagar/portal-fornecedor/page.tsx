@@ -32,7 +32,7 @@ export default function PortalFornecedorPage() {
     return suppliers.map(supplier => ({
       id: supplier.id.toString(),
       nome: supplier.name,
-      cnpj: supplier.cnpj || supplier.cpf || '-',
+      cnpj: supplier.document || '-', // document pode ser CNPJ ou CPF
       // TODO: Quando implementarmos o sistema de portal access no backend,
       // buscar dados reais de acesso. Por enquanto, simular baseado no ID
       hasAccess: supplier.id <= 3, // Primeiros 3 fornecedores têm acesso (mock temporário)
