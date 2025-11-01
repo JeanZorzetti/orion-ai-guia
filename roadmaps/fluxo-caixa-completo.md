@@ -2,11 +2,11 @@
 
 **Objetivo:** Implementar todas as 19 funcionalidades da página de Fluxo de Caixa com dados reais do backend.
 
-**Status Atual:** 14/19 funcionalidades implementadas (74%)
+**Status Atual:** 15/19 funcionalidades implementadas (79%)
 
 ---
 
-## ✅ Funcionalidades Já Implementadas (10/19)
+## ✅ Funcionalidades Já Implementadas (15/19)
 
 ### 1. ✅ Saldo Mínimo Projetado
 - **Frontend:** Componente `CashFlowProjection`
@@ -59,38 +59,49 @@
 
 ---
 
-## 🔴 Funcionalidades Faltantes (5/19)
+## 🔴 Funcionalidades Faltantes (4/19)
 
-### FASE 1: Análise de Cenários (3 funcionalidades)
+### FASE 1: Análise de Cenários (3 funcionalidades) ✅ CONCLUÍDA
 
-#### 4. ❌ Cenário Otimista
-- **Descrição:** Projeção com premissas favoráveis (95% recebimento, 2 dias atraso, +5% receita)
-- **Backend Necessário:**
-  - [ ] Endpoint `POST /api/v1/cash-flow/scenarios/calculate`
-  - [ ] Request body: `{ scenario_type: 'optimistic', days_ahead: 30 }`
-  - [ ] Response: Array de projeções com premissas otimistas
+#### 4. ✅ Cenário Otimista
+- **Descrição:** Projeção com premissas favoráveis (95% recebimento, 2 dias atraso, +5% receita, -2% despesas)
+- **Backend:**
+  - [x] Endpoint `POST /api/v1/cash-flow/scenarios/calculate` criado
+  - [x] Schema `ScenarioAnalysisResult` implementado
+  - [x] Cálculo de cenário otimista com premissas configuradas
+  - [x] Inclusão de contas a receber e pagar pendentes
 - **Frontend:**
-  - [ ] Reativar componente `ScenarioAnalysis`
-  - [ ] Criar hook `useScenarioAnalysis` integrado com API
-- **Estimativa:** 4-6 horas
+  - [x] Componente `ScenarioAnalysis` criado
+  - [x] Hook `useScenarios` integrado com API
+  - [x] Card individual com premissas e resultados
+- **Status:** ✅ Implementado e testado
 
-#### 5. ❌ Cenário Realista
-- **Descrição:** Projeção com premissas realistas (85% recebimento, 7 dias atraso, +2% receita)
-- **Backend Necessário:**
-  - [ ] Mesmo endpoint acima com `scenario_type: 'realistic'`
+#### 5. ✅ Cenário Realista
+- **Descrição:** Projeção com premissas realistas (85% recebimento, 7 dias atraso, +2% receita, 0% despesas)
+- **Backend:**
+  - [x] Integrado no endpoint `/scenarios/calculate`
+  - [x] Cálculo de cenário realista implementado
 - **Frontend:**
-  - [ ] Integrado no mesmo componente `ScenarioAnalysis`
-- **Estimativa:** Incluído no item 4
+  - [x] Integrado no componente `ScenarioAnalysis`
+  - [x] Card com dados do cenário realista
+- **Status:** ✅ Implementado e testado
 
-#### 6. ❌ Cenário Pessimista
-- **Descrição:** Projeção com premissas desfavoráveis (70% recebimento, 15 dias atraso, -3% receita)
-- **Backend Necessário:**
-  - [ ] Mesmo endpoint acima com `scenario_type: 'pessimistic'`
+#### 6. ✅ Cenário Pessimista
+- **Descrição:** Projeção com premissas desfavoráveis (70% recebimento, 15 dias atraso, -3% receita, +5% despesas)
+- **Backend:**
+  - [x] Integrado no endpoint `/scenarios/calculate`
+  - [x] Cálculo de cenário pessimista implementado
+  - [x] Sistema de recomendações inteligentes baseado nos cenários
+  - [x] Detecção de cenários críticos (saldo negativo)
 - **Frontend:**
-  - [ ] Integrado no mesmo componente `ScenarioAnalysis`
-- **Estimativa:** Incluído no item 4
+  - [x] Integrado no componente `ScenarioAnalysis`
+  - [x] Gráfico comparativo de projeções (LineChart)
+  - [x] Resumo comparativo (melhor/pior caso, variação)
+  - [x] Alertas visuais para riscos de saldo negativo
+  - [x] Recomendações personalizadas
+- **Status:** ✅ Implementado e testado
 
-**Total Fase 1:** 4-6 horas
+**Total Fase 1:** ✅ CONCLUÍDA (commit 2860c603)
 
 ---
 
@@ -246,12 +257,12 @@
 
 | Fase | Funcionalidades | Status | Tempo |
 |------|----------------|--------|-------|
-| Fase 1: Análise de Cenários | 3 | ❌ Pendente | 4-6 horas |
+| Fase 1: Análise de Cenários | 3 | ✅ **CONCLUÍDA** | ~~4-6 horas~~ |
 | Fase 2: Simulador | 2 | ❌ Pendente | 6-8 horas |
 | Fase 3: Indicadores Financeiros | 4 | ✅ **CONCLUÍDA** | ~~3-4 horas~~ |
 | Fase 4: Análises Avançadas | 1 | ✅ **CONCLUÍDA** | ~~3-4 horas~~ |
 | Fase 5: Inteligência e Automação | 2 | ❌ Pendente | 10-13 horas |
-| **TOTAL RESTANTE** | **5 funcionalidades** | **74% completo** | **20-27 horas** |
+| **TOTAL RESTANTE** | **4 funcionalidades** | **79% completo** | **16-21 horas** |
 
 ---
 
@@ -262,29 +273,29 @@
 ```python
 # backend/app/api/api_v1/endpoints/cash_flow.py
 
-# Cenários
-@router.post("/scenarios/calculate")
+# Cenários ✅
+@router.post("/scenarios/calculate")  # ✅ IMPLEMENTADO
 async def calculate_scenarios(...)
 
-@router.get("/scenarios/current")
+@router.get("/scenarios/current")  # ❌ Pendente
 async def get_current_scenario(...)
 
-@router.post("/scenarios/simulate")
+@router.post("/scenarios/simulate")  # ❌ Pendente
 async def simulate_scenario(...)
 
-# KPIs
-@router.get("/analytics/kpis")
+# KPIs ✅
+@router.get("/analytics/kpis")  # ✅ IMPLEMENTADO
 async def get_financial_kpis(...)
 
-# Break-Even
-@router.get("/analytics/break-even")
+# Break-Even ✅
+@router.get("/analytics/break-even")  # ✅ IMPLEMENTADO
 async def get_break_even_analysis(...)
 
-# Alertas
-@router.get("/alerts")
+# Alertas ❌
+@router.get("/alerts")  # ❌ Pendente
 async def get_alerts(...)
 
-@router.put("/alerts/{alert_id}/read")
+@router.put("/alerts/{alert_id}/read")  # ❌ Pendente
 async def mark_alert_as_read(...)
 
 # Recomendações
