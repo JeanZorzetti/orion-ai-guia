@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,49 +11,79 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CreditCard, QrCode, FileText, TrendingUp } from 'lucide-react';
+import { CreditCard, QrCode, FileText, Loader2, TrendingUp } from 'lucide-react';
 import { PixIntegration } from '@/components/financeiro/contas-a-receber/PixIntegration';
 import { BoletoIntegration } from '@/components/financeiro/contas-a-receber/BoletoIntegration';
-import { addDays } from 'date-fns';
-
-// Mock data - em produção viria do banco
-const mockContasReceber = [
-  {
-    id: '1',
-    numeroDocumento: 'NF-1234',
-    clienteId: '1',
-    clienteNome: 'Empresa ABC Ltda',
-    clienteEmail: 'contato@empresaabc.com.br',
-    dataVencimento: addDays(new Date(), 5),
-    valor: 5800.0,
-    status: 'pendente' as const,
-  },
-  {
-    id: '2',
-    numeroDocumento: 'NF-1235',
-    clienteId: '2',
-    clienteNome: 'Comercial XYZ S.A.',
-    clienteEmail: 'financeiro@comercialxyz.com.br',
-    dataVencimento: addDays(new Date(), 26),
-    valor: 12500.0,
-    status: 'pendente' as const,
-  },
-  {
-    id: '3',
-    numeroDocumento: 'NF-1236',
-    clienteId: '3',
-    clienteNome: 'Distribuidora 123',
-    clienteEmail: 'cobranca@dist123.com.br',
-    dataVencimento: addDays(new Date(), -5),
-    valor: 3200.0,
-    status: 'vencido' as const,
-  },
-];
+import { useAccountsReceivable } from '@/hooks/useAccountsReceivable';
 
 const PagamentosPage: React.FC = () => {
-  const [selectedConta, setSelectedConta] = useState<string>(mockContasReceber[0].id);
+  const { receivables, loading } = useAccountsReceivable();
 
-  const conta = mockContasReceber.find((c) => c.id === selectedConta);
+  // Converter receivables da API para formato da página
+  const contasReceber = useMemo(() => {
+    return receivables
+      .filter(r => r.status === 'pendente' || r.status === 'vencido') // Apenas contas não pagas
+      .map(r => ({
+        id: r.id.toString(),
+        numeroDocumento: r.document_number,
+        clienteId: r.customer_id.toString(),
+        clienteNome: r.customer_name || `Cliente #${r.customer_id}`,
+        clienteEmail: '', // Não temos email no modelo atual
+        dataVencimento: new Date(r.due_date),
+        valor: r.value - r.paid_value, // Valor pendente
+        status: r.status as 'pendente' | 'vencido',
+      }));
+  }, [receivables]);
+
+  const [selectedConta, setSelectedConta] = useState<string>('');
+
+  // Auto-selecionar primeira conta quando carregado
+  React.useEffect(() => {
+    if (contasReceber.length > 0 && !selectedConta) {
+      setSelectedConta(contasReceber[0].id);
+    }
+  }, [contasReceber, selectedConta]);
+
+  const conta = contasReceber.find((c) => c.id === selectedConta);
+
+  console.log('🔍 [PagamentosPage] Contas carregadas:', contasReceber.length);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (contasReceber.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+              <CreditCard className="h-8 w-8 text-green-500" />
+              Meios de Pagamento
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Gere PIX e Boletos para facilitar os recebimentos
+            </p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-12">
+              <CreditCard className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Nenhuma conta a receber encontrada</h3>
+              <p className="text-muted-foreground">
+                Não há contas pendentes ou vencidas para gerar meios de pagamento
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!conta) return null;
 
@@ -85,13 +115,13 @@ const PagamentosPage: React.FC = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {mockContasReceber.map((c) => (
+              {contasReceber.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   <div className="flex items-center justify-between w-full gap-4">
                     <span className="font-medium">{c.numeroDocumento}</span>
                     <span>{c.clienteNome}</span>
                     <span className="font-bold text-green-600">
-                      R$ {c.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {(c.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>
                     <Badge variant={c.status === 'vencido' ? 'destructive' : 'default'}>
                       {c.status}
