@@ -1,10 +1,28 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { SupplierPerformanceScore } from '@/types/supplier-performance';
-import { subMonths, format } from 'date-fns';
+import { subMonths, format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { api } from '@/lib/api';
+import { useSuppliers } from './useSuppliers';
 
-// Mock data de fornecedores
-const mockSupplierPerformances: SupplierPerformanceScore[] = [
+interface APInvoice {
+  id: number;
+  invoice_number: string;
+  supplier_id: number;
+  supplier?: {
+    id: number;
+    name: string;
+  };
+  total_value: number;
+  due_date: string;
+  invoice_date: string;
+  payment_date?: string;
+  status: string;
+  created_at: string;
+}
+
+// Mock data de fornecedores (REMOVIDO - agora usa dados reais)
+const mockSupplierPerformances_OLD: SupplierPerformanceScore[] = [
   {
     fornecedorId: '1',
     fornecedorNome: 'Fornecedor Alpha Ltda',
@@ -151,19 +169,282 @@ function getCategoria(score: number): 'excelente' | 'bom' | 'regular' | 'ruim' |
   return 'critico';
 }
 
+// Hook para buscar todas as faturas
+function useAllInvoices() {
+  const [invoices, setInvoices] = useState<APInvoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // Buscar todas as faturas (não só pendentes)
+        const response = await api.get<APInvoice[]>('/accounts-payable/invoices/?limit=10000');
+        setInvoices(response || []);
+      } catch (err: any) {
+        console.error('Erro ao buscar faturas:', err);
+        setError(err.message || 'Erro ao buscar faturas');
+        setInvoices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvoices();
+  }, []);
+
+  return { invoices, loading, error };
+}
+
+// Calcular métricas de performance baseado nas faturas
+function calculateSupplierMetrics(supplierId: number, invoices: APInvoice[]): SupplierPerformanceScore['metricas'] {
+  const supplierInvoices = invoices.filter(inv => inv.supplier_id === supplierId);
+
+  if (supplierInvoices.length === 0) {
+    return {
+      totalCompras: 0,
+      valorTotalComprado: 0,
+      ticketMedio: 0,
+      frequenciaCompras: 0,
+      prazoMedioPagamento: 0,
+      descontosObtidos: 0,
+      devolucoesReclamacoes: 0,
+    };
+  }
+
+  const totalValue = supplierInvoices.reduce((sum, inv) => sum + inv.total_value, 0);
+  const paidInvoices = supplierInvoices.filter(inv => inv.payment_date);
+
+  // Calcular prazo médio de pagamento
+  let avgPaymentDays = 0;
+  if (paidInvoices.length > 0) {
+    const totalDays = paidInvoices.reduce((sum, inv) => {
+      const invoiceDate = new Date(inv.invoice_date);
+      const paymentDate = new Date(inv.payment_date!);
+      return sum + differenceInDays(paymentDate, invoiceDate);
+    }, 0);
+    avgPaymentDays = Math.round(totalDays / paidInvoices.length);
+  }
+
+  return {
+    totalCompras: supplierInvoices.length,
+    valorTotalComprado: totalValue,
+    ticketMedio: Math.round(totalValue / supplierInvoices.length),
+    frequenciaCompras: supplierInvoices.length / 6, // Compras por mês (últimos 6 meses)
+    prazoMedioPagamento: avgPaymentDays,
+    descontosObtidos: 0, // TODO: Implementar quando tivermos dados de desconto
+    devolucoesReclamacoes: 0, // TODO: Implementar quando tivermos dados de devolução
+  };
+}
+
+// Calcular fatores de performance
+function calculateSupplierFactors(supplierId: number, invoices: APInvoice[]): SupplierPerformanceScore['fatores'] {
+  const supplierInvoices = invoices.filter(inv => inv.supplier_id === supplierId);
+
+  if (supplierInvoices.length === 0) {
+    return {
+      pontualidadeEntrega: 0,
+      qualidadeProdutos: 5.0,
+      precosCompetitivos: 5.0,
+      atendimento: 5.0,
+      flexibilidadeNegociacao: 5.0,
+      conformidadeDocumental: 0,
+    };
+  }
+
+  const paidInvoices = supplierInvoices.filter(inv => inv.payment_date);
+  const paidOnTime = paidInvoices.filter(inv => {
+    const dueDate = new Date(inv.due_date);
+    const paymentDate = new Date(inv.payment_date!);
+    return paymentDate <= dueDate;
+  });
+
+  const pontualidade = paidInvoices.length > 0
+    ? Math.round((paidOnTime.length / paidInvoices.length) * 100)
+    : 80; // Default se não tiver pagamentos ainda
+
+  // Conformidade documental: faturas com status aprovado / total
+  const approvedInvoices = supplierInvoices.filter(inv =>
+    inv.status === 'approved' || inv.status === 'paid'
+  );
+  const conformidade = supplierInvoices.length > 0
+    ? Math.round((approvedInvoices.length / supplierInvoices.length) * 100)
+    : 80; // Default
+
+  return {
+    pontualidadeEntrega: pontualidade,
+    qualidadeProdutos: 7.5, // TODO: Implementar quando tivermos avaliações
+    precosCompetitivos: 7.0, // TODO: Implementar comparação de preços
+    atendimento: 7.5, // TODO: Implementar quando tivermos avaliações
+    flexibilidadeNegociacao: 7.0, // TODO: Implementar quando tivermos dados
+    conformidadeDocumental: conformidade,
+  };
+}
+
+// Gerar histórico mensal
+function generateMonthlyHistory(supplierId: number, invoices: APInvoice[]): SupplierPerformanceScore['historico'] {
+  const history: SupplierPerformanceScore['historico'] = [];
+
+  for (let i = 5; i >= 0; i--) {
+    const monthDate = subMonths(new Date(), i);
+    const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+    const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+
+    const monthInvoices = invoices.filter(inv => {
+      const invDate = new Date(inv.invoice_date);
+      return inv.supplier_id === supplierId &&
+             invDate >= monthStart &&
+             invDate <= monthEnd;
+    });
+
+    const fatores = calculateSupplierFactors(supplierId, monthInvoices);
+    const score = calculateScore(fatores);
+
+    history.push({
+      mes: format(monthDate, 'MMM/yy', { locale: ptBR }),
+      score,
+      totalCompras: monthInvoices.length,
+    });
+  }
+
+  return history;
+}
+
+// Gerar recomendações baseadas em métricas
+function generateRecommendations(performance: Omit<SupplierPerformanceScore, 'recomendacoes' | 'tendencia' | 'ultimaAtualizacao'>): string[] {
+  const recomendacoes: string[] = [];
+
+  if (performance.score >= 85) {
+    recomendacoes.push('Fornecedor confiável com excelente histórico');
+  }
+
+  if (performance.fatores.pontualidadeEntrega >= 90) {
+    recomendacoes.push('Pontualidade exemplar - considere para itens críticos');
+  } else if (performance.fatores.pontualidadeEntrega < 70) {
+    recomendacoes.push('Atenção à pontualidade de entrega');
+  }
+
+  if (performance.metricas.valorTotalComprado > 100000) {
+    recomendacoes.push('Alto volume de compras - considere negociar descontos');
+  }
+
+  if (performance.fatores.conformidadeDocumental < 80) {
+    recomendacoes.push('Exigir melhorias em conformidade documental');
+  }
+
+  if (performance.score < 60) {
+    recomendacoes.push('Considere buscar fornecedores alternativos');
+  }
+
+  if (recomendacoes.length === 0) {
+    recomendacoes.push('Fornecedor dentro dos padrões esperados');
+  }
+
+  return recomendacoes;
+}
+
+// Calcular tendência baseada no histórico
+function calculateTrend(historico: SupplierPerformanceScore['historico']): 'melhorando' | 'estavel' | 'piorando' {
+  if (historico.length < 2) return 'estavel';
+
+  const recentScores = historico.slice(-3).map(h => h.score);
+  const oldScores = historico.slice(0, 3).map(h => h.score);
+
+  const recentAvg = recentScores.reduce((a, b) => a + b, 0) / recentScores.length;
+  const oldAvg = oldScores.reduce((a, b) => a + b, 0) / oldScores.length;
+
+  const diff = recentAvg - oldAvg;
+
+  if (diff > 3) return 'melhorando';
+  if (diff < -3) return 'piorando';
+  return 'estavel';
+}
+
 export function useSupplierPerformance(fornecedorId?: string) {
+  const { suppliers } = useSuppliers();
+  const { invoices, loading } = useAllInvoices();
+
   const performance = useMemo(() => {
-    if (!fornecedorId) return null;
-    return mockSupplierPerformances.find((p) => p.fornecedorId === fornecedorId) || null;
-  }, [fornecedorId]);
+    if (!fornecedorId || loading || suppliers.length === 0) return null;
+
+    const supplierId = parseInt(fornecedorId);
+    const supplier = suppliers.find(s => s.id === supplierId);
+
+    if (!supplier) return null;
+
+    const metricas = calculateSupplierMetrics(supplierId, invoices);
+    const fatores = calculateSupplierFactors(supplierId, invoices);
+    const score = calculateScore(fatores);
+    const categoria = getCategoria(score);
+    const historico = generateMonthlyHistory(supplierId, invoices);
+
+    const basePerformance = {
+      fornecedorId: fornecedorId,
+      fornecedorNome: supplier.name,
+      score,
+      categoria,
+      fatores,
+      metricas,
+      historico,
+    };
+
+    const recomendacoes = generateRecommendations(basePerformance);
+    const tendencia = calculateTrend(historico);
+
+    return {
+      ...basePerformance,
+      recomendacoes,
+      tendencia,
+      ultimaAtualizacao: new Date(),
+    } as SupplierPerformanceScore;
+  }, [fornecedorId, suppliers, invoices, loading]);
 
   return performance;
 }
 
 export function useAllSupplierPerformances() {
-  return useMemo(() => {
-    return mockSupplierPerformances.sort((a, b) => b.score - a.score);
-  }, []);
+  const { suppliers, loading: suppliersLoading } = useSuppliers();
+  const { invoices, loading: invoicesLoading } = useAllInvoices();
+
+  const performances = useMemo(() => {
+    if (suppliersLoading || invoicesLoading || suppliers.length === 0) {
+      return [];
+    }
+
+    const allPerformances: SupplierPerformanceScore[] = suppliers.map(supplier => {
+      const metricas = calculateSupplierMetrics(supplier.id, invoices);
+      const fatores = calculateSupplierFactors(supplier.id, invoices);
+      const score = calculateScore(fatores);
+      const categoria = getCategoria(score);
+      const historico = generateMonthlyHistory(supplier.id, invoices);
+
+      const basePerformance = {
+        fornecedorId: supplier.id.toString(),
+        fornecedorNome: supplier.name,
+        score,
+        categoria,
+        fatores,
+        metricas,
+        historico,
+      };
+
+      const recomendacoes = generateRecommendations(basePerformance);
+      const tendencia = calculateTrend(historico);
+
+      return {
+        ...basePerformance,
+        recomendacoes,
+        tendencia,
+        ultimaAtualizacao: new Date(),
+      };
+    });
+
+    return allPerformances.sort((a, b) => b.score - a.score);
+  }, [suppliers, invoices, suppliersLoading, invoicesLoading]);
+
+  return performances;
 }
 
 export { calculateScore, getCategoria };
