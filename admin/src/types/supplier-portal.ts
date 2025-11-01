@@ -16,7 +16,8 @@ export interface SupplierPortalData {
   fornecedor: {
     id: string;
     nome: string;
-    cnpj: string;
+    cnpj?: string;
+    cpf?: string;
     email?: string;
     telefone?: string;
   };
