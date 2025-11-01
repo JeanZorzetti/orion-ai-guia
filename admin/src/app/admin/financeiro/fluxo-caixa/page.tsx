@@ -16,15 +16,8 @@ import {
 } from 'lucide-react';
 import { useCashFlow } from '@/hooks/useCashFlow';
 import { CashFlowProjection } from '@/components/financeiro/fluxo-caixa/CashFlowProjection';
-import { ScenarioAnalysis } from '@/components/financeiro/fluxo-caixa/ScenarioAnalysis';
-import { ImpactSimulator } from '@/components/financeiro/fluxo-caixa/ImpactSimulator';
-import { FinancialKPIs } from '@/components/financeiro/fluxo-caixa/FinancialKPIs';
-import { BreakEvenAnalysis } from '@/components/financeiro/fluxo-caixa/BreakEvenAnalysis';
 import { MultiAccountManagement } from '@/components/financeiro/fluxo-caixa/MultiAccountManagement';
 import { AccountTransfers } from '@/components/financeiro/fluxo-caixa/AccountTransfers';
-import { SmartAlerts } from '@/components/financeiro/fluxo-caixa/SmartAlerts';
-import { AIRecommendations } from '@/components/financeiro/fluxo-caixa/AIRecommendations';
-import { ReportGenerator } from '@/components/financeiro/fluxo-caixa/ReportGenerator';
 
 const FluxoCaixaPage: React.FC = () => {
   // Evitar problemas de hidratação SSR
@@ -39,6 +32,7 @@ const FluxoCaixaPage: React.FC = () => {
     transactions,
     bankAccounts,
     summary,
+    balanceHistory,
     completeAnalytics,
     loadingTransactions,
     loadingAccounts,
@@ -46,64 +40,63 @@ const FluxoCaixaPage: React.FC = () => {
     error
   } = useCashFlow();
 
-  // Mock data como fallback
-  const movimentacoes_MOCK = [
-    { data: '2024-01-15', tipo: 'entrada', descricao: 'Recebimento Cliente ABC', valor: 5800.00, categoria: 'Vendas' },
-    { data: '2024-01-15', tipo: 'saida', descricao: 'Pagamento Fornecedor XYZ', valor: 2300.00, categoria: 'Compras' },
-    { data: '2024-01-14', tipo: 'entrada', descricao: 'Recebimento Cliente 123', valor: 3200.00, categoria: 'Vendas' },
-    { data: '2024-01-14', tipo: 'saida', descricao: 'Folha de Pagamento', valor: 8500.00, categoria: 'Pessoal' },
-    { data: '2024-01-13', tipo: 'entrada', descricao: 'Venda à Vista', valor: 1250.00, categoria: 'Vendas' },
-    { data: '2024-01-13', tipo: 'saida', descricao: 'Energia Elétrica', valor: 450.00, categoria: 'Despesas Fixas' },
-    { data: '2024-01-12', tipo: 'entrada', descricao: 'Recebimento Cliente Tech', valor: 8950.00, categoria: 'Vendas' },
-  ];
-
-  // Calcular totais dos dados reais ou mock
+  // Movimentações recentes da API
   const movimentacoes = useMemo(() => {
-    if (transactions.length > 0) {
-      return transactions.map(t => ({
+    console.log('🔍 [FluxoCaixaPage] Processando transações:', transactions.length);
+
+    return transactions
+      .slice(0, 10) // Pegar apenas as 10 mais recentes
+      .map(t => ({
         data: new Date(t.transaction_date).toLocaleDateString('pt-BR'),
         tipo: t.type,
         descricao: t.description,
         valor: t.value,
-        categoria: t.category
+        categoria: t.category || 'Sem categoria'
       }));
-    }
-    return movimentacoes_MOCK;
   }, [transactions]);
 
   const totalEntradas = useMemo(() => {
-    if (summary) return summary.total_entries;
-    return movimentacoes.filter(m => m.tipo === 'entrada').reduce((sum, m) => sum + m.valor, 0);
-  }, [summary, movimentacoes]);
+    return summary?.total_entries || 0;
+  }, [summary]);
 
   const totalSaidas = useMemo(() => {
-    if (summary) return summary.total_exits;
-    return movimentacoes.filter(m => m.tipo === 'saida').reduce((sum, m) => sum + m.valor, 0);
-  }, [summary, movimentacoes]);
+    return summary?.total_exits || 0;
+  }, [summary]);
 
   const saldoPeriodo = useMemo(() => {
-    if (summary) return summary.net_flow;
-    return totalEntradas - totalSaidas;
-  }, [summary, totalEntradas, totalSaidas]);
+    return summary?.net_flow || 0;
+  }, [summary]);
 
   const saldoAtual = useMemo(() => {
     if (summary) return summary.closing_balance;
-    if (bankAccounts.length > 0) {
-      return bankAccounts.reduce((sum, acc) => sum + acc.current_balance, 0);
-    }
-    return 45280.30; // Fallback mock
+    return bankAccounts.reduce((sum, acc) => sum + acc.current_balance, 0);
   }, [summary, bankAccounts]);
 
-  // Dados mockados para gráfico semanal (até implementar endpoint de histórico)
-  const fluxoSemanal = [
-    { dia: 'Seg', entradas: 5800, saidas: 2300, saldo: 3500 },
-    { dia: 'Ter', entradas: 3200, saidas: 8500, saldo: -5300 },
-    { dia: 'Qua', entradas: 1250, saidas: 450, saldo: 800 },
-    { dia: 'Qui', entradas: 8950, saidas: 1200, saldo: 7750 },
-    { dia: 'Sex', entradas: 4500, saidas: 3100, saldo: 1400 },
-    { dia: 'Sáb', entradas: 2100, saidas: 500, saldo: 1600 },
-    { dia: 'Dom', entradas: 0, saidas: 0, saldo: 0 },
-  ];
+  // Gráfico semanal baseado em balance history da API
+  const fluxoSemanal = useMemo(() => {
+    if (balanceHistory.length === 0) {
+      console.log('⚠️ [FluxoCaixaPage] Sem dados de histórico de saldo');
+      return [];
+    }
+
+    console.log('🔍 [FluxoCaixaPage] Processando balance history:', balanceHistory.length);
+
+    // Pegar últimos 7 dias do histórico
+    const ultimosSeteDias = balanceHistory.slice(-7);
+
+    return ultimosSeteDias.map(day => {
+      const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      const data = new Date(day.date);
+      const diaSemana = diasSemana[data.getDay()];
+
+      return {
+        dia: diaSemana,
+        entradas: day.entries,
+        saidas: day.exits,
+        saldo: day.net_flow
+      };
+    });
+  }, [balanceHistory]);
 
   const isLoading = loadingTransactions || loadingAccounts || loadingAnalytics;
 
@@ -228,32 +221,11 @@ const FluxoCaixaPage: React.FC = () => {
       {/* Projeção de Fluxo de Caixa */}
       <CashFlowProjection />
 
-      {/* Análise de Cenários */}
-      <ScenarioAnalysis />
-
-      {/* Simulador de Impacto */}
-      <ImpactSimulator />
-
-      {/* Indicadores Financeiros (KPIs) */}
-      <FinancialKPIs />
-
-      {/* Análise de Break-Even */}
-      <BreakEvenAnalysis />
-
       {/* Gestão de Múltiplas Contas */}
       <MultiAccountManagement />
 
       {/* Transferências Entre Contas */}
       <AccountTransfers />
-
-      {/* Alertas Inteligentes */}
-      <SmartAlerts />
-
-      {/* Recomendações de IA */}
-      <AIRecommendations />
-
-      {/* Gerador de Relatórios */}
-      <ReportGenerator />
 
       {/* Gráfico de Fluxo Semanal */}
       <Card>
