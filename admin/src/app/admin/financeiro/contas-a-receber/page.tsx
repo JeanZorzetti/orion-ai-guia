@@ -21,6 +21,7 @@ import { ExportDialog, type ExportOptions } from '@/components/financeiro/contas
 import { GeneratePortalAccessDialog } from '@/components/financeiro/contas-a-receber/GeneratePortalAccessDialog';
 import { useARFilters, type ContaReceber } from '@/hooks/useARFilters';
 import { useAccountsReceivable } from '@/hooks/useAccountsReceivable';
+import { useARChartData } from '@/hooks/useARChartData';
 import { addDays } from 'date-fns';
 
 // Mock data expandido - em produção viria do banco
@@ -171,6 +172,9 @@ const ContasAReceberPage: React.FC = () => {
     count: dataSource.length,
     firstItem: dataSource[0],
   });
+
+  // Calcular dados dos gráficos baseados nos receivables reais
+  const chartData = useARChartData(apiReceivables);
 
   // State para visualizações salvas
   const [savedViews, setSavedViews] = useState<SavedView[]>([
@@ -384,7 +388,10 @@ const ContasAReceberPage: React.FC = () => {
       <ARDashboardKPIs analytics={analytics} />
 
       {/* Gráficos de Análise */}
-      <ARCharts />
+      <ARCharts
+        agingChartData={chartData.agingChartData}
+        trendData={chartData.trendData}
+      />
 
       {/* Relatório de Aging */}
       <AgingReportTable agingReport={agingReport} />

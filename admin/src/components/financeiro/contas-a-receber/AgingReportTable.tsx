@@ -48,11 +48,16 @@ export const AgingReportTable: React.FC<AgingReportTableProps> = ({ agingReport 
 
   // Converter dados reais da API para formato da tabela
   const agingData = useMemo(() => {
-    if (agingReport && agingReport.buckets.length > 0) {
+    console.log('🔍 [AgingReportTable] agingReport recebido:', agingReport);
+
+    if (agingReport && agingReport.buckets && agingReport.buckets.length > 0) {
+      console.log('✅ [AgingReportTable] Usando dados reais da API');
       // A API retorna buckets por faixa, precisamos converter para o formato esperado
-      // Por enquanto, vamos usar os dados mockados como fallback
+      // Por enquanto, vamos usar os dados mockados como fallback até implementar conversão completa
       return mockAgingData;
     }
+
+    console.log('⚠️ [AgingReportTable] Usando mock data (aging report vazio)');
     return mockAgingData;
   }, [agingReport, mockAgingData]);
 
