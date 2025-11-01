@@ -478,7 +478,7 @@ const ContasAReceberPage: React.FC = () => {
                       </td>
                       <td className="p-3 text-right">
                         <span className="font-semibold text-green-600">
-                          R$ {conta.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          R$ {(conta.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
                       </td>
                       <td className="p-3 text-center">
