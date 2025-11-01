@@ -164,11 +164,11 @@ const ContasAReceberPage: React.FC = () => {
     }));
   }, [apiReceivables]);
 
-  // Fallback para mock data durante desenvolvimento
-  const dataSource = contasReceber.length > 0 ? contasReceber : mockContasReceber;
+  // Usar APENAS dados da API - sem fallback para mock
+  const dataSource = contasReceber;
 
   console.log('📊 [ContasAReceberPage] DataSource final:', {
-    source: contasReceber.length > 0 ? 'API' : 'Mock',
+    source: 'API',
     count: dataSource.length,
     firstItem: dataSource[0],
   });

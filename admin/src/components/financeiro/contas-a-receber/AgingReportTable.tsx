@@ -4,7 +4,6 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useAgingReport, useAgingTotals } from '@/hooks/useAgingReport';
 import { AgingReport } from '@/types/financeiro';
 import { cn } from '@/lib/utils';
 
@@ -43,26 +42,22 @@ interface AgingReportTableProps {
 }
 
 export const AgingReportTable: React.FC<AgingReportTableProps> = ({ agingReport }) => {
-  const mockAgingData = useAgingReport();
-  const mockTotals = useAgingTotals();
-
-  // Converter dados reais da API para formato da tabela
+  // Sem fallback para mock - retornar array vazio se não houver dados
   const agingData = useMemo(() => {
     console.log('🔍 [AgingReportTable] agingReport recebido:', agingReport);
 
     if (agingReport && agingReport.buckets && agingReport.buckets.length > 0) {
-      console.log('✅ [AgingReportTable] Usando dados reais da API');
-      // A API retorna buckets por faixa, precisamos converter para o formato esperado
-      // Por enquanto, vamos usar os dados mockados como fallback até implementar conversão completa
-      return mockAgingData;
+      console.log('✅ [AgingReportTable] Dados disponíveis na API');
+      // API retorna buckets, mas por enquanto retornar vazio até implementar conversão completa
+      return [];
     }
 
-    console.log('⚠️ [AgingReportTable] Usando mock data (aging report vazio)');
-    return mockAgingData;
-  }, [agingReport, mockAgingData]);
+    console.log('⚠️ [AgingReportTable] Sem dados - retornando vazio');
+    return [];
+  }, [agingReport]);
 
   const totals = useMemo(() => {
-    if (agingReport) {
+    if (agingReport && agingReport.buckets && agingReport.buckets.length > 0) {
       // Calcular totais dos buckets da API
       const apiTotals = {
         atual: 0,
@@ -84,8 +79,17 @@ export const AgingReportTable: React.FC<AgingReportTableProps> = ({ agingReport 
 
       return apiTotals;
     }
-    return mockTotals;
-  }, [agingReport, mockTotals]);
+
+    // Retornar totais zerados se não houver dados
+    return {
+      atual: 0,
+      dias30: 0,
+      dias60: 0,
+      dias90: 0,
+      dias120Plus: 0,
+      total: 0
+    };
+  }, [agingReport]);
 
   const formatCurrency = (value: number) => {
     return `R$ ${(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
