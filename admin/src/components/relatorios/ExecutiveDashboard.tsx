@@ -52,6 +52,7 @@ export const ExecutiveDashboard: React.FC = () => {
     setTipoComparacao,
     setPeriodoAtual,
     loading,
+    error,
     refresh,
     bookmarks,
     saveBookmark,
@@ -59,6 +60,54 @@ export const ExecutiveDashboard: React.FC = () => {
   } = useExecutiveDashboard();
 
   const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
+
+  // Estado de loading
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Carregando dashboard executivo...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Estado de erro
+  if (error) {
+    return (
+      <Card className="border-red-200 bg-red-50">
+        <CardHeader>
+          <CardTitle className="text-red-700">Erro ao Carregar Dashboard</CardTitle>
+          <CardDescription className="text-red-600">{error}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={refresh} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Tentar Novamente
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Verificar se dados existem
+  if (!data || !data.kpis || !data.graficos) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Sem Dados Disponíveis</CardTitle>
+          <CardDescription>Não há dados para exibir no momento.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={refresh} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Recarregar
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Renderizar ícone de tendência
   const renderTrendIcon = (tendencia: 'up' | 'down' | 'stable') => {
