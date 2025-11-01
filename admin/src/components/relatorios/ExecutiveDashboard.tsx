@@ -61,6 +61,9 @@ export const ExecutiveDashboard: React.FC = () => {
 
   const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
 
+  console.log('🔍 [ExecutiveDashboard] Estado atual:', { loading, error, hasData: !!data });
+  console.log('📦 [ExecutiveDashboard] Dados recebidos:', data);
+
   // Estado de loading
   if (loading) {
     return (
@@ -172,6 +175,14 @@ export const ExecutiveDashboard: React.FC = () => {
 
   // Renderizar gráfico
   const renderChart = (chart: ExecutiveDashboardChart) => {
+    console.log('🎨 [renderChart] Renderizando gráfico:', chart.id, chart.tipo);
+
+    // Validar dados antes de renderizar
+    if (!chart || !chart.dados || !chart.dados.labels || !chart.dados.datasets) {
+      console.error('❌ [renderChart] Dados do gráfico inválidos:', chart);
+      return null;
+    }
+
     const chartData = chart.dados.labels.map((label, index) => {
       const dataPoint: Record<string, string | number> = { name: label };
       chart.dados.datasets.forEach(dataset => {
@@ -343,11 +354,12 @@ export const ExecutiveDashboard: React.FC = () => {
 
   // Renderizar insights
   const renderInsights = () => {
-    const iconMap = {
+    const iconMap: Record<string, React.ElementType> = {
       TrendingUp,
       Target,
       AlertTriangle,
       Package,
+      Info,
     };
 
     return (
@@ -359,7 +371,8 @@ export const ExecutiveDashboard: React.FC = () => {
         <CardContent>
           <div className="space-y-3">
             {data.insights.map((insight, index) => {
-              const Icon = insight.icone ? iconMap[insight.icone as keyof typeof iconMap] : Info;
+              // Garantir que sempre temos um ícone válido
+              const Icon = (insight.icone && iconMap[insight.icone]) ? iconMap[insight.icone] : Info;
               const colorClass =
                 insight.tipo === 'positivo'
                   ? 'bg-green-50 border-green-200 text-green-800'
