@@ -44,6 +44,11 @@ from app.schemas.cash_flow import (
     ScenarioAnalysisResult,
     ScenarioComparisonRequest,
     ScenarioComparisonResponse,
+    SimulationAdjustments,
+    CurrentScenarioSnapshot,
+    SimulationResult,
+    SimulationRequest,
+    SimulationComparison,
 )
 
 router = APIRouter()
@@ -1094,4 +1099,286 @@ def _get_scenario_recommendation(scenarios: List[ScenarioAnalysisResult], curren
     return (
         f"📈 Cenários mistos: resultados variam significativamente. "
         f"Recomendamos focar no cenário realista e preparar planos de contingência."
+    )
+
+
+@router.get("/scenarios/current", response_model=CurrentScenarioSnapshot)
+def get_current_scenario(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Cenário Atual (Snapshot)
+
+    Retorna um snapshot do estado atual do fluxo de caixa, sem projeções,
+    servindo como baseline para simulações.
+    """
+
+    logger.info("Gerando snapshot do cenário atual")
+
+    workspace_id = current_user.workspace_id
+    today = datetime.now().date()
+    start_date = today - timedelta(days=30)
+
+    # Saldo atual total
+    current_balance = db.query(func.sum(BankAccount.current_balance)).filter(
+        BankAccount.workspace_id == workspace_id,
+        BankAccount.is_active == True
+    ).scalar() or 0.0
+
+    # Transações dos últimos 30 dias
+    transactions = db.query(CashFlowTransaction).filter(
+        CashFlowTransaction.workspace_id == workspace_id,
+        CashFlowTransaction.transaction_date >= datetime.combine(start_date, datetime.min.time()),
+        CashFlowTransaction.transaction_date <= datetime.combine(today, datetime.max.time())
+    ).all()
+
+    # Calcular receitas e despesas mensais
+    total_entries = sum(t.value for t in transactions if t.type == TransactionType.ENTRADA.value)
+    total_exits = sum(t.value for t in transactions if t.type == TransactionType.SAIDA.value)
+
+    monthly_revenue = total_entries
+    monthly_expenses = total_exits
+    net_monthly_flow = monthly_revenue - monthly_expenses
+
+    # Contas a receber pendentes
+    pending_receivables = db.query(func.sum(AccountsReceivable.valor_aberto)).filter(
+        AccountsReceivable.workspace_id == workspace_id,
+        AccountsReceivable.status.in_(['pendente', 'vencida', 'parcialmente_paga'])
+    ).scalar() or 0.0
+
+    # Contas a pagar pendentes
+    pending_payables = db.query(func.sum(AccountsPayableInvoice.valor_aberto)).filter(
+        AccountsPayableInvoice.workspace_id == workspace_id,
+        AccountsPayableInvoice.status.in_(['pendente', 'vencida', 'parcialmente_paga'])
+    ).scalar() or 0.0
+
+    # Taxa média de cobrança (contas pagas / total emitido)
+    total_receivables_issued = db.query(func.sum(AccountsReceivable.value)).filter(
+        AccountsReceivable.workspace_id == workspace_id,
+        AccountsReceivable.issue_date >= start_date
+    ).scalar() or 0.0
+
+    total_receivables_paid = db.query(func.sum(AccountsReceivable.paid_value)).filter(
+        AccountsReceivable.workspace_id == workspace_id,
+        AccountsReceivable.issue_date >= start_date
+    ).scalar() or 0.0
+
+    average_collection_rate = (total_receivables_paid / total_receivables_issued) if total_receivables_issued > 0 else 0.85
+
+    # Atraso médio de pagamentos (simplificado - calcular média entre vencimento e data de pagamento)
+    paid_receivables = db.query(AccountsReceivable).filter(
+        AccountsReceivable.workspace_id == workspace_id,
+        AccountsReceivable.status == 'paga',
+        AccountsReceivable.payment_date.isnot(None),
+        AccountsReceivable.issue_date >= start_date
+    ).all()
+
+    delays = [(r.payment_date - r.due_date).days for r in paid_receivables if r.payment_date > r.due_date]
+    average_payment_delay = int(sum(delays) / len(delays)) if delays else 5
+
+    logger.info(f"Snapshot gerado - Saldo: R$ {current_balance:,.2f}, "
+                f"Receita mensal: R$ {monthly_revenue:,.2f}, "
+                f"Taxa cobrança: {average_collection_rate:.1%}")
+
+    return CurrentScenarioSnapshot(
+        current_balance=current_balance,
+        monthly_revenue=monthly_revenue,
+        monthly_expenses=monthly_expenses,
+        net_monthly_flow=net_monthly_flow,
+        pending_receivables=pending_receivables,
+        pending_payables=pending_payables,
+        average_collection_rate=average_collection_rate,
+        average_payment_delay=average_payment_delay,
+        snapshot_date=today
+    )
+
+
+@router.post("/scenarios/simulate", response_model=SimulationComparison)
+def simulate_scenario(
+    request: SimulationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Simulador de Impacto
+
+    Permite ao usuário simular o impacto de mudanças no fluxo de caixa:
+    - Receitas/despesas adicionais
+    - Crescimento/redução percentual
+    - Receitas/despesas únicas
+    - Melhoria na cobrança
+    - Atraso nos pagamentos
+
+    Retorna comparação entre cenário atual e cenário simulado.
+    """
+
+    logger.info(f"Simulando cenário com ajustes: {request.adjustments}")
+
+    workspace_id = current_user.workspace_id
+    today = datetime.now().date()
+    start_date = today - timedelta(days=30)
+    projection_end_date = today + timedelta(days=request.days_ahead)
+
+    # ===== OBTER CENÁRIO ATUAL =====
+    current_snapshot = get_current_scenario(db, current_user)
+
+    # ===== CALCULAR MÉDIAS DIÁRIAS =====
+    avg_daily_entries = current_snapshot.monthly_revenue / 30
+    avg_daily_exits = current_snapshot.monthly_expenses / 30
+
+    # ===== APLICAR AJUSTES =====
+    adj = request.adjustments
+
+    # Ajustes de receita
+    if adj.additional_revenue:
+        avg_daily_entries += adj.additional_revenue / 30
+
+    if adj.revenue_growth_percentage:
+        avg_daily_entries *= (1 + adj.revenue_growth_percentage / 100)
+
+    # Ajustes de despesa
+    if adj.additional_expenses:
+        avg_daily_exits += adj.additional_expenses / 30
+
+    if adj.expense_reduction_percentage:
+        avg_daily_exits *= (1 - adj.expense_reduction_percentage / 100)
+
+    # Ajustar taxa de cobrança
+    collection_rate = current_snapshot.average_collection_rate
+    if adj.collection_improvement:
+        collection_rate = min(1.0, collection_rate + adj.collection_improvement)
+
+    # Ajustar atraso de pagamentos
+    payment_delay = current_snapshot.average_payment_delay
+    if adj.payment_delay_days:
+        payment_delay += adj.payment_delay_days
+
+    # ===== CALCULAR PROJEÇÕES =====
+    projections: List[ScenarioProjectionPoint] = []
+    running_balance = current_snapshot.current_balance
+    total_entries = 0.0
+    total_exits = 0.0
+    min_balance = running_balance
+    max_balance = running_balance
+
+    # Aplicar receita única no primeiro dia
+    if adj.one_time_income:
+        running_balance += adj.one_time_income
+        total_entries += adj.one_time_income
+
+    # Aplicar despesa única no primeiro dia
+    if adj.one_time_expense:
+        running_balance -= adj.one_time_expense
+        total_exits += adj.one_time_expense
+
+    for day in range(request.days_ahead):
+        projection_date = today + timedelta(days=day + 1)
+
+        # Receitas diárias com taxa de cobrança
+        daily_entries = avg_daily_entries * collection_rate
+
+        # Incluir recebimento de recebíveis com atraso
+        if day >= payment_delay:
+            daily_receivable_collection = (current_snapshot.pending_receivables / request.days_ahead) * collection_rate
+            daily_entries += daily_receivable_collection
+
+        # Despesas diárias
+        daily_exits = avg_daily_exits
+
+        # Incluir pagamento de contas pendentes
+        daily_payable_payment = current_snapshot.pending_payables / request.days_ahead
+        daily_exits += daily_payable_payment
+
+        # Calcular fluxo líquido e saldo
+        net_flow = daily_entries - daily_exits
+        running_balance += net_flow
+
+        # Acumular totais
+        total_entries += daily_entries
+        total_exits += daily_exits
+
+        # Atualizar min/max
+        min_balance = min(min_balance, running_balance)
+        max_balance = max(max_balance, running_balance)
+
+        # Nível de confiança (diminui com o tempo)
+        confidence = max(0.5, 1.0 - (day / request.days_ahead) * 0.5)
+
+        projections.append(ScenarioProjectionPoint(
+            date=projection_date,
+            projected_balance=running_balance,
+            projected_entries=daily_entries,
+            projected_exits=daily_exits,
+            net_flow=net_flow,
+            confidence_level=confidence
+        ))
+
+    # ===== CALCULAR CENÁRIO BASELINE (SEM AJUSTES) =====
+    baseline_balance = current_snapshot.current_balance
+    for day in range(request.days_ahead):
+        baseline_daily_entries = (current_snapshot.monthly_revenue / 30) * current_snapshot.average_collection_rate
+        if day >= current_snapshot.average_payment_delay:
+            baseline_daily_entries += (current_snapshot.pending_receivables / request.days_ahead) * current_snapshot.average_collection_rate
+
+        baseline_daily_exits = (current_snapshot.monthly_expenses / 30) + (current_snapshot.pending_payables / request.days_ahead)
+        baseline_balance += (baseline_daily_entries - baseline_daily_exits)
+
+    # ===== CALCULAR MELHORIA =====
+    improvement = running_balance - baseline_balance
+    improvement_pct = (improvement / baseline_balance * 100) if baseline_balance != 0 else 0
+
+    # ===== CRIAR RESULTADO DA SIMULAÇÃO =====
+    simulation_result = SimulationResult(
+        scenario_name="Cenário Simulado",
+        adjustments_applied=adj,
+        projections=projections,
+        final_balance=running_balance,
+        minimum_balance=min_balance,
+        maximum_balance=max_balance,
+        total_entries=total_entries,
+        total_exits=total_exits,
+        improvement_vs_current=improvement,
+        improvement_percentage=improvement_pct,
+        period_start=today,
+        period_end=projection_end_date,
+        days_projected=request.days_ahead
+    )
+
+    # ===== MÉTRICAS COMPARATIVAS =====
+    comparison_metrics = {
+        "baseline_final_balance": baseline_balance,
+        "simulated_final_balance": running_balance,
+        "balance_improvement": improvement,
+        "improvement_percentage": improvement_pct,
+        "risk_of_negative_balance": min_balance < 0,
+        "minimum_balance_date": min(projections, key=lambda p: p.projected_balance).date.isoformat() if projections else None
+    }
+
+    # ===== RECOMENDAÇÕES =====
+    recommendations = []
+
+    if improvement > 0:
+        recommendations.append(f"✅ A simulação projeta uma melhoria de R$ {improvement:,.2f} ({improvement_pct:.1f}%) no saldo final.")
+    else:
+        recommendations.append(f"⚠️ A simulação projeta uma piora de R$ {abs(improvement):,.2f} ({abs(improvement_pct):.1f}%) no saldo final.")
+
+    if min_balance < 0:
+        recommendations.append(f"🔴 ATENÇÃO: O saldo pode ficar negativo (mínimo: R$ {min_balance:,.2f}). Considere ajustes adicionais.")
+
+    if adj.expense_reduction_percentage and adj.expense_reduction_percentage > 0:
+        savings = (current_snapshot.monthly_expenses * adj.expense_reduction_percentage / 100)
+        recommendations.append(f"💰 Redução de {adj.expense_reduction_percentage}% em despesas economiza R$ {savings:,.2f}/mês.")
+
+    if adj.collection_improvement and adj.collection_improvement > 0:
+        additional_revenue = current_snapshot.pending_receivables * adj.collection_improvement
+        recommendations.append(f"📈 Melhoria de {adj.collection_improvement*100:.0f}% na cobrança pode liberar R$ {additional_revenue:,.2f}.")
+
+    logger.info(f"Simulação concluída - Melhoria: R$ {improvement:,.2f} ({improvement_pct:.1f}%)")
+
+    return SimulationComparison(
+        current_scenario=current_snapshot,
+        simulated_scenario=simulation_result,
+        comparison_metrics=comparison_metrics,
+        recommendations=recommendations
     )

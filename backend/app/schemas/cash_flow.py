@@ -503,3 +503,84 @@ class ScenarioComparisonResponse(BaseModel):
                 }
             }
         }
+
+
+# ============================================
+# SIMULADOR DE IMPACTO
+# ============================================
+
+class SimulationAdjustments(BaseModel):
+    """Ajustes para simulação de cenário"""
+    additional_revenue: Optional[float] = Field(None, description="Receita adicional mensal (R$)")
+    revenue_growth_percentage: Optional[float] = Field(None, description="Crescimento % de receita")
+    additional_expenses: Optional[float] = Field(None, description="Despesas adicionais mensais (R$)")
+    expense_reduction_percentage: Optional[float] = Field(None, description="Redução % de despesas")
+    one_time_income: Optional[float] = Field(None, description="Receita única (R$)")
+    one_time_expense: Optional[float] = Field(None, description="Despesa única (R$)")
+    payment_delay_days: Optional[int] = Field(None, description="Dias de atraso nos pagamentos")
+    collection_improvement: Optional[float] = Field(None, ge=0, le=1, description="Melhoria na cobrança (0-1)")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "additional_revenue": 5000.0,
+                "expense_reduction_percentage": 10.0,
+                "one_time_income": 15000.0,
+                "collection_improvement": 0.15
+            }
+        }
+
+
+class CurrentScenarioSnapshot(BaseModel):
+    """Snapshot do cenário atual"""
+    current_balance: float = Field(..., description="Saldo atual")
+    monthly_revenue: float = Field(..., description="Receita mensal média")
+    monthly_expenses: float = Field(..., description="Despesas mensais médias")
+    net_monthly_flow: float = Field(..., description="Fluxo mensal líquido")
+    pending_receivables: float = Field(..., description="Total de recebíveis pendentes")
+    pending_payables: float = Field(..., description="Total de pagáveis pendentes")
+    average_collection_rate: float = Field(..., description="Taxa média de cobrança (0-1)")
+    average_payment_delay: int = Field(..., description="Atraso médio de pagamentos (dias)")
+    snapshot_date: date = Field(..., description="Data do snapshot")
+
+
+class SimulationResult(BaseModel):
+    """Resultado de uma simulação"""
+    scenario_name: str = Field(..., description="Nome descritivo do cenário simulado")
+    adjustments_applied: SimulationAdjustments = Field(..., description="Ajustes aplicados")
+    projections: List[ScenarioProjectionPoint] = Field(..., description="Projeções do cenário simulado")
+    final_balance: float = Field(..., description="Saldo final projetado")
+    minimum_balance: float = Field(..., description="Saldo mínimo durante período")
+    maximum_balance: float = Field(..., description="Saldo máximo durante período")
+    total_entries: float = Field(..., description="Total de entradas projetadas")
+    total_exits: float = Field(..., description="Total de saídas projetadas")
+    improvement_vs_current: float = Field(..., description="Melhoria vs cenário atual (R$)")
+    improvement_percentage: float = Field(..., description="Melhoria vs cenário atual (%)")
+    period_start: date
+    period_end: date
+    days_projected: int
+
+
+class SimulationRequest(BaseModel):
+    """Request para simulação de cenário"""
+    days_ahead: int = Field(30, ge=7, le=365, description="Dias à frente para projetar")
+    adjustments: SimulationAdjustments = Field(..., description="Ajustes a aplicar")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "days_ahead": 30,
+                "adjustments": {
+                    "additional_revenue": 5000.0,
+                    "expense_reduction_percentage": 10.0
+                }
+            }
+        }
+
+
+class SimulationComparison(BaseModel):
+    """Comparação entre cenário atual e simulado"""
+    current_scenario: CurrentScenarioSnapshot = Field(..., description="Cenário atual")
+    simulated_scenario: SimulationResult = Field(..., description="Cenário simulado")
+    comparison_metrics: Dict[str, Any] = Field(..., description="Métricas comparativas")
+    recommendations: List[str] = Field(..., description="Recomendações baseadas na simulação")
