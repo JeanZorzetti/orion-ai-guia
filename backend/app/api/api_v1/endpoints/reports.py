@@ -83,7 +83,7 @@ async def get_executive_dashboard_kpis(
 
     # Receitas do período atual (CashFlowTransaction + AccountsReceivable recebidos)
     receitas_transacoes = db.query(
-        func.coalesce(func.sum(CashFlowTransaction.amount), 0)
+        func.coalesce(func.sum(CashFlowTransaction.value), 0)
     ).filter(
         and_(
             CashFlowTransaction.type == TransactionType.ENTRADA,
@@ -106,7 +106,7 @@ async def get_executive_dashboard_kpis(
 
     # Despesas do período atual (CashFlowTransaction + AccountsPayable pagos)
     despesas_transacoes = db.query(
-        func.coalesce(func.sum(CashFlowTransaction.amount), 0)
+        func.coalesce(func.sum(CashFlowTransaction.value), 0)
     ).filter(
         and_(
             CashFlowTransaction.type == TransactionType.SAIDA,
@@ -151,7 +151,7 @@ async def get_executive_dashboard_kpis(
 
     # Receitas período anterior
     receitas_transacoes_ant = db.query(
-        func.coalesce(func.sum(CashFlowTransaction.amount), 0)
+        func.coalesce(func.sum(CashFlowTransaction.value), 0)
     ).filter(
         and_(
             CashFlowTransaction.type == TransactionType.ENTRADA,
@@ -174,7 +174,7 @@ async def get_executive_dashboard_kpis(
 
     # Despesas período anterior
     despesas_transacoes_ant = db.query(
-        func.coalesce(func.sum(CashFlowTransaction.amount), 0)
+        func.coalesce(func.sum(CashFlowTransaction.value), 0)
     ).filter(
         and_(
             CashFlowTransaction.type == TransactionType.SAIDA,
@@ -367,7 +367,7 @@ async def get_executive_dashboard_charts(
     receitas_por_mes = db.query(
         extract('year', CashFlowTransaction.transaction_date).label('ano'),
         extract('month', CashFlowTransaction.transaction_date).label('mes'),
-        func.sum(CashFlowTransaction.amount).label('total')
+        func.sum(CashFlowTransaction.value).label('total')
     ).filter(
         and_(
             CashFlowTransaction.type == TransactionType.ENTRADA,
@@ -380,7 +380,7 @@ async def get_executive_dashboard_charts(
     despesas_por_mes = db.query(
         extract('year', CashFlowTransaction.transaction_date).label('ano'),
         extract('month', CashFlowTransaction.transaction_date).label('mes'),
-        func.sum(CashFlowTransaction.amount).label('total')
+        func.sum(CashFlowTransaction.value).label('total')
     ).filter(
         and_(
             CashFlowTransaction.type == TransactionType.SAIDA,
@@ -461,7 +461,7 @@ async def get_executive_dashboard_charts(
 
         # Receitas do dia
         receitas_dia = db.query(
-            func.coalesce(func.sum(CashFlowTransaction.amount), 0)
+            func.coalesce(func.sum(CashFlowTransaction.value), 0)
         ).filter(
             and_(
                 CashFlowTransaction.type == TransactionType.ENTRADA,
@@ -471,7 +471,7 @@ async def get_executive_dashboard_charts(
 
         # Despesas do dia
         despesas_dia = db.query(
-            func.coalesce(func.sum(CashFlowTransaction.amount), 0)
+            func.coalesce(func.sum(CashFlowTransaction.value), 0)
         ).filter(
             and_(
                 CashFlowTransaction.type == TransactionType.SAIDA,
