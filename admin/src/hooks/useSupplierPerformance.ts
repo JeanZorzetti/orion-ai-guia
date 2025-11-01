@@ -180,12 +180,21 @@ function useAllInvoices() {
       try {
         setLoading(true);
         setError(null);
+        console.log('🔍 [useSupplierPerformance] Buscando todas as faturas...');
         // Buscar todas as faturas (não só pendentes)
         // IMPORTANTE: SEM trailing slash para evitar redirect HTTP do FastAPI
-        const response = await api.get<APInvoice[]>('/accounts-payable/invoices?limit=10000');
+        // IMPORTANTE: limit máximo aceito pelo backend é 1000
+        const response = await api.get<APInvoice[]>('/accounts-payable/invoices?limit=1000');
+        console.log('✅ [useSupplierPerformance] Resposta recebida:', response);
         setInvoices(response || []);
       } catch (err: any) {
-        console.error('Erro ao buscar faturas:', err);
+        console.error('❌ [useSupplierPerformance] Erro ao buscar faturas:', err);
+        console.error('❌ [useSupplierPerformance] Error details:', {
+          message: err.message,
+          status: err.status,
+          statusText: err.statusText,
+          full: err
+        });
         setError(err.message || 'Erro ao buscar faturas');
         setInvoices([]);
       } finally {

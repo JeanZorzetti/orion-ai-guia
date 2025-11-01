@@ -32,9 +32,12 @@ function useInvoicesWithDiscount() {
       try {
         setLoading(true);
         setError(null);
+        console.log('🔍 [useDiscountOpportunities] Buscando faturas com desconto...');
         // Buscar faturas que têm desconto disponível (discount_percentage > 0)
         // IMPORTANTE: SEM trailing slash para evitar redirect HTTP do FastAPI
-        const response = await api.get<APInvoice[]>('/accounts-payable/invoices?limit=10000');
+        // IMPORTANTE: limit máximo aceito pelo backend é 1000
+        const response = await api.get<APInvoice[]>('/accounts-payable/invoices?limit=1000');
+        console.log('✅ [useDiscountOpportunities] Resposta recebida:', response);
 
         // Filtrar apenas faturas com desconto e que ainda não foram pagas
         const withDiscount = (response || []).filter(inv =>
@@ -42,9 +45,16 @@ function useInvoicesWithDiscount() {
           (inv.status === 'pending' || inv.status === 'validated' || inv.status === 'approved')
         );
 
+        console.log(`📊 [useDiscountOpportunities] Faturas com desconto: ${withDiscount.length} de ${(response || []).length}`);
         setInvoices(withDiscount);
       } catch (err: any) {
-        console.error('Erro ao buscar faturas com desconto:', err);
+        console.error('❌ [useDiscountOpportunities] Erro ao buscar faturas com desconto:', err);
+        console.error('❌ [useDiscountOpportunities] Error details:', {
+          message: err.message,
+          status: err.status,
+          statusText: err.statusText,
+          full: err
+        });
         setError(err.message || 'Erro ao buscar faturas');
         setInvoices([]);
       } finally {
