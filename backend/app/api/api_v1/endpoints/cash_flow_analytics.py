@@ -875,7 +875,7 @@ def calculate_scenarios(
             db.query(func.sum(CashFlowTransaction.value))
             .filter(
                 CashFlowTransaction.workspace_id == workspace_id,
-                CashFlowTransaction.transaction_type == TransactionType.ENTRADA,
+                CashFlowTransaction.type == TransactionType.ENTRADA,
                 CashFlowTransaction.transaction_date.between(start_date, end_date)
             )
             .group_by(CashFlowTransaction.transaction_date)
@@ -890,7 +890,7 @@ def calculate_scenarios(
             db.query(func.sum(CashFlowTransaction.value))
             .filter(
                 CashFlowTransaction.workspace_id == workspace_id,
-                CashFlowTransaction.transaction_type == TransactionType.SAIDA,
+                CashFlowTransaction.type == TransactionType.SAIDA,
                 CashFlowTransaction.transaction_date.between(start_date, end_date)
             )
             .group_by(CashFlowTransaction.transaction_date)
