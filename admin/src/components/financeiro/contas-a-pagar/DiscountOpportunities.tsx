@@ -34,9 +34,11 @@ const getCategoryColor = (categoria: string) => {
 };
 
 export const DiscountOpportunities: React.FC = () => {
-  const opportunities = useDiscountOpportunities('disponivel');
+  const { opportunities, loading: opportunitiesLoading, error } = useDiscountOpportunities('disponivel');
   const summary = useDiscountSummary();
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const loading = opportunitiesLoading || summary.loading;
 
   const handleApplyDiscount = async (opportunityId: string) => {
     setProcessingId(opportunityId);
@@ -135,7 +137,18 @@ export const DiscountOpportunities: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {opportunities.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : error ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Erro ao carregar oportunidades: {error}
+              </AlertDescription>
+            </Alert>
+          ) : opportunities.length === 0 ? (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>

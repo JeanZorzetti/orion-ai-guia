@@ -79,8 +79,10 @@ const getStatusBadge = (status: string) => {
 };
 
 export const NegotiationHistory: React.FC = () => {
-  const negotiations = useNegotiations();
+  const { negotiations, loading: negotiationsLoading } = useNegotiations();
   const summary = useNegotiationSummary();
+
+  const loading = negotiationsLoading || summary.loading;
 
   const handleViewDetails = (negotiationId: string) => {
     // TODO: Abrir modal de detalhes
@@ -168,23 +170,28 @@ export const NegotiationHistory: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fatura</TableHead>
-                <TableHead>Fornecedor</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Valor Original</TableHead>
-                <TableHead className="text-right">Valor Negociado</TableHead>
-                <TableHead className="text-right">Economia</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Negociado Por</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {negotiations.map((negotiation) => (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fatura</TableHead>
+                  <TableHead>Fornecedor</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead className="text-right">Valor Original</TableHead>
+                  <TableHead className="text-right">Valor Negociado</TableHead>
+                  <TableHead className="text-right">Economia</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Negociado Por</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {negotiations.map((negotiation) => (
                 <TableRow key={negotiation.id}>
                   <TableCell className="font-medium">
                     {negotiation.invoiceNumber}
@@ -252,8 +259,9 @@ export const NegotiationHistory: React.FC = () => {
               ))}
             </TableBody>
           </Table>
+          )}
 
-          {negotiations.length === 0 && (
+          {!loading && negotiations.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               Nenhuma negociação encontrada
             </div>
