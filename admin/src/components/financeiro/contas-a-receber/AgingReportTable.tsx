@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { AgingReport } from '@/types/financeiro';
+import { AgingBucket } from '@/hooks/useAgingReport';
 import { cn } from '@/lib/utils';
 
 const getRiskVariant = (risco: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -43,7 +44,7 @@ interface AgingReportTableProps {
 
 export const AgingReportTable: React.FC<AgingReportTableProps> = ({ agingReport }) => {
   // Sem fallback para mock - retornar array vazio se não houver dados
-  const agingData = useMemo(() => {
+  const agingData = useMemo<AgingBucket[]>(() => {
     console.log('🔍 [AgingReportTable] agingReport recebido:', agingReport);
 
     if (agingReport && agingReport.buckets && agingReport.buckets.length > 0) {
