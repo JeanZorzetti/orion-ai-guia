@@ -15,7 +15,8 @@ from app.api.api_v1.endpoints import (
     accounts_receivable,
     accounts_payable,
     cash_flow,
-    cash_flow_analytics
+    cash_flow_analytics,
+    reports
 )
 
 api_router = APIRouter()
@@ -31,6 +32,7 @@ api_router.include_router(accounts_receivable.router, prefix="/accounts-receivab
 api_router.include_router(accounts_payable.router, prefix="/accounts-payable", tags=["accounts-payable"])
 api_router.include_router(cash_flow.router, prefix="/cash-flow", tags=["cash-flow"])
 api_router.include_router(cash_flow_analytics.router, prefix="/cash-flow", tags=["cash-flow-analytics"])
+api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
 api_router.include_router(fiscal.router, prefix="/fiscal", tags=["fiscal"])
 api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
 api_router.include_router(super_admin.router, prefix="/super-admin", tags=["super-admin"])
