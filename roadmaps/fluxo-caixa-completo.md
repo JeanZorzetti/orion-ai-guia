@@ -420,7 +420,10 @@ class CashFlowAnalyticsService:
 - `0d92007d` - Fase 4: Análise de Ponto de Equilíbrio
 - `2860c603` - Fase 1: Análise de Cenários (Otimista, Realista, Pessimista)
 - `a048db2f` - Fase 2: Simulador de Impacto (Backend + Hook)
-- Próximo commit - Fase 5: Inteligência e Automação (Alertas e Recomendações)
+- `b87f3b1b` - Fase 5: Inteligência e Automação (Alertas e Recomendações)
+- `3ee04ca9` - Fix: Adicionar logger import
+- `7652f398` - Fix: Remover Config classes (RecursionError)
+- `95a97f13` - Fix: Adicionar __future__ annotations (RecursionError definitivo)
 
 ---
 
