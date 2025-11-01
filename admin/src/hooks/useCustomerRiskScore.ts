@@ -1,6 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useAccountsReceivable } from './useAccountsReceivable';
+import { differenceInDays } from 'date-fns';
 
 export interface CustomerRiskScore {
   clienteId: string;
@@ -152,15 +154,215 @@ const mockRiskScores: Record<string, CustomerRiskScore> = {
 };
 
 export function useCustomerRiskScore(clienteId: string): CustomerRiskScore | null {
+  const { receivables } = useAccountsReceivable();
+
   return useMemo(() => {
-    return mockRiskScores[clienteId] || null;
-  }, [clienteId]);
+    console.log('🔍 [useCustomerRiskScore] Calculando risk score para cliente:', clienteId);
+
+    // Filtrar receivables do cliente
+    const customerReceivables = receivables.filter(
+      r => r.customer_id.toString() === clienteId
+    );
+
+    if (customerReceivables.length === 0) {
+      console.log('⚠️ [useCustomerRiskScore] Nenhum receivable encontrado para cliente', clienteId);
+      return null;
+    }
+
+    const clienteNome = customerReceivables[0].customer_name || `Cliente #${clienteId}`;
+    const hoje = new Date();
+
+    // Calcular fatores de risco
+    const receivablesPagos = customerReceivables.filter(r => r.status === 'recebido');
+    const receivablesTotal = customerReceivables.length;
+
+    // Histórico de pagamento (% pagos)
+    const historicoPagamento = receivablesTotal > 0
+      ? (receivablesPagos.length / receivablesTotal) * 100
+      : 0;
+
+    // Dias de atraso médio
+    let totalDiasAtraso = 0;
+    let countAtrasos = 0;
+
+    customerReceivables.forEach(r => {
+      if (r.status === 'vencido') {
+        const dueDate = new Date(r.due_date);
+        const diasAtraso = differenceInDays(hoje, dueDate);
+        totalDiasAtraso += diasAtraso;
+        countAtrasos++;
+      }
+    });
+
+    const diasAtrasoMedio = countAtrasos > 0 ? Math.round(totalDiasAtraso / countAtrasos) : 0;
+
+    // Valor médio de atraso
+    const receivablesVencidos = customerReceivables.filter(r => r.status === 'vencido');
+    const valorMedioAtraso = receivablesVencidos.length > 0
+      ? receivablesVencidos.reduce((sum, r) => sum + (r.value - r.paid_value), 0) / receivablesVencidos.length
+      : 0;
+
+    // Ticket médio
+    const ticketMedio = customerReceivables.reduce((sum, r) => sum + r.value, 0) / receivablesTotal;
+
+    // Tempo de relacionamento (baseado no receivable mais antigo)
+    const datesEmissao = customerReceivables.map(r => new Date(r.issue_date));
+    const primeiraCompra = new Date(Math.min(...datesEmissao.map(d => d.getTime())));
+    const tempoRelacionamento = Math.round(differenceInDays(hoje, primeiraCompra) / 30); // em meses
+
+    // Frequência de compras (receivables/mês)
+    const frequenciaCompras = tempoRelacionamento > 0
+      ? receivablesTotal / tempoRelacionamento
+      : receivablesTotal;
+
+    const fatores = {
+      historicoPagamento,
+      diasAtrasoMedio,
+      valorMedioAtraso,
+      frequenciaCompras,
+      ticketMedio,
+      tempoRelacionamento,
+      protestos: 0, // Não temos esses dados ainda
+      chequesSemFundo: 0, // Não temos esses dados ainda
+      ultimaAtualizacao: hoje,
+    };
+
+    // Calcular score usando algoritmo
+    const { score, categoria } = calculateRiskScore(fatores);
+
+    // Determinar tendência (simplificado - baseado em atrasos)
+    let tendencia: 'melhorando' | 'estavel' | 'piorando';
+    if (diasAtrasoMedio === 0) tendencia = 'melhorando';
+    else if (diasAtrasoMedio <= 5) tendencia = 'estavel';
+    else tendencia = 'piorando';
+
+    // Calcular recomendações
+    const recomendacoes = {
+      limiteCreditoSugerido: Math.round(ticketMedio * (score / 100) * 3), // 3x ticket médio ajustado por score
+      prazoMaximoSugerido: score >= 80 ? 60 : score >= 60 ? 45 : score >= 40 ? 30 : score >= 20 ? 15 : 0,
+      requererAnaliseCredito: score < 60,
+      requererGarantias: score < 40,
+    };
+
+    const riskScore: CustomerRiskScore = {
+      clienteId,
+      clienteNome,
+      score,
+      categoria,
+      fatores,
+      recomendacoes,
+      tendencia,
+    };
+
+    console.log('📊 [useCustomerRiskScore] Risk score calculado:', riskScore);
+    return riskScore;
+  }, [clienteId, receivables]);
 }
 
 export function useAllCustomerRiskScores(): CustomerRiskScore[] {
+  const { receivables } = useAccountsReceivable();
+
   return useMemo(() => {
-    return Object.values(mockRiskScores).sort((a, b) => b.score - a.score);
-  }, []);
+    console.log('🔍 [useAllCustomerRiskScores] Calculando risk scores para todos os clientes');
+
+    // Extrair lista única de clientes dos receivables
+    const customersMap = new Map<number, { id: number; name: string }>();
+
+    receivables.forEach(r => {
+      if (!customersMap.has(r.customer_id)) {
+        customersMap.set(r.customer_id, {
+          id: r.customer_id,
+          name: r.customer_name || `Cliente #${r.customer_id}`,
+        });
+      }
+    });
+
+    // Calcular risk score para cada cliente
+    const riskScores: CustomerRiskScore[] = [];
+
+    customersMap.forEach(customer => {
+      const customerReceivables = receivables.filter(r => r.customer_id === customer.id);
+      const hoje = new Date();
+
+      // Calcular fatores
+      const receivablesPagos = customerReceivables.filter(r => r.status === 'recebido');
+      const receivablesTotal = customerReceivables.length;
+
+      const historicoPagamento = receivablesTotal > 0
+        ? (receivablesPagos.length / receivablesTotal) * 100
+        : 0;
+
+      let totalDiasAtraso = 0;
+      let countAtrasos = 0;
+      customerReceivables.forEach(r => {
+        if (r.status === 'vencido') {
+          const dueDate = new Date(r.due_date);
+          const diasAtraso = differenceInDays(hoje, dueDate);
+          totalDiasAtraso += diasAtraso;
+          countAtrasos++;
+        }
+      });
+
+      const diasAtrasoMedio = countAtrasos > 0 ? Math.round(totalDiasAtraso / countAtrasos) : 0;
+
+      const receivablesVencidos = customerReceivables.filter(r => r.status === 'vencido');
+      const valorMedioAtraso = receivablesVencidos.length > 0
+        ? receivablesVencidos.reduce((sum, r) => sum + (r.value - r.paid_value), 0) / receivablesVencidos.length
+        : 0;
+
+      const ticketMedio = customerReceivables.reduce((sum, r) => sum + r.value, 0) / receivablesTotal;
+
+      const datesEmissao = customerReceivables.map(r => new Date(r.issue_date));
+      const primeiraCompra = new Date(Math.min(...datesEmissao.map(d => d.getTime())));
+      const tempoRelacionamento = Math.round(differenceInDays(hoje, primeiraCompra) / 30);
+
+      const frequenciaCompras = tempoRelacionamento > 0
+        ? receivablesTotal / tempoRelacionamento
+        : receivablesTotal;
+
+      const fatores = {
+        historicoPagamento,
+        diasAtrasoMedio,
+        valorMedioAtraso,
+        frequenciaCompras,
+        ticketMedio,
+        tempoRelacionamento,
+        protestos: 0,
+        chequesSemFundo: 0,
+        ultimaAtualizacao: hoje,
+      };
+
+      const { score, categoria } = calculateRiskScore(fatores);
+
+      let tendencia: 'melhorando' | 'estavel' | 'piorando';
+      if (diasAtrasoMedio === 0) tendencia = 'melhorando';
+      else if (diasAtrasoMedio <= 5) tendencia = 'estavel';
+      else tendencia = 'piorando';
+
+      const recomendacoes = {
+        limiteCreditoSugerido: Math.round(ticketMedio * (score / 100) * 3),
+        prazoMaximoSugerido: score >= 80 ? 60 : score >= 60 ? 45 : score >= 40 ? 30 : score >= 20 ? 15 : 0,
+        requererAnaliseCredito: score < 60,
+        requererGarantias: score < 40,
+      };
+
+      riskScores.push({
+        clienteId: customer.id.toString(),
+        clienteNome: customer.name,
+        score,
+        categoria,
+        fatores,
+        recomendacoes,
+        tendencia,
+      });
+    });
+
+    // Ordenar por score (maior para menor)
+    const sortedScores = riskScores.sort((a, b) => b.score - a.score);
+
+    console.log('📊 [useAllCustomerRiskScores] Risk scores calculados:', sortedScores.length);
+    return sortedScores;
+  }, [receivables]);
 }
 
 export function calculateRiskScore(fatores: CustomerRiskScore['fatores']): {

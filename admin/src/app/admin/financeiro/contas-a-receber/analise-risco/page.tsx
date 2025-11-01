@@ -1,17 +1,21 @@
+'use client';
+
 import React from 'react';
 import { Shield } from 'lucide-react';
 import { CustomerRiskProfile } from '@/components/financeiro/contas-a-receber/CustomerRiskProfile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAllCustomerRiskScores } from '@/hooks/useCustomerRiskScore';
 
 export default function AnaliseRiscoPage() {
-  // Mock de clientes - em produção viria de uma API
-  const clientes = [
-    { id: '1', nome: 'Empresa ABC Ltda' },
-    { id: '2', nome: 'Comercial XYZ S.A.' },
-    { id: '3', nome: 'Distribuidora 123' },
-    { id: '4', nome: 'Indústria DEF' },
-    { id: '5', nome: 'Varejo GHI' },
-  ];
+  // Buscar clientes reais da API baseado em receivables
+  const allRiskScores = useAllCustomerRiskScores();
+
+  const clientes = allRiskScores.map(rs => ({
+    id: rs.clienteId,
+    nome: rs.clienteNome,
+  }));
+
+  console.log('🔍 [AnaliseRiscoPage] Clientes carregados:', clientes.length);
 
   return (
     <div className="space-y-6">
@@ -27,7 +31,16 @@ export default function AnaliseRiscoPage() {
         </div>
       </div>
 
-      <Tabs defaultValue={clientes[0].id} className="space-y-6">
+      {clientes.length === 0 ? (
+        <div className="text-center py-12">
+          <Shield className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Nenhum cliente encontrado</h3>
+          <p className="text-muted-foreground">
+            Não há dados de contas a receber para calcular análise de risco
+          </p>
+        </div>
+      ) : (
+        <Tabs defaultValue={clientes[0].id} className="space-y-6">
         <TabsList>
           {clientes.map((cliente) => (
             <TabsTrigger key={cliente.id} value={cliente.id}>
@@ -42,6 +55,7 @@ export default function AnaliseRiscoPage() {
           </TabsContent>
         ))}
       </Tabs>
+      )}
     </div>
   );
 }
