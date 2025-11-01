@@ -38,6 +38,12 @@ from app.schemas.cash_flow import (
     FinancialKPIs,
     BreakEvenAnalysis,
     BreakEvenPoint,
+    ScenarioTypeEnum,
+    ScenarioPremises,
+    ScenarioProjectionPoint,
+    ScenarioAnalysisResult,
+    ScenarioComparisonRequest,
+    ScenarioComparisonResponse,
 )
 
 router = APIRouter()
@@ -814,3 +820,278 @@ def _calculate_health_score(summary: CashFlowSummary, runway_months: Optional[fl
         score += runway_score
 
     return min(score, 100.0)
+
+
+@router.post("/scenarios/calculate", response_model=ScenarioComparisonResponse)
+def calculate_scenarios(
+    request: ScenarioComparisonRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Análise de Cenários (Otimista, Realista, Pessimista)
+
+    Calcula projeções de fluxo de caixa com diferentes premissas:
+    - Otimista: 95% recebimento, 2 dias atraso, +5% receita, -2% despesas
+    - Realista: 85% recebimento, 7 dias atraso, +2% receita, 0% despesas
+    - Pessimista: 70% recebimento, 15 dias atraso, -3% receita, +5% despesas
+    """
+
+    logger.info(f"Calculando cenários para {request.days_ahead} dias à frente")
+
+    workspace_id = current_user.workspace_id
+
+    # Datas para análise
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=30)  # Usar últimos 30 dias como base
+    projection_end_date = end_date + timedelta(days=request.days_ahead)
+
+    # ===== BUSCAR DADOS HISTÓRICOS PARA BASE DE CÁLCULO =====
+
+    # Saldo atual total de todas as contas
+    current_balance = db.query(func.sum(BankAccount.current_balance)).filter(
+        BankAccount.workspace_id == workspace_id,
+        BankAccount.is_active == True
+    ).scalar() or 0.0
+
+    # Receitas médias dos últimos 30 dias
+    avg_daily_entries = db.query(func.avg(
+        func.coalesce(
+            db.query(func.sum(CashFlowTransaction.value))
+            .filter(
+                CashFlowTransaction.workspace_id == workspace_id,
+                CashFlowTransaction.transaction_type == TransactionType.ENTRADA,
+                CashFlowTransaction.transaction_date.between(start_date, end_date)
+            )
+            .group_by(CashFlowTransaction.transaction_date)
+            .scalar_subquery(),
+            0
+        )
+    )).scalar() or 0.0
+
+    # Despesas médias dos últimos 30 dias
+    avg_daily_exits = db.query(func.avg(
+        func.coalesce(
+            db.query(func.sum(CashFlowTransaction.value))
+            .filter(
+                CashFlowTransaction.workspace_id == workspace_id,
+                CashFlowTransaction.transaction_type == TransactionType.SAIDA,
+                CashFlowTransaction.transaction_date.between(start_date, end_date)
+            )
+            .group_by(CashFlowTransaction.transaction_date)
+            .scalar_subquery(),
+            0
+        )
+    )).scalar() or 0.0
+
+    # Contas a receber pendentes
+    pending_receivables = db.query(func.sum(AccountsReceivable.valor_aberto)).filter(
+        AccountsReceivable.workspace_id == workspace_id,
+        AccountsReceivable.status.in_(['pendente', 'vencida', 'parcialmente_paga'])
+    ).scalar() or 0.0
+
+    # Contas a pagar pendentes
+    pending_payables = db.query(func.sum(AccountsPayableInvoice.valor_aberto)).filter(
+        AccountsPayableInvoice.workspace_id == workspace_id,
+        AccountsPayableInvoice.status.in_(['pendente', 'vencida', 'parcialmente_paga'])
+    ).scalar() or 0.0
+
+    logger.info(f"Dados base - Saldo: R$ {current_balance:,.2f}, "
+                f"Receitas médias: R$ {avg_daily_entries:,.2f}/dia, "
+                f"Despesas médias: R$ {avg_daily_exits:,.2f}/dia")
+
+    # ===== FUNÇÃO AUXILIAR PARA CALCULAR UM CENÁRIO =====
+
+    def calculate_scenario(
+        scenario_type: ScenarioTypeEnum,
+        premises: ScenarioPremises
+    ) -> ScenarioAnalysisResult:
+        """Calcula projeção para um cenário específico"""
+
+        projections: List[ScenarioProjectionPoint] = []
+        running_balance = current_balance
+        total_entries = 0.0
+        total_exits = 0.0
+        min_balance = current_balance
+        max_balance = current_balance
+
+        # Calcular projeções diárias
+        for day in range(request.days_ahead):
+            projection_date = end_date + timedelta(days=day + 1)
+
+            # Receitas projetadas (com crescimento aplicado)
+            growth_factor = 1 + (premises.revenue_growth / 100)
+            daily_entries = avg_daily_entries * growth_factor * premises.collection_rate
+
+            # Incluir recebíveis com atraso
+            if day >= premises.average_delay_days:
+                # Simular recebimento de recebíveis pendentes ao longo do período
+                daily_receivable_collection = (pending_receivables / request.days_ahead) * premises.collection_rate
+                daily_entries += daily_receivable_collection
+
+            # Despesas projetadas (com variação aplicada)
+            expense_factor = 1 + (premises.expense_variation / 100)
+            daily_exits = avg_daily_exits * expense_factor
+
+            # Incluir pagamento de contas pendentes
+            daily_payable_payment = pending_payables / request.days_ahead
+            daily_exits += daily_payable_payment
+
+            # Calcular fluxo líquido e saldo
+            net_flow = daily_entries - daily_exits
+            running_balance += net_flow
+
+            # Acumular totais
+            total_entries += daily_entries
+            total_exits += daily_exits
+
+            # Atualizar min/max
+            min_balance = min(min_balance, running_balance)
+            max_balance = max(max_balance, running_balance)
+
+            # Calcular nível de confiança (diminui com o tempo)
+            confidence = max(0.5, 1.0 - (day / request.days_ahead) * 0.5)
+
+            # Criar ponto de projeção
+            projections.append(ScenarioProjectionPoint(
+                date=projection_date,
+                projected_balance=running_balance,
+                projected_entries=daily_entries,
+                projected_exits=daily_exits,
+                net_flow=net_flow,
+                confidence_level=confidence
+            ))
+
+        # Calcular médias
+        avg_balance = sum(p.projected_balance for p in projections) / len(projections) if projections else 0
+
+        # Criar resultado do cenário
+        scenario_name_map = {
+            ScenarioTypeEnum.OPTIMISTIC: "Cenário Otimista",
+            ScenarioTypeEnum.REALISTIC: "Cenário Realista",
+            ScenarioTypeEnum.PESSIMISTIC: "Cenário Pessimista"
+        }
+
+        return ScenarioAnalysisResult(
+            scenario_type=scenario_type,
+            scenario_name=scenario_name_map.get(scenario_type, "Cenário Personalizado"),
+            premises=premises,
+            projections=projections,
+            average_balance=avg_balance,
+            minimum_balance=min_balance,
+            maximum_balance=max_balance,
+            total_entries=total_entries,
+            total_exits=total_exits,
+            final_balance=running_balance,
+            period_start=end_date,
+            period_end=projection_end_date,
+            days_projected=request.days_ahead
+        )
+
+    # ===== CALCULAR OS CENÁRIOS SOLICITADOS =====
+
+    scenarios: List[ScenarioAnalysisResult] = []
+
+    # Cenário Otimista
+    if request.include_optimistic:
+        optimistic_premises = ScenarioPremises(
+            collection_rate=0.95,
+            average_delay_days=2,
+            revenue_growth=5.0,
+            expense_variation=-2.0
+        )
+        scenarios.append(calculate_scenario(ScenarioTypeEnum.OPTIMISTIC, optimistic_premises))
+
+    # Cenário Realista
+    if request.include_realistic:
+        realistic_premises = ScenarioPremises(
+            collection_rate=0.85,
+            average_delay_days=7,
+            revenue_growth=2.0,
+            expense_variation=0.0
+        )
+        scenarios.append(calculate_scenario(ScenarioTypeEnum.REALISTIC, realistic_premises))
+
+    # Cenário Pessimista
+    if request.include_pessimistic:
+        pessimistic_premises = ScenarioPremises(
+            collection_rate=0.70,
+            average_delay_days=15,
+            revenue_growth=-3.0,
+            expense_variation=5.0
+        )
+        scenarios.append(calculate_scenario(ScenarioTypeEnum.PESSIMISTIC, pessimistic_premises))
+
+    # ===== CRIAR RESUMO COMPARATIVO =====
+
+    comparison_summary = {
+        "current_balance": current_balance,
+        "base_period_days": 30,
+        "projection_days": request.days_ahead,
+        "scenarios_calculated": len(scenarios),
+        "best_case_balance": max(s.final_balance for s in scenarios) if scenarios else 0,
+        "worst_case_balance": min(s.final_balance for s in scenarios) if scenarios else 0,
+        "balance_range": max(s.final_balance for s in scenarios) - min(s.final_balance for s in scenarios) if scenarios else 0,
+        "critical_scenarios": [
+            s.scenario_name for s in scenarios if s.minimum_balance < 0
+        ],
+        "recommended_action": _get_scenario_recommendation(scenarios, current_balance)
+    }
+
+    logger.info(f"Cenários calculados: {len(scenarios)}, "
+                f"Melhor caso: R$ {comparison_summary['best_case_balance']:,.2f}, "
+                f"Pior caso: R$ {comparison_summary['worst_case_balance']:,.2f}")
+
+    return ScenarioComparisonResponse(
+        scenarios=scenarios,
+        comparison_summary=comparison_summary
+    )
+
+
+def _get_scenario_recommendation(scenarios: List[ScenarioAnalysisResult], current_balance: float) -> str:
+    """Gera recomendação baseada nos cenários calculados"""
+
+    if not scenarios:
+        return "Não foi possível gerar recomendações sem cenários."
+
+    # Verificar se algum cenário tem saldo negativo
+    critical_scenarios = [s for s in scenarios if s.minimum_balance < 0]
+
+    if critical_scenarios:
+        worst_scenario = min(critical_scenarios, key=lambda s: s.minimum_balance)
+        days_until_negative = None
+
+        for i, point in enumerate(worst_scenario.projections):
+            if point.projected_balance < 0:
+                days_until_negative = i + 1
+                break
+
+        if days_until_negative:
+            return (
+                f"⚠️ ATENÇÃO: O cenário {worst_scenario.scenario_name} projeta saldo negativo "
+                f"em {days_until_negative} dias. Recomendamos ações imediatas para aumentar receitas "
+                f"ou reduzir despesas."
+            )
+
+    # Verificar a diferença entre melhor e pior caso
+    best_case = max(scenarios, key=lambda s: s.final_balance)
+    worst_case = min(scenarios, key=lambda s: s.final_balance)
+    balance_variance = best_case.final_balance - worst_case.final_balance
+
+    if balance_variance > current_balance * 0.5:
+        return (
+            f"📊 Alta volatilidade detectada: diferença de R$ {balance_variance:,.2f} entre cenários. "
+            f"Recomendamos estabelecer uma reserva de emergência e monitorar indicadores semanalmente."
+        )
+
+    # Cenário positivo
+    if all(s.final_balance > current_balance for s in scenarios):
+        return (
+            f"✅ Projeções positivas: todos os cenários indicam crescimento do saldo. "
+            f"Continue monitorando e considere investimentos estratégicos."
+        )
+
+    return (
+        f"📈 Cenários mistos: resultados variam significativamente. "
+        f"Recomendamos focar no cenário realista e preparar planos de contingência."
+    )

@@ -415,3 +415,91 @@ class BreakEvenAnalysis(BaseModel):
                 "period_days": 30
             }
         }
+
+
+# ============================================
+# SCENARIO ANALYSIS SCHEMA
+# ============================================
+
+class ScenarioTypeEnum(str, Enum):
+    """Tipos de cenário"""
+    OPTIMISTIC = "optimistic"
+    REALISTIC = "realistic"
+    PESSIMISTIC = "pessimistic"
+    CUSTOM = "custom"
+
+
+class ScenarioPremises(BaseModel):
+    """
+    Premissas de um cenário
+    """
+    collection_rate: float = Field(..., ge=0, le=1, description="Taxa de recebimento (0-1)")
+    average_delay_days: int = Field(..., ge=0, description="Dias médios de atraso")
+    revenue_growth: float = Field(..., description="Crescimento de receita (%)")
+    expense_variation: float = Field(..., description="Variação de despesas (%)")
+
+
+class ScenarioProjectionPoint(BaseModel):
+    """
+    Ponto de projeção em um cenário
+    """
+    date: date = Field(..., description="Data da projeção")
+    projected_balance: float = Field(..., description="Saldo projetado")
+    projected_entries: float = Field(..., description="Entradas projetadas")
+    projected_exits: float = Field(..., description="Saídas projetadas")
+    net_flow: float = Field(..., description="Fluxo líquido projetado")
+    confidence_level: float = Field(..., ge=0, le=1, description="Nível de confiança (0-1)")
+
+
+class ScenarioAnalysisResult(BaseModel):
+    """
+    Resultado da análise de um cenário
+    """
+    scenario_type: ScenarioTypeEnum = Field(..., description="Tipo de cenário")
+    scenario_name: str = Field(..., description="Nome do cenário")
+    premises: ScenarioPremises = Field(..., description="Premissas utilizadas")
+    projections: List[ScenarioProjectionPoint] = Field(..., description="Pontos de projeção")
+
+    # Métricas do cenário
+    average_balance: float = Field(..., description="Saldo médio no período")
+    minimum_balance: float = Field(..., description="Menor saldo projetado")
+    maximum_balance: float = Field(..., description="Maior saldo projetado")
+    total_entries: float = Field(..., description="Total de entradas projetadas")
+    total_exits: float = Field(..., description="Total de saídas projetadas")
+    final_balance: float = Field(..., description="Saldo final do período")
+
+    # Metadados
+    period_start: date = Field(..., description="Data inicial")
+    period_end: date = Field(..., description="Data final")
+    days_projected: int = Field(..., description="Dias projetados")
+
+
+class ScenarioComparisonRequest(BaseModel):
+    """
+    Request para comparação de cenários
+    """
+    days_ahead: int = Field(30, ge=7, le=365, description="Dias para projetar")
+    include_optimistic: bool = Field(True, description="Incluir cenário otimista")
+    include_realistic: bool = Field(True, description="Incluir cenário realista")
+    include_pessimistic: bool = Field(True, description="Incluir cenário pessimista")
+
+
+class ScenarioComparisonResponse(BaseModel):
+    """
+    Response com comparação de múltiplos cenários
+    """
+    scenarios: List[ScenarioAnalysisResult] = Field(..., description="Lista de cenários analisados")
+    comparison_summary: Dict[str, Any] = Field(..., description="Resumo comparativo")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "scenarios": [],
+                "comparison_summary": {
+                    "best_scenario": "optimistic",
+                    "worst_scenario": "pessimistic",
+                    "balance_variance": 50000.0,
+                    "risk_level": "medium"
+                }
+            }
+        }

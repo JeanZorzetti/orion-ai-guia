@@ -20,6 +20,7 @@ import { MultiAccountManagement } from '@/components/financeiro/fluxo-caixa/Mult
 import { AccountTransfers } from '@/components/financeiro/fluxo-caixa/AccountTransfers';
 import { FinancialKPIs } from '@/components/financeiro/fluxo-caixa/FinancialKPIs';
 import { BreakEvenAnalysis } from '@/components/financeiro/fluxo-caixa/BreakEvenAnalysis';
+import { ScenarioAnalysis } from '@/components/financeiro/fluxo-caixa/ScenarioAnalysis';
 
 const FluxoCaixaPage: React.FC = () => {
   // Evitar problemas de hidratação SSR
@@ -228,6 +229,9 @@ const FluxoCaixaPage: React.FC = () => {
 
       {/* Análise de Ponto de Equilíbrio (Break-Even) */}
       <BreakEvenAnalysis />
+
+      {/* Análise de Cenários (Otimista, Realista, Pessimista) */}
+      <ScenarioAnalysis />
 
       {/* Gestão de Múltiplas Contas */}
       <MultiAccountManagement />
