@@ -102,7 +102,7 @@ class GeneratedReport(Base):
     arquivo_tamanho = Column(Integer, nullable=True)  # bytes
 
     # Metadados
-    gerado_por_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    gerado_por_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     gerado_em = Column(DateTime, default=datetime.utcnow, index=True)
     tags = Column(ARRAY(String), default=list)  # tags para filtrar/buscar
     config = Column(JSON, nullable=False)  # configurações usadas na geração
@@ -143,7 +143,7 @@ class ReportSchedule(Base):
     destinatarios_incluir_anexo = Column(Boolean, default=True)
 
     # Metadados
-    criado_por_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    criado_por_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     criado_em = Column(DateTime, default=datetime.utcnow)
     atualizado_em = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
