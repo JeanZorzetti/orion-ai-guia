@@ -2,7 +2,7 @@
 
 **Objetivo:** Implementar todas as 19 funcionalidades da página de Fluxo de Caixa com dados reais do backend.
 
-**Status Atual:** 10/19 funcionalidades implementadas (52%)
+**Status Atual:** 13/19 funcionalidades implementadas (68%)
 
 ---
 
@@ -59,7 +59,7 @@
 
 ---
 
-## 🔴 Funcionalidades Faltantes (9/19)
+## 🔴 Funcionalidades Faltantes (6/19)
 
 ### FASE 1: Análise de Cenários (3 funcionalidades)
 
@@ -121,63 +121,64 @@
 
 ---
 
-### FASE 3: Indicadores Financeiros (3 funcionalidades)
+### FASE 3: Indicadores Financeiros (3 funcionalidades) ✅ CONCLUÍDA
 
-#### 9. ❌ Indicadores de Liquidez
+#### 9. ✅ Indicadores de Liquidez
 - **Descrição:** Liquidez Imediata, Liquidez Corrente
-- **Backend Necessário:**
-  - [ ] Endpoint `GET /api/v1/cash-flow/analytics/kpis`
-  - [ ] Response: `{ liquidez_imediata: 0.53, liquidez_corrente: 1.76, ... }`
-  - [ ] Cálculos:
+- **Backend:**
+  - [x] Endpoint `GET /api/v1/cash-flow/analytics/kpis` criado
+  - [x] Schema `FinancialKPIs` implementado
+  - [x] Cálculos implementados:
     - `liquidez_imediata = saldo_caixa / passivo_circulante`
     - `liquidez_corrente = ativo_circulante / passivo_circulante`
 - **Frontend:**
-  - [ ] Reativar componente `FinancialKPIs` (seção Liquidez)
-  - [ ] Criar hook `useFinancialKPIs`
-- **Estimativa:** 3-4 horas
+  - [x] Componente `FinancialKPIs` atualizado (seção Liquidez)
+  - [x] Hook `useFinancialKPIs` integrado com API
+- **Status:** ✅ Implementado e testado
 
-#### 10. ❌ Ciclo Financeiro
+#### 10. ✅ Ciclo Financeiro
 - **Descrição:** PMR (Prazo Médio Recebimento), PMP (Prazo Médio Pagamento), Ciclo Financeiro
-- **Backend Necessário:**
-  - [ ] Mesmo endpoint acima
-  - [ ] Cálculos:
-    - `pmr = (contas_receber / vendas_mes) * 30`
-    - `pmp = (contas_pagar / compras_mes) * 30`
+- **Backend:**
+  - [x] Integrado no mesmo endpoint `/analytics/kpis`
+  - [x] Cálculos implementados:
+    - `pmr = (contas_receber / vendas_periodo) * period_days`
+    - `pmp = (contas_pagar / compras_periodo) * period_days`
     - `ciclo_financeiro = pmr - pmp`
 - **Frontend:**
-  - [ ] Seção "Ciclo Financeiro" no `FinancialKPIs`
-- **Estimativa:** Incluído no item 9
+  - [x] Seção "Ciclo Financeiro" no componente `FinancialKPIs`
+- **Status:** ✅ Implementado e testado
 
-#### 11. ❌ Rentabilidade e Eficiência
+#### 11. ✅ Rentabilidade e Eficiência
 - **Descrição:** Margem Líquida, Margem EBITDA, ROA, ROE
-- **Backend Necessário:**
-  - [ ] Mesmo endpoint acima
-  - [ ] Cálculos:
+- **Backend:**
+  - [x] Integrado no mesmo endpoint `/analytics/kpis`
+  - [x] Cálculos implementados:
     - `margem_liquida = (lucro_liquido / receita_liquida) * 100`
     - `margem_ebitda = (ebitda / receita_liquida) * 100`
     - `roa = (lucro_liquido / ativo_total) * 100`
     - `roe = (lucro_liquido / patrimonio_liquido) * 100`
 - **Frontend:**
-  - [ ] Seção "Rentabilidade e Eficiência" no `FinancialKPIs`
-- **Estimativa:** Incluído no item 9
+  - [x] Seção "Rentabilidade e Eficiência" no componente `FinancialKPIs`
+- **Status:** ✅ Implementado e testado
 
-**Total Fase 3:** 3-4 horas
+**Total Fase 3:** ✅ Concluída em ~4 horas
+**Commit:** `c803aa40` - feat(financeiro): Implementar Fase 3 - Indicadores Financeiros (KPIs)
 
 ---
 
-### FASE 4: Análises Avançadas (2 funcionalidades)
+### FASE 4: Análises Avançadas (1 funcionalidade)
 
-#### 12. ❌ Análise de Fluxo de Caixa
+#### 12. ✅ Análise de Fluxo de Caixa
 - **Descrição:** Burn Rate, Runway, Endividamento
-- **Backend Necessário:**
-  - [ ] Mesmo endpoint KPIs
-  - [ ] Cálculos:
-    - `burn_rate = despesas_mensais - receitas_financeiras`
+- **Backend:**
+  - [x] Integrado no endpoint `/analytics/kpis`
+  - [x] Cálculos implementados:
+    - `burn_rate = (total_exits / period_days) * 30`
     - `runway = saldo_atual / burn_rate` (em meses)
-    - `endividamento_total = passivo_circulante / ativo_total`
+    - `endividamento_total = (passivo_circulante / ativo_total) * 100`
 - **Frontend:**
-  - [ ] Seção "Análise de Fluxo de Caixa" no `FinancialKPIs`
-- **Estimativa:** Incluído na Fase 3
+  - [x] Seção "Análise de Fluxo de Caixa" no componente `FinancialKPIs`
+- **Status:** ✅ Implementado junto com Fase 3
 
 #### 13. ❌ Análise de Ponto de Equilíbrio
 - **Descrição:** Gráfico de break-even, custos fixos vs variáveis
@@ -190,7 +191,7 @@
   - [ ] Gráfico de linha (Receita vs Custos)
 - **Estimativa:** 3-4 horas
 
-**Total Fase 4:** 3-4 horas
+**Total Fase 4:** 3-4 horas (apenas Break-Even restante)
 
 ---
 
@@ -239,14 +240,14 @@
 
 ## 📊 Estimativa Total
 
-| Fase | Funcionalidades | Estimativa |
-|------|----------------|------------|
-| Fase 1: Análise de Cenários | 3 | 4-6 horas |
-| Fase 2: Simulador | 2 | 6-8 horas |
-| Fase 3: Indicadores Financeiros | 3 | 3-4 horas |
-| Fase 4: Análises Avançadas | 2 | 3-4 horas |
-| Fase 5: Inteligência e Automação | 2 | 10-13 horas |
-| **TOTAL** | **9 funcionalidades** | **26-35 horas** |
+| Fase | Funcionalidades | Status | Tempo |
+|------|----------------|--------|-------|
+| Fase 1: Análise de Cenários | 3 | ❌ Pendente | 4-6 horas |
+| Fase 2: Simulador | 2 | ❌ Pendente | 6-8 horas |
+| Fase 3: Indicadores Financeiros | 4 | ✅ **CONCLUÍDA** | ~~3-4 horas~~ |
+| Fase 4: Análises Avançadas | 1 | ❌ Pendente | 3-4 horas |
+| Fase 5: Inteligência e Automação | 2 | ❌ Pendente | 10-13 horas |
+| **TOTAL RESTANTE** | **6 funcionalidades** | **68% completo** | **23-31 horas** |
 
 ---
 
@@ -358,9 +359,9 @@ class CashFlowAnalyticsService:
 
 ## 🎯 Ordem de Implementação Recomendada
 
-1. **Fase 3 (KPIs)** - Base para outras análises (3-4h)
-2. **Fase 1 (Cenários)** - Usa projeção já existente (4-6h)
-3. **Fase 4 (Break-Even)** - Complementa análise financeira (3-4h)
+1. ~~**Fase 3 (KPIs)**~~ - ✅ **CONCLUÍDA** (4h)
+2. **Fase 4 (Break-Even)** - Complementa análise financeira (3-4h) ← **PRÓXIMA**
+3. **Fase 1 (Cenários)** - Usa projeção já existente (4-6h)
 4. **Fase 2 (Simulador)** - Usa cenários da Fase 1 (6-8h)
 5. **Fase 5 (Inteligência)** - Usa todos os dados anteriores (10-13h)
 
@@ -368,14 +369,45 @@ class CashFlowAnalyticsService:
 
 ## 📝 Próximos Passos
 
-- [ ] Aprovar roadmap
-- [ ] Começar pela Fase 3 (Indicadores Financeiros)
-- [ ] Criar endpoints backend um por um
-- [ ] Integrar componentes frontend
-- [ ] Testar cada funcionalidade
-- [ ] Deploy incremental
+- [x] ~~Aprovar roadmap~~
+- [x] ~~Fase 3 (Indicadores Financeiros)~~ ✅ **CONCLUÍDA**
+- [ ] **Fase 4 (Análise de Ponto de Equilíbrio)** ← Próxima recomendada
+- [ ] Fase 1 (Análise de Cenários)
+- [ ] Fase 2 (Simulador de Impacto)
+- [ ] Fase 5 (Inteligência e Automação)
 
 ---
 
-**Última atualização:** 2025-11-01
+## 🎉 Progresso
+
+### Status Geral
+
+**13/19 funcionalidades implementadas (68%)**
+
+### Funcionalidades Implementadas
+
+1. ✅ Saldo Mínimo Projetado
+2. ✅ Saldo Máximo Projetado
+3. ✅ Variação
+4. ✅ Saldo Atual, Entradas e Saídas (Cards de Resumo)
+5. ✅ Contas Bancárias (CRUD)
+6. ✅ Transferências Entre Contas
+7. ✅ Fluxo Semanal
+8. ✅ Movimentações Recentes
+9. ✅ **Indicadores de Liquidez** (Fase 3)
+10. ✅ **Ciclo Financeiro** (Fase 3)
+11. ✅ **Rentabilidade e Eficiência** (Fase 3)
+12. ✅ **Análise de Fluxo de Caixa** (Burn Rate, Runway, Endividamento)
+
+### Próxima Implementação
+
+**Fase 4: Análise de Ponto de Equilíbrio** (3-4 horas)
+
+- Break-even point
+- Custos fixos vs variáveis
+- Gráfico de análise
+
+---
+
+**Última atualização:** 2025-01-30
 **Responsável:** Claude + Jean Zorzetti
