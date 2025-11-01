@@ -83,7 +83,7 @@ export const AgingReportTable: React.FC<AgingReportTableProps> = ({ agingReport 
   }, [agingReport, mockTotals]);
 
   const formatCurrency = (value: number) => {
-    return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `R$ ${(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
