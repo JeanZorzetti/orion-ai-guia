@@ -38,7 +38,8 @@ export function useSuppliers(): UseSuppliersReturn {
       setError(null);
 
       // Buscar todos os fornecedores ativos
-      const response = await api.get<Supplier[]>('/suppliers?active=true&limit=1000');
+      // IMPORTANTE: Barra no final do endpoint para evitar redirect do FastAPI
+      const response = await api.get<Supplier[]>('/suppliers/?active=true&limit=1000');
       setSuppliers(response || []);
     } catch (err: any) {
       console.error('Erro ao buscar fornecedores:', err);
