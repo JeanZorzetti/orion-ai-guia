@@ -1398,7 +1398,7 @@ def simulate_scenario(
 # INTELIGÊNCIA E AUTOMAÇÃO
 # ============================================
 
-@router.get("/alerts", response_model=AlertsAndRecommendationsResponse)
+@router.get("/alerts")
 def get_alerts_and_recommendations(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -1693,8 +1693,9 @@ def get_alerts_and_recommendations(
 
     logger.info(f"Gerados {len(alerts)} alertas e {len(recommendations)} recomendações para workspace {workspace_id}")
 
-    return AlertsAndRecommendationsResponse(
-        alerts=alerts,
-        recommendations=recommendations,
-        summary=summary
-    )
+    # Retornar dicionário simples para evitar RecursionError com Pydantic
+    return {
+        "alerts": [a.model_dump() for a in alerts],
+        "recommendations": [r.model_dump() for r in recommendations],
+        "summary": summary
+    }
