@@ -49,6 +49,13 @@ from app.schemas.cash_flow import (
     SimulationResult,
     SimulationRequest,
     SimulationComparison,
+    AlertTypeEnum,
+    AlertSeverityEnum,
+    Alert,
+    RecommendationTypeEnum,
+    RecommendationPriorityEnum,
+    Recommendation,
+    AlertsAndRecommendationsResponse,
 )
 
 router = APIRouter()
@@ -1381,4 +1388,310 @@ def simulate_scenario(
         simulated_scenario=simulation_result,
         comparison_metrics=comparison_metrics,
         recommendations=recommendations
+    )
+
+
+# ============================================
+# INTELIGÊNCIA E AUTOMAÇÃO
+# ============================================
+
+@router.get("/alerts", response_model=AlertsAndRecommendationsResponse)
+def get_alerts_and_recommendations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    🚨 Alertas e Recomendações Inteligentes
+
+    Gera alertas em tempo real e recomendações baseadas em:
+    - Saldo atual e projeções
+    - Burn rate e runway
+    - Contas a receber vencidas
+    - Análise de cenários
+    - KPIs financeiros
+    """
+    import uuid
+    from datetime import datetime, timedelta, date
+
+    workspace_id = current_user.workspace_id
+    alerts: List[Alert] = []
+    recommendations: List[Recommendation] = []
+
+    # ========================================
+    # 1. CALCULAR MÉTRICAS ATUAIS
+    # ========================================
+
+    # Saldo total atual
+    current_balance = db.query(func.sum(BankAccount.current_balance)).filter(
+        BankAccount.workspace_id == workspace_id,
+        BankAccount.is_active == True
+    ).scalar() or 0.0
+
+    # Transações dos últimos 30 dias
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+    transactions = db.query(CashFlowTransaction).filter(
+        CashFlowTransaction.workspace_id == workspace_id,
+        CashFlowTransaction.transaction_date >= thirty_days_ago
+    ).all()
+
+    # Calcular entradas e saídas
+    monthly_revenue = sum(t.value for t in transactions if t.type == TransactionType.ENTRADA)
+    monthly_expenses = sum(abs(t.value) for t in transactions if t.type == TransactionType.SAIDA)
+    net_monthly_flow = monthly_revenue - monthly_expenses
+
+    # Burn rate (média diária de gastos)
+    burn_rate = monthly_expenses / 30 if monthly_expenses > 0 else 0
+    runway_months = (current_balance / monthly_expenses) if monthly_expenses > 0 else float('inf')
+
+    # Contas a receber vencidas
+    today = date.today()
+    overdue_receivables = db.query(AccountsReceivable).filter(
+        AccountsReceivable.workspace_id == workspace_id,
+        AccountsReceivable.status != "paid",
+        AccountsReceivable.due_date < today
+    ).all()
+
+    total_overdue = sum(r.remaining_value for r in overdue_receivables)
+
+    # ========================================
+    # 2. GERAR ALERTAS
+    # ========================================
+
+    # Alerta: Saldo Baixo
+    min_balance_threshold = monthly_expenses * 0.5  # 50% das despesas mensais
+    if current_balance < min_balance_threshold and current_balance > 0:
+        alerts.append(Alert(
+            id=str(uuid.uuid4()),
+            type=AlertTypeEnum.LOW_BALANCE,
+            severity=AlertSeverityEnum.WARNING,
+            title="⚠️ Saldo Abaixo do Recomendado",
+            message=f"Saldo atual de R$ {current_balance:,.2f} está abaixo do mínimo recomendado de R$ {min_balance_threshold:,.2f} (50% das despesas mensais).",
+            date=datetime.now(),
+            value=current_balance,
+            threshold=min_balance_threshold,
+            is_read=False
+        ))
+
+    # Alerta: Saldo Negativo ou Muito Crítico
+    if current_balance <= 0:
+        alerts.append(Alert(
+            id=str(uuid.uuid4()),
+            type=AlertTypeEnum.CASH_SHORTAGE_RISK,
+            severity=AlertSeverityEnum.CRITICAL,
+            title="🔴 CRÍTICO: Saldo Insuficiente",
+            message=f"Saldo atual de R$ {current_balance:,.2f}. Ação imediata necessária para evitar problemas de fluxo de caixa.",
+            date=datetime.now(),
+            value=current_balance,
+            threshold=0.0,
+            is_read=False
+        ))
+
+    # Alerta: Burn Rate Alto
+    if runway_months < 3 and runway_months != float('inf'):
+        alerts.append(Alert(
+            id=str(uuid.uuid4()),
+            type=AlertTypeEnum.HIGH_BURN_RATE,
+            severity=AlertSeverityEnum.WARNING if runway_months >= 1.5 else AlertSeverityEnum.CRITICAL,
+            title=f"🔥 Runway Baixo: {runway_months:.1f} meses",
+            message=f"Com o burn rate atual de R$ {burn_rate:,.2f}/dia, o caixa durará apenas {runway_months:.1f} meses. Considere reduzir despesas ou aumentar receitas.",
+            date=datetime.now(),
+            value=runway_months,
+            threshold=3.0,
+            is_read=False
+        ))
+
+    # Alerta: Contas a Receber Vencidas
+    if total_overdue > 0:
+        severity = AlertSeverityEnum.CRITICAL if total_overdue > monthly_revenue * 0.3 else AlertSeverityEnum.WARNING
+        alerts.append(Alert(
+            id=str(uuid.uuid4()),
+            type=AlertTypeEnum.OVERDUE_RECEIVABLES,
+            severity=severity,
+            title=f"💸 R$ {total_overdue:,.2f} em Recebíveis Vencidos",
+            message=f"Você tem {len(overdue_receivables)} faturas vencidas totalizando R$ {total_overdue:,.2f}. Priorize a cobrança para melhorar o fluxo de caixa.",
+            date=datetime.now(),
+            value=total_overdue,
+            threshold=monthly_revenue * 0.3,
+            is_read=False
+        ))
+
+    # Alerta: Projeção Negativa (Fluxo Mensal Negativo)
+    if net_monthly_flow < 0:
+        alerts.append(Alert(
+            id=str(uuid.uuid4()),
+            type=AlertTypeEnum.NEGATIVE_PROJECTION,
+            severity=AlertSeverityEnum.WARNING,
+            title="📉 Fluxo de Caixa Negativo",
+            message=f"Fluxo mensal negativo de R$ {net_monthly_flow:,.2f}. Despesas excedem receitas em {abs(net_monthly_flow/monthly_revenue*100):.1f}%.",
+            date=datetime.now(),
+            value=net_monthly_flow,
+            threshold=0.0,
+            is_read=False
+        ))
+
+    # ========================================
+    # 3. GERAR RECOMENDAÇÕES
+    # ========================================
+
+    # Recomendação: Cobrar Recebíveis Vencidos
+    if total_overdue > 5000:
+        potential_impact = total_overdue * 0.7  # Estimativa conservadora de 70% de recuperação
+        recommendations.append(Recommendation(
+            id=str(uuid.uuid4()),
+            type=RecommendationTypeEnum.INCREASE_COLLECTION,
+            priority=RecommendationPriorityEnum.HIGH,
+            title="🎯 Acelere a Cobrança de Recebíveis",
+            description=f"Você tem R$ {total_overdue:,.2f} em recebíveis vencidos ({len(overdue_receivables)} faturas). Cobrar essas faturas pode melhorar significativamente seu fluxo de caixa.",
+            potential_impact=f"Potencial de recuperar até R$ {potential_impact:,.2f} nos próximos 30 dias (70% de taxa de sucesso estimada).",
+            suggested_actions=[
+                "Enviar lembretes automáticos por e-mail/WhatsApp para clientes inadimplentes",
+                "Oferecer desconto de 5-10% para pagamento imediato",
+                "Renegociar prazos com clientes de maior valor",
+                "Revisar política de crédito para novos clientes"
+            ],
+            estimated_value=potential_impact,
+            confidence_score=0.85,
+            created_at=datetime.now(),
+            is_implemented=False
+        ))
+
+    # Recomendação: Reduzir Custos (se burn rate alto)
+    if runway_months < 6 and runway_months != float('inf'):
+        recommendations.append(Recommendation(
+            id=str(uuid.uuid4()),
+            type=RecommendationTypeEnum.REDUCE_COSTS,
+            priority=RecommendationPriorityEnum.HIGH if runway_months < 3 else RecommendationPriorityEnum.MEDIUM,
+            title="✂️ Otimize Despesas para Estender Runway",
+            description=f"Com runway de {runway_months:.1f} meses, é recomendável reduzir despesas não essenciais. Reduzir 15-20% das despesas pode aumentar significativamente sua margem de segurança.",
+            potential_impact=f"Reduzir 20% das despesas mensais (R$ {monthly_expenses*0.2:,.2f}) pode estender o runway em {runway_months*0.25:.1f} meses.",
+            suggested_actions=[
+                "Revisar assinaturas e serviços recorrentes não essenciais",
+                "Negociar melhores condições com fornecedores",
+                "Avaliar terceirização de serviços não-core",
+                "Implementar aprovações para despesas acima de R$ 1.000"
+            ],
+            estimated_value=monthly_expenses * 0.2,
+            confidence_score=0.75,
+            created_at=datetime.now(),
+            is_implemented=False
+        ))
+
+    # Recomendação: Otimizar Caixa (se saldo muito alto e sem investimento)
+    if current_balance > monthly_expenses * 6:
+        estimated_yield = current_balance * 0.01 * 0.8  # 1% a.m. conservador * 80% do saldo
+        recommendations.append(Recommendation(
+            id=str(uuid.uuid4()),
+            type=RecommendationTypeEnum.OPTIMIZE_CASH,
+            priority=RecommendationPriorityEnum.LOW,
+            title="💰 Otimize Excedente de Caixa",
+            description=f"Saldo de R$ {current_balance:,.2f} representa {current_balance/monthly_expenses:.1f} meses de despesas. Parte desse valor poderia render mais em aplicações financeiras.",
+            potential_impact=f"Investir 80% do excedente em aplicação conservadora (CDB/Tesouro) pode gerar R$ {estimated_yield:,.2f}/mês adicional.",
+            suggested_actions=[
+                f"Manter reserva de emergência de 3-6 meses (R$ {monthly_expenses*4:,.2f})",
+                "Investir excedente em CDB com liquidez diária",
+                "Considerar Tesouro Selic para maior segurança",
+                "Avaliar oportunidades de pré-pagamento de dívidas caras"
+            ],
+            estimated_value=estimated_yield * 12,  # Valor anual
+            confidence_score=0.65,
+            created_at=datetime.now(),
+            is_implemented=False
+        ))
+
+    # Recomendação: Negociar Prazos
+    payables = db.query(AccountsPayableInvoice).filter(
+        AccountsPayableInvoice.workspace_id == workspace_id,
+        AccountsPayableInvoice.status.in_(["pending", "approved"])
+    ).all()
+
+    total_payables = sum(p.remaining_value for p in payables)
+
+    if total_payables > monthly_revenue * 0.5 and net_monthly_flow < 0:
+        recommendations.append(Recommendation(
+            id=str(uuid.uuid4()),
+            type=RecommendationTypeEnum.NEGOTIATE_TERMS,
+            priority=RecommendationPriorityEnum.MEDIUM,
+            title="🤝 Negocie Prazos com Fornecedores",
+            description=f"Total de R$ {total_payables:,.2f} em contas a pagar. Negociar prazos maiores pode aliviar pressão no fluxo de caixa de curto prazo.",
+            potential_impact=f"Estender prazo médio de pagamento em 15 dias pode melhorar liquidez em até R$ {total_payables*0.3:,.2f}.",
+            suggested_actions=[
+                "Identificar fornecedores estratégicos para negociação",
+                "Propor alongamento de prazo em troca de volume garantido",
+                "Avaliar possibilidade de parcelamento sem juros",
+                "Manter comunicação proativa para evitar atritos"
+            ],
+            estimated_value=total_payables * 0.3,
+            confidence_score=0.70,
+            created_at=datetime.now(),
+            is_implemented=False
+        ))
+
+    # Recomendação: Mitigação de Risco (se fluxo instável)
+    if len(transactions) >= 10:  # Só se tiver dados suficientes
+        daily_flows = {}
+        for t in transactions:
+            day = t.transaction_date.date()
+            if day not in daily_flows:
+                daily_flows[day] = 0
+            daily_flows[day] += t.value if t.type == TransactionType.ENTRADA else -t.value
+
+        # Calcular volatilidade (desvio padrão dos fluxos diários)
+        flows_list = list(daily_flows.values())
+        avg_flow = sum(flows_list) / len(flows_list)
+        variance = sum((x - avg_flow) ** 2 for x in flows_list) / len(flows_list)
+        std_dev = variance ** 0.5
+
+        # Se volatilidade alta (std_dev > 50% da média de receita diária)
+        if std_dev > (monthly_revenue / 30) * 0.5:
+            recommendations.append(Recommendation(
+                id=str(uuid.uuid4()),
+                type=RecommendationTypeEnum.RISK_MITIGATION,
+                priority=RecommendationPriorityEnum.MEDIUM,
+                title="🛡️ Reduza Volatilidade do Fluxo de Caixa",
+                description=f"Fluxo de caixa apresenta alta volatilidade (desvio de R$ {std_dev:,.2f}/dia). Fluxos mais previsíveis facilitam planejamento e reduzem riscos.",
+                potential_impact="Maior previsibilidade permite melhor planejamento e redução de custos financeiros (juros, multas).",
+                suggested_actions=[
+                    "Implementar modelo de receita recorrente (assinaturas/contratos)",
+                    "Diversificar base de clientes para reduzir concentração",
+                    "Estabelecer fundo de reserva para emergências",
+                    "Automatizar cobranças para regularizar entrada de receitas"
+                ],
+                estimated_value=None,  # Difícil quantificar
+                confidence_score=0.60,
+                created_at=datetime.now(),
+                is_implemented=False
+            ))
+
+    # ========================================
+    # 4. MONTAR SUMMARY
+    # ========================================
+
+    critical_alerts = [a for a in alerts if a.severity == AlertSeverityEnum.CRITICAL]
+    high_priority_recs = [r for r in recommendations if r.priority == RecommendationPriorityEnum.HIGH]
+
+    total_estimated_impact = sum(r.estimated_value for r in recommendations if r.estimated_value is not None)
+
+    summary = {
+        "total_alerts": len(alerts),
+        "critical_alerts": len(critical_alerts),
+        "warning_alerts": len([a for a in alerts if a.severity == AlertSeverityEnum.WARNING]),
+        "info_alerts": len([a for a in alerts if a.severity == AlertSeverityEnum.INFO]),
+        "total_recommendations": len(recommendations),
+        "high_priority_recommendations": len(high_priority_recs),
+        "medium_priority_recommendations": len([r for r in recommendations if r.priority == RecommendationPriorityEnum.MEDIUM]),
+        "low_priority_recommendations": len([r for r in recommendations if r.priority == RecommendationPriorityEnum.LOW]),
+        "estimated_total_impact": total_estimated_impact,
+        "current_balance": current_balance,
+        "monthly_burn_rate": monthly_expenses,
+        "runway_months": runway_months if runway_months != float('inf') else None,
+        "overdue_amount": total_overdue,
+        "health_status": "critical" if len(critical_alerts) > 0 else ("warning" if len(alerts) > 2 else "good")
+    }
+
+    logger.info(f"Gerados {len(alerts)} alertas e {len(recommendations)} recomendações para workspace {workspace_id}")
+
+    return AlertsAndRecommendationsResponse(
+        alerts=alerts,
+        recommendations=recommendations,
+        summary=summary
     )

@@ -584,3 +584,127 @@ class SimulationComparison(BaseModel):
     simulated_scenario: SimulationResult = Field(..., description="Cenário simulado")
     comparison_metrics: Dict[str, Any] = Field(..., description="Métricas comparativas")
     recommendations: List[str] = Field(..., description="Recomendações baseadas na simulação")
+
+
+# ============================================
+# ALERTAS E RECOMENDAÇÕES
+# ============================================
+
+class AlertTypeEnum(str, Enum):
+    """Tipos de alerta"""
+    LOW_BALANCE = "low_balance"
+    NEGATIVE_PROJECTION = "negative_projection"
+    HIGH_BURN_RATE = "high_burn_rate"
+    OVERDUE_RECEIVABLES = "overdue_receivables"
+    BREAK_EVEN_NOT_MET = "break_even_not_met"
+    CASH_SHORTAGE_RISK = "cash_shortage_risk"
+
+
+class AlertSeverityEnum(str, Enum):
+    """Níveis de severidade"""
+    INFO = "info"
+    WARNING = "warning"
+    CRITICAL = "critical"
+
+
+class Alert(BaseModel):
+    """Alerta de cash flow"""
+    id: str = Field(..., description="ID único do alerta")
+    type: AlertTypeEnum = Field(..., description="Tipo do alerta")
+    severity: AlertSeverityEnum = Field(..., description="Severidade")
+    title: str = Field(..., description="Título do alerta")
+    message: str = Field(..., description="Mensagem detalhada")
+    date: datetime = Field(..., description="Data/hora do alerta")
+    value: Optional[float] = Field(None, description="Valor relacionado (se aplicável)")
+    threshold: Optional[float] = Field(None, description="Threshold que disparou o alerta")
+    is_read: bool = Field(False, description="Alerta foi lido?")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "alert_001",
+                "type": "low_balance",
+                "severity": "warning",
+                "title": "Saldo Baixo Detectado",
+                "message": "Saldo atual de R$ 5.000 está abaixo do mínimo recomendado de R$ 10.000",
+                "date": "2025-01-30T14:30:00",
+                "value": 5000.0,
+                "threshold": 10000.0,
+                "is_read": False
+            }
+        }
+
+
+class RecommendationTypeEnum(str, Enum):
+    """Tipos de recomendação"""
+    REDUCE_COSTS = "reduce_costs"
+    INCREASE_COLLECTION = "increase_collection"
+    OPTIMIZE_CASH = "optimize_cash"
+    NEGOTIATE_TERMS = "negotiate_terms"
+    INVESTMENT_OPPORTUNITY = "investment_opportunity"
+    RISK_MITIGATION = "risk_mitigation"
+
+
+class RecommendationPriorityEnum(str, Enum):
+    """Prioridade da recomendação"""
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class Recommendation(BaseModel):
+    """Recomendação inteligente"""
+    id: str = Field(..., description="ID único da recomendação")
+    type: RecommendationTypeEnum = Field(..., description="Tipo da recomendação")
+    priority: RecommendationPriorityEnum = Field(..., description="Prioridade")
+    title: str = Field(..., description="Título da recomendação")
+    description: str = Field(..., description="Descrição detalhada")
+    potential_impact: str = Field(..., description="Impacto potencial estimado")
+    suggested_actions: List[str] = Field(..., description="Ações sugeridas")
+    estimated_value: Optional[float] = Field(None, description="Valor estimado de impacto (R$)")
+    confidence_score: float = Field(..., ge=0, le=1, description="Score de confiança (0-1)")
+    created_at: datetime = Field(..., description="Data de criação")
+    is_implemented: bool = Field(False, description="Já foi implementada?")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "rec_001",
+                "type": "increase_collection",
+                "priority": "high",
+                "title": "Acelere a Cobrança de Recebíveis",
+                "description": "Você tem R$ 50.000 em recebíveis vencidos há mais de 15 dias",
+                "potential_impact": "Melhorar fluxo de caixa em até R$ 35.000 nos próximos 30 dias",
+                "suggested_actions": [
+                    "Enviar lembretes automáticos para clientes",
+                    "Oferecer desconto de 5% para pagamento antecipado",
+                    "Revisar política de crédito"
+                ],
+                "estimated_value": 35000.0,
+                "confidence_score": 0.85,
+                "created_at": "2025-01-30T10:00:00",
+                "is_implemented": False
+            }
+        }
+
+
+class AlertsAndRecommendationsResponse(BaseModel):
+    """Response com alertas e recomendações"""
+    alerts: List[Alert] = Field(..., description="Lista de alertas ativos")
+    recommendations: List[Recommendation] = Field(..., description="Lista de recomendações")
+    summary: Dict[str, Any] = Field(..., description="Resumo executivo")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "alerts": [],
+                "recommendations": [],
+                "summary": {
+                    "total_alerts": 3,
+                    "critical_alerts": 1,
+                    "total_recommendations": 5,
+                    "high_priority_recommendations": 2,
+                    "estimated_total_impact": 75000.0
+                }
+            }
+        }
