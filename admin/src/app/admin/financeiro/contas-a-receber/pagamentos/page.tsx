@@ -128,7 +128,7 @@ const PagamentosPage: React.FC = () => {
             <div>
               <p className="text-sm text-muted-foreground">Valor</p>
               <p className="text-2xl font-bold text-green-600">
-                R$ {conta.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {(conta.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </div>
           </div>
