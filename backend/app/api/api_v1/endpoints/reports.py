@@ -444,7 +444,7 @@ async def get_executive_dashboard_charts(
 
     # Saldo inicial (soma de todos os saldos das contas)
     saldo_inicial = db.query(
-        func.coalesce(func.sum(BankAccount.balance), 0)
+        func.coalesce(func.sum(BankAccount.current_balance), 0)
     ).scalar() or 0.0
 
     # Calcular fluxo acumulado dia a dia
