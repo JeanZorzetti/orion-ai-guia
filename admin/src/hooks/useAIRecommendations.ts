@@ -27,7 +27,7 @@ export const useAIRecommendations = (): UseAIRecommendationsReturn => {
       const newRecommendations: Recommendation[] = [];
 
       // 1. Recomendação de Redução de Custos
-      if (kpis && kpis.margemLiquida < 15) {
+      if (kpis && kpis.margemLiquida !== undefined && kpis.margemLiquida < 15) {
         newRecommendations.push({
           id: 'rec-reducao-custos',
           tipo: 'economia',
@@ -120,7 +120,7 @@ export const useAIRecommendations = (): UseAIRecommendationsReturn => {
       }
 
       // 6. Recomendação de Melhoria de Margem
-      if (kpis && kpis.margemEbitda < 20) {
+      if (kpis && kpis.margemEbitda !== undefined && kpis.margemEbitda < 20) {
         newRecommendations.push({
           id: 'rec-melhoria-margem',
           tipo: 'economia',
@@ -135,14 +135,14 @@ export const useAIRecommendations = (): UseAIRecommendationsReturn => {
       }
 
       // 7. Recomendação de Controle de Burn Rate
-      if (kpis && kpis.runway < 6) {
+      if (kpis && kpis.runway !== undefined && kpis.runway < 6) {
         newRecommendations.push({
           id: 'rec-burn-rate',
           tipo: 'economia',
           prioridade: 'alta',
           titulo: 'Reduza o Burn Rate',
           descricao: `Seu runway é de apenas ${kpis.runway.toFixed(1)} meses. É crítico reduzir a taxa de queima de caixa ou aumentar receitas.`,
-          impactoFinanceiro: kpis.burnRate * 0.3,
+          impactoFinanceiro: (kpis.burnRate ?? 0) * 0.3,
           esforco: 'alto',
           prazo: 'Imediato',
           acao: 'Revisar Despesas'

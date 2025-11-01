@@ -36,6 +36,8 @@ from app.schemas.cash_flow import (
     AccountBalanceSummary,
     TransactionTypeEnum,
     FinancialKPIs,
+    BreakEvenAnalysis,
+    BreakEvenPoint,
 )
 
 router = APIRouter()
@@ -581,6 +583,170 @@ def get_financial_kpis(
 
         # Metadados
         calculation_date=calculation_date,
+        period_days=period_days
+    )
+
+
+@router.get("/analytics/break-even", response_model=BreakEvenAnalysis)
+def get_break_even_analysis(
+    period_days: int = Query(30, ge=7, le=365, description="Período de análise em dias"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Análise de Ponto de Equilíbrio (Break-Even)
+
+    Calcula o ponto onde receitas = custos totais, mostrando:
+    - Custos fixos e variáveis
+    - Receita necessária para break-even
+    - Margem de contribuição
+    - Dados para gráfico comparativo
+
+    **Conceitos:**
+    - **Custos Fixos:** Despesas que não variam com o volume (aluguel, salários fixos, etc.)
+    - **Custos Variáveis:** Despesas proporcionais ao volume (matéria-prima, comissões, etc.)
+    - **Break-Even Point:** Receita onde Lucro = 0 (Receita = Custos Totais)
+    - **Margem de Contribuição:** Receita - Custos Variáveis (quanto sobra para cobrir fixos)
+    """
+    end_date = date.today()
+    start_date = end_date - timedelta(days=period_days)
+
+    # ========================================
+    # 1. BUSCAR TRANSAÇÕES DO PERÍODO
+    # ========================================
+
+    transactions = db.query(CashFlowTransaction).filter(
+        and_(
+            CashFlowTransaction.workspace_id == current_user.workspace_id,
+            CashFlowTransaction.transaction_date >= datetime.combine(start_date, datetime.min.time()),
+            CashFlowTransaction.transaction_date <= datetime.combine(end_date, datetime.max.time())
+        )
+    ).all()
+
+    # Receita total
+    total_revenue = sum(t.value for t in transactions if t.type == TransactionType.ENTRADA.value)
+
+    # ========================================
+    # 2. CLASSIFICAR CUSTOS (FIXOS vs VARIÁVEIS)
+    # ========================================
+
+    # Categorias consideradas custos FIXOS
+    fixed_cost_categories = [
+        'aluguel', 'salário', 'salario', 'folha', 'seguro', 'licença', 'licenca',
+        'assinatura', 'contador', 'advogado', 'consultoria', 'internet', 'telefone',
+        'energia', 'água', 'agua', 'condomínio', 'condominio', 'iptu', 'alvará', 'alvara'
+    ]
+
+    # Categorias consideradas custos VARIÁVEIS
+    variable_cost_categories = [
+        'mercadoria', 'produto', 'matéria', 'materia', 'fornecedor', 'compra',
+        'comissão', 'comissao', 'frete', 'embalagem', 'marketing', 'publicidade',
+        'taxa', 'imposto variável', 'imposto variavel', 'insumo'
+    ]
+
+    fixed_costs = 0.0
+    variable_costs = 0.0
+
+    for t in transactions:
+        if t.type != TransactionType.SAIDA.value:
+            continue
+
+        category_lower = (t.category or '').lower()
+        description_lower = (t.description or '').lower()
+
+        # Classificar como fixo ou variável baseado em categoria/descrição
+        is_fixed = any(keyword in category_lower or keyword in description_lower
+                      for keyword in fixed_cost_categories)
+        is_variable = any(keyword in category_lower or keyword in description_lower
+                         for keyword in variable_cost_categories)
+
+        if is_fixed:
+            fixed_costs += t.value
+        elif is_variable:
+            variable_costs += t.value
+        else:
+            # Se não identificado, considerar como variável (mais conservador)
+            variable_costs += t.value
+
+    # ========================================
+    # 3. CÁLCULOS DE BREAK-EVEN
+    # ========================================
+
+    total_costs = fixed_costs + variable_costs
+    current_profit = total_revenue - total_costs
+
+    # Margem de contribuição = Receita - Custos Variáveis
+    contribution_margin = total_revenue - variable_costs
+    contribution_margin_pct = (contribution_margin / total_revenue * 100) if total_revenue > 0 else 0
+
+    # Break-Even Revenue = Custos Fixos / (Margem de Contribuição %)
+    # Ou seja: a receita necessária para que a margem cubra exatamente os custos fixos
+    if contribution_margin_pct > 0:
+        break_even_revenue = (fixed_costs / contribution_margin_pct) * 100
+    else:
+        break_even_revenue = 0
+
+    # Gap de receita
+    revenue_gap = total_revenue - break_even_revenue
+    revenue_gap_pct = (revenue_gap / break_even_revenue * 100) if break_even_revenue > 0 else 0
+
+    # ========================================
+    # 4. GERAR DADOS PARA O GRÁFICO
+    # ========================================
+
+    # Criar 10 pontos de 0% a 150% da receita atual
+    chart_data: List[BreakEvenPoint] = []
+    max_revenue = total_revenue * 1.5 if total_revenue > 0 else 100000
+    step = max_revenue / 10
+
+    for i in range(11):  # 0 a 10 = 11 pontos
+        revenue_point = i * step
+
+        # Custos fixos são constantes
+        # Custos variáveis crescem proporcionalmente à receita
+        variable_cost_ratio = (variable_costs / total_revenue) if total_revenue > 0 else 0.4
+        variable_cost_point = revenue_point * variable_cost_ratio
+
+        total_cost_point = fixed_costs + variable_cost_point
+        profit_point = revenue_point - total_cost_point
+
+        # Verificar se este é o ponto de break-even (lucro próximo de 0)
+        is_break_even = abs(profit_point) < (max_revenue * 0.02)  # Margem de 2%
+
+        chart_data.append(BreakEvenPoint(
+            date=start_date + timedelta(days=int((i / 10) * period_days)),
+            revenue=round(revenue_point, 2),
+            fixed_costs=round(fixed_costs, 2),
+            variable_costs=round(variable_cost_point, 2),
+            total_costs=round(total_cost_point, 2),
+            profit=round(profit_point, 2),
+            is_break_even=is_break_even
+        ))
+
+    return BreakEvenAnalysis(
+        # Valores atuais
+        current_revenue=round(total_revenue, 2),
+        current_fixed_costs=round(fixed_costs, 2),
+        current_variable_costs=round(variable_costs, 2),
+        current_total_costs=round(total_costs, 2),
+        current_profit=round(current_profit, 2),
+
+        # Break-even
+        break_even_revenue=round(break_even_revenue, 2),
+        break_even_units=None,  # Não calculamos unidades nesta versão
+        revenue_gap=round(revenue_gap, 2),
+        revenue_gap_percentage=round(revenue_gap_pct, 2),
+
+        # Margens
+        contribution_margin=round(contribution_margin, 2),
+        contribution_margin_percentage=round(contribution_margin_pct, 2),
+
+        # Gráfico
+        chart_data=chart_data,
+
+        # Metadados
+        period_start=start_date,
+        period_end=end_date,
         period_days=period_days
     )
 

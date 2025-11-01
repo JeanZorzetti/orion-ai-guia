@@ -20,7 +20,7 @@ import { TrendingUp, Target, Calendar } from 'lucide-react';
 import { useBreakEvenAnalysis } from '@/hooks/useBreakEvenAnalysis';
 
 export const BreakEvenAnalysis: React.FC = () => {
-  const { breakEven, loading } = useBreakEvenAnalysis();
+  const { breakEven, loading, error } = useBreakEvenAnalysis(30); // 30 dias de período
 
   if (loading || !breakEven) {
     return (
@@ -30,7 +30,11 @@ export const BreakEvenAnalysis: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[300px]">
-            <p className="text-muted-foreground">Carregando análise...</p>
+            {error ? (
+              <p className="text-red-600">Erro ao carregar análise: {error}</p>
+            ) : (
+              <p className="text-muted-foreground">Carregando análise...</p>
+            )}
           </div>
         </CardContent>
       </Card>

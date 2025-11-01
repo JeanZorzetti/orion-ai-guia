@@ -102,17 +102,17 @@ export const ReportGenerator: React.FC = () => {
           graficos: [],
           colunas: ['Indicador', 'Valor'],
           linhas: kpis ? [
-            ['Liquidez Imediata', kpis.liquidezImediata.toFixed(2)],
-            ['Liquidez Corrente', kpis.liquidezCorrente.toFixed(2)],
-            ['PMR (dias)', kpis.pmr.toFixed(0)],
-            ['PMP (dias)', kpis.pmp.toFixed(0)],
-            ['Ciclo Financeiro (dias)', kpis.cicloFinanceiro.toFixed(0)],
-            ['Margem Líquida (%)', kpis.margemLiquida.toFixed(1)],
-            ['Margem EBITDA (%)', kpis.margemEbitda.toFixed(1)],
-            ['ROA (%)', kpis.returnOnAssets.toFixed(1)],
-            ['ROE (%)', kpis.returnOnEquity.toFixed(1)],
-            ['Burn Rate (R$)', kpis.burnRate.toFixed(2)],
-            ['Runway (meses)', kpis.runway.toFixed(1)]
+            ['Liquidez Imediata', kpis.liquidezImediata?.toFixed(2) ?? 'N/A'],
+            ['Liquidez Corrente', kpis.liquidezCorrente?.toFixed(2) ?? 'N/A'],
+            ['PMR (dias)', kpis.pmr?.toFixed(0) ?? 'N/A'],
+            ['PMP (dias)', kpis.pmp?.toFixed(0) ?? 'N/A'],
+            ['Ciclo Financeiro (dias)', kpis.cicloFinanceiro?.toFixed(0) ?? 'N/A'],
+            ['Margem Líquida (%)', kpis.margemLiquida?.toFixed(1) ?? 'N/A'],
+            ['Margem EBITDA (%)', kpis.margemEbitda?.toFixed(1) ?? 'N/A'],
+            ['ROA (%)', kpis.returnOnAssets?.toFixed(1) ?? 'N/A'],
+            ['ROE (%)', kpis.returnOnEquity?.toFixed(1) ?? 'N/A'],
+            ['Burn Rate (R$)', kpis.burnRate?.toFixed(2) ?? 'N/A'],
+            ['Runway (meses)', kpis.runway?.toFixed(1) ?? 'N/A']
           ] : []
         };
         break;

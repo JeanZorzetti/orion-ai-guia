@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { FinancialKPIs } from '@/types/cash-flow';
-import { apiClient } from '@/lib/api';
+import { api } from '@/lib/api';
 
 interface UseFinancialKPIsReturn {
   kpis: FinancialKPIs | null;
@@ -37,7 +37,7 @@ export const useFinancialKPIs = (periodDays: number = 30): UseFinancialKPIsRetur
     setError(null);
 
     try {
-      const response = await apiClient.get<FinancialKPIsAPIResponse>(
+      const response = await api.get<FinancialKPIsAPIResponse>(
         `/cash-flow/analytics/kpis?period_days=${periodDays}`
       );
 

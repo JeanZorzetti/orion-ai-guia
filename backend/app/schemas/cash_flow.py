@@ -345,3 +345,73 @@ class FinancialKPIs(BaseModel):
                 "period_days": 30
             }
         }
+
+
+# ============================================
+# BREAK-EVEN ANALYSIS SCHEMA
+# ============================================
+
+class BreakEvenPoint(BaseModel):
+    """
+    Ponto de Break-Even para um período específico
+    """
+    date: date = Field(..., description="Data do ponto")
+    revenue: float = Field(..., description="Receita projetada")
+    fixed_costs: float = Field(..., description="Custos fixos")
+    variable_costs: float = Field(..., description="Custos variáveis")
+    total_costs: float = Field(..., description="Custos totais (fixos + variáveis)")
+    profit: float = Field(..., description="Lucro/Prejuízo")
+    is_break_even: bool = Field(..., description="Indica se este é o ponto de equilíbrio")
+
+
+class BreakEvenAnalysis(BaseModel):
+    """
+    Análise de Ponto de Equilíbrio
+
+    Calcula o ponto onde receitas = custos totais
+    """
+    # Valores atuais
+    current_revenue: float = Field(..., description="Receita atual do período")
+    current_fixed_costs: float = Field(..., description="Custos fixos atuais")
+    current_variable_costs: float = Field(..., description="Custos variáveis atuais")
+    current_total_costs: float = Field(..., description="Custos totais atuais")
+    current_profit: float = Field(..., description="Lucro/Prejuízo atual")
+
+    # Break-even point
+    break_even_revenue: float = Field(..., description="Receita necessária para break-even")
+    break_even_units: Optional[float] = Field(None, description="Unidades necessárias (se aplicável)")
+    revenue_gap: float = Field(..., description="Diferença entre receita atual e break-even")
+    revenue_gap_percentage: float = Field(..., description="Percentual de gap (%)")
+
+    # Margens
+    contribution_margin: float = Field(..., description="Margem de contribuição (Receita - Custos Variáveis)")
+    contribution_margin_percentage: float = Field(..., description="% Margem de contribuição")
+
+    # Dados do gráfico
+    chart_data: List[BreakEvenPoint] = Field(..., description="Pontos para o gráfico")
+
+    # Metadados
+    period_start: date = Field(..., description="Data inicial da análise")
+    period_end: date = Field(..., description="Data final da análise")
+    period_days: int = Field(..., description="Dias analisados")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "current_revenue": 100000.0,
+                "current_fixed_costs": 40000.0,
+                "current_variable_costs": 35000.0,
+                "current_total_costs": 75000.0,
+                "current_profit": 25000.0,
+                "break_even_revenue": 66667.0,
+                "break_even_units": None,
+                "revenue_gap": 33333.0,
+                "revenue_gap_percentage": 50.0,
+                "contribution_margin": 65000.0,
+                "contribution_margin_percentage": 65.0,
+                "chart_data": [],
+                "period_start": "2025-01-01",
+                "period_end": "2025-01-30",
+                "period_days": 30
+            }
+        }
