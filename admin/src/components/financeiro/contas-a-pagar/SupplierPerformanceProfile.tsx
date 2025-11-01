@@ -36,11 +36,21 @@ const getCategoryVariant = (categoria: string) => {
 export const SupplierPerformanceProfile: React.FC<Props> = ({ fornecedorId }) => {
   const performance = useSupplierPerformance(fornecedorId);
 
-  if (!performance) {
+  if (!fornecedorId) {
     return (
       <Card>
         <CardContent className="p-6">
-          <p className="text-muted-foreground">Fornecedor não encontrado</p>
+          <p className="text-muted-foreground">Selecione um fornecedor</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!performance) {
+    return (
+      <Card>
+        <CardContent className="p-6 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </CardContent>
       </Card>
     );
