@@ -96,7 +96,7 @@ export const ARDashboardKPIs: React.FC<ARDashboardKPIsProps> = ({ analytics }) =
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-purple-600">
-            R$ {kpis.ticketMedioAR.toLocaleString('pt-BR')}
+            R$ {(kpis.ticketMedioAR || 0).toLocaleString('pt-BR')}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             Valor médio por título
@@ -128,7 +128,7 @@ export const ARDashboardKPIs: React.FC<ARDashboardKPIsProps> = ({ analytics }) =
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-blue-600">
-            R$ {kpis.totalAReceber.toLocaleString('pt-BR')}
+            R$ {(kpis.totalAReceber || 0).toLocaleString('pt-BR')}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             Saldo atual
@@ -144,7 +144,7 @@ export const ARDashboardKPIs: React.FC<ARDashboardKPIsProps> = ({ analytics }) =
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-indigo-600">
-            R$ {kpis.proximoVencimento30d.toLocaleString('pt-BR')}
+            R$ {(kpis.proximoVencimento30d || 0).toLocaleString('pt-BR')}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             Vencimentos programados
