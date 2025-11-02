@@ -259,7 +259,7 @@ export const useReportScheduler = () => {
         criadoEm: new Date(s.criado_em),
         criadoPor: { id: 'current', nome: 'Usuário' },
         atualizadoEm: new Date(s.criado_em),
-        proximaExecucao: s.proxima_execucao ? new Date(s.proxima_execucao) : undefined,
+        proximaExecucao: s.proxima_execucao ? new Date(s.proxima_execucao) : new Date(),
         ultimaExecucao: s.ultima_execucao ? new Date(s.ultima_execucao) : undefined,
         execucoes: []
       }));
