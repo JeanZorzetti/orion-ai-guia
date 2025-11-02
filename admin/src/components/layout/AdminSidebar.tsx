@@ -27,6 +27,10 @@ import {
   Percent,
   Building2,
   Globe,
+  ClipboardList,
+  Warehouse,
+  ArrowRightLeft,
+  ClipboardCheck,
   type LucideIcon
 } from 'lucide-react';
 import { User } from '@/types';
@@ -167,11 +171,68 @@ const navigation = [
         name: 'Vendas',
         href: '/admin/vendas',
         icon: ShoppingCart,
+        children: [
+          {
+            name: 'Dashboard',
+            href: '/admin/vendas',
+            icon: LayoutDashboard,
+          },
+          {
+            name: 'Funil',
+            href: '/admin/vendas/funil',
+            icon: TrendingUp,
+          },
+          {
+            name: 'Marketplace',
+            href: '/admin/vendas/marketplace',
+            icon: Globe,
+          },
+          {
+            name: 'Logística',
+            href: '/admin/vendas/logistica',
+            icon: Truck,
+          },
+          {
+            name: 'Analytics',
+            href: '/admin/vendas/analytics',
+            icon: BarChart3,
+          },
+        ],
       },
       {
         name: 'Produtos',
         href: '/admin/estoque/produtos',
         icon: Package,
+      },
+      {
+        name: 'Lotes e Validades',
+        href: '/admin/estoque/lotes',
+        icon: ClipboardList,
+      },
+      {
+        name: 'Depósitos',
+        href: '/admin/estoque/depositos',
+        icon: Warehouse,
+      },
+      {
+        name: 'Automação e IA',
+        href: '/admin/estoque/automacao',
+        icon: Brain,
+      },
+      {
+        name: 'Movimentações',
+        href: '/admin/estoque/movimentacoes',
+        icon: ArrowRightLeft,
+      },
+      {
+        name: 'Inventário',
+        href: '/admin/estoque/inventario',
+        icon: ClipboardCheck,
+      },
+      {
+        name: 'Relatórios',
+        href: '/admin/estoque/relatorios',
+        icon: FileBarChart,
       },
     ],
   },
