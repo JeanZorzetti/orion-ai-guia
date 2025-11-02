@@ -20,6 +20,8 @@ from app.models.automation import (
     StockAlert,
     AlertRule
 )
+from app.models.customer import Customer
+from app.models.sales_pipeline import SalesPipeline, PipelineStage, Opportunity
 
 __all__ = [
     "Base",
@@ -41,4 +43,8 @@ __all__ = [
     "PurchaseSuggestion",
     "StockAlert",
     "AlertRule",
+    "Customer",
+    "SalesPipeline",
+    "PipelineStage",
+    "Opportunity",
 ]
