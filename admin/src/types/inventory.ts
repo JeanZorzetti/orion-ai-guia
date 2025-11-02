@@ -617,9 +617,9 @@ export interface StockOptimization {
   service_level_target: number; // 95%, 99%, etc.
 
   // Custos
-  holding_cost_per_unit: number;
-  ordering_cost: number;
-  stockout_cost_estimate: number;
+  holding_cost_per_unit?: number;
+  ordering_cost?: number;
+  stockout_cost_estimate?: number;
 
   // Recomendação
   current_stock: number;
@@ -640,7 +640,7 @@ export interface PurchaseSuggestion {
 
   // Justificativa
   reason: string; // Ex: "Estoque crítico - 3 dias até ruptura"
-  forecast_demand: number;
+  forecast_demand?: number;
   current_stock: number;
   lead_time_days: number;
 
@@ -656,7 +656,7 @@ export interface PurchaseSuggestion {
 
   // Timeline
   order_by_date: Date;
-  expected_delivery_date: Date;
+  expected_delivery_date?: Date;
 
   // Status
   status: 'pending' | 'approved' | 'ordered' | 'dismissed';
@@ -683,13 +683,13 @@ export interface StockAlert {
 
   // Detalhes
   message: string;
-  current_value: number;
-  threshold_value: number;
+  current_value?: number;
+  threshold_value?: number;
   recommended_action: string;
 
   // Notificação
-  notify_users: string[];
-  notification_channels: ('email' | 'sms' | 'push' | 'whatsapp')[];
+  notify_users?: any[];
+  notification_channels?: any[];
   sent_at?: Date;
 
   // Status
@@ -724,15 +724,15 @@ export interface AlertRule {
 
   // Ações
   auto_actions: ('create_purchase_suggestion' | 'send_notification' | 'create_transfer' | 'create_task')[];
-  notification_template: string;
-  notify_users: string[];
-  notification_channels: ('email' | 'sms' | 'push' | 'whatsapp')[];
+  notification_template?: string;
+  notify_users?: any[];
+  notification_channels?: any[];
 
   // Frequência
   check_frequency: 'realtime' | 'hourly' | 'daily' | 'weekly';
   last_checked_at?: Date;
 
-  created_by: string;
+  created_by?: string;
   created_at: Date;
   updated_at: Date;
 }

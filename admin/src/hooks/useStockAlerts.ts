@@ -1,209 +1,75 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { api } from '@/lib/api';
 import {
   StockAlert,
   AlertRule,
   AutomationLog,
   StockAlertFilters,
 } from '@/types/inventory';
-import { addDays, addHours, startOfDay } from 'date-fns';
 
 // ============================================
-// MOCK DATA GENERATORS
+// API Response Types
 // ============================================
 
-const generateMockAlerts = (): StockAlert[] => {
-  const alerts: StockAlert[] = [];
-  const hoje = new Date();
+interface StockAlertAPI {
+  id: number;
+  type: 'low_stock' | 'critical_stock' | 'overstock' | 'expiring_soon' | 'expired' | 'slow_moving' | 'fast_moving' | 'stockout_risk';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  product_id: number;
+  product_name: string;
+  warehouse_id?: number;
+  warehouse_name?: string;
+  batch_id?: number;
+  message: string;
+  current_value?: number;
+  threshold_value?: number;
+  recommended_action: string;
+  notify_users?: any[];
+  notification_channels?: string[];
+  sent_at?: string;
+  status: 'active' | 'acknowledged' | 'resolved' | 'dismissed';
+  acknowledged_by?: number;
+  acknowledged_at?: string;
+  resolved_at?: string;
+  resolution_notes?: string;
+  created_at: string;
+}
 
-  const alertTypes: StockAlert['type'][] = [
-    'low_stock', 'critical_stock', 'overstock', 'expiring_soon',
-    'expired', 'slow_moving', 'fast_moving', 'stockout_risk'
-  ];
+interface AlertRuleAPI {
+  id: number;
+  name: string;
+  description?: string;
+  type: 'low_stock' | 'critical_stock' | 'overstock' | 'expiring_soon' | 'expired' | 'slow_moving' | 'fast_moving' | 'stockout_risk';
+  is_active: boolean;
+  conditions: any[];
+  applies_to: string;
+  category_ids?: number[];
+  product_ids?: number[];
+  warehouse_ids?: number[];
+  auto_actions: string[];
+  notification_template?: string;
+  notify_users?: any[];
+  notification_channels?: string[];
+  check_frequency: string;
+  last_checked_at?: string;
+  created_by?: number;
+  created_at: string;
+  updated_at: string;
+}
 
-  for (let i = 1; i <= 30; i++) {
-    const type = alertTypes[Math.floor(Math.random() * alertTypes.length)];
-    const severity: StockAlert['severity'] =
-      type === 'critical_stock' || type === 'expired' || type === 'stockout_risk' ? 'critical' :
-      type === 'low_stock' || type === 'expiring_soon' ? 'high' :
-      type === 'fast_moving' ? 'medium' : 'low';
+interface AlertStatsAPI {
+  total_alerts: number;
+  active_alerts: number;
+  critical_alerts: number;
+  high_alerts: number;
+  acknowledged_alerts: number;
+}
 
-    const status: StockAlert['status'] = Math.random() > 0.7 ? 'resolved' :
-                                        Math.random() > 0.5 ? 'acknowledged' : 'active';
-
-    alerts.push({
-      id: `alert-${i}`,
-      type,
-      severity,
-      product_id: Math.floor(Math.random() * 20) + 1,
-      product_name: `Produto ${Math.floor(Math.random() * 20) + 1}`,
-      warehouse_id: Math.random() > 0.5 ? `warehouse-${Math.floor(Math.random() * 3) + 1}` : undefined,
-      warehouse_name: Math.random() > 0.5 ? `Depósito ${Math.floor(Math.random() * 3) + 1}` : undefined,
-      batch_id: type === 'expiring_soon' || type === 'expired' ? `batch-${i}` : undefined,
-      message: generateAlertMessage(type),
-      current_value: Math.floor(Math.random() * 100),
-      threshold_value: Math.floor(Math.random() * 50) + 20,
-      recommended_action: generateRecommendedAction(type),
-      notify_users: ['user-1', 'user-2'],
-      notification_channels: ['email', 'push'],
-      sent_at: addHours(hoje, -Math.random() * 48),
-      status,
-      acknowledged_by: status !== 'active' ? 'user-1' : undefined,
-      acknowledged_at: status !== 'active' ? addHours(hoje, -Math.random() * 24) : undefined,
-      resolved_at: status === 'resolved' ? addHours(hoje, -Math.random() * 12) : undefined,
-      resolution_notes: status === 'resolved' ? 'Pedido realizado' : undefined,
-      created_at: addDays(hoje, -Math.random() * 7),
-    });
-  }
-
-  return alerts.sort((a, b) => {
-    const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-    return severityOrder[a.severity] - severityOrder[b.severity];
-  });
-};
-
-const generateAlertMessage = (type: StockAlert['type']): string => {
-  switch (type) {
-    case 'low_stock': return 'Estoque abaixo do mínimo recomendado';
-    case 'critical_stock': return 'Estoque crítico - Risco de ruptura';
-    case 'overstock': return 'Estoque em excesso - Avaliar promoção';
-    case 'expiring_soon': return 'Produto próximo ao vencimento';
-    case 'expired': return 'Produto vencido - Ação necessária';
-    case 'slow_moving': return 'Produto com giro lento - Avaliar estratégia';
-    case 'fast_moving': return 'Produto com giro acelerado - Aumentar estoque';
-    case 'stockout_risk': return 'Risco de ruptura nos próximos dias';
-    default: return 'Alerta de estoque';
-  }
-};
-
-const generateRecommendedAction = (type: StockAlert['type']): string => {
-  switch (type) {
-    case 'low_stock': return 'Emitir pedido de compra';
-    case 'critical_stock': return 'Pedido urgente necessário';
-    case 'overstock': return 'Criar promoção ou transferir entre depósitos';
-    case 'expiring_soon': return 'Promoção para liquidação rápida';
-    case 'expired': return 'Separar para descarte ou doação';
-    case 'slow_moving': return 'Revisar precificação e canais de venda';
-    case 'fast_moving': return 'Aumentar estoque de segurança';
-    case 'stockout_risk': return 'Pedido de reposição imediato';
-    default: return 'Avaliar situação';
-  }
-};
-
-const generateMockRules = (): AlertRule[] => {
-  const hoje = new Date();
-
-  return [
-    {
-      id: 'rule-1',
-      name: 'Estoque Baixo - Todos os Produtos',
-      description: 'Alerta quando o estoque cair abaixo de 20% do mínimo',
-      type: 'low_stock',
-      is_active: true,
-      conditions: [
-        { metric: 'percentage', operator: '<', threshold: 20 },
-      ],
-      applies_to: 'all',
-      auto_actions: ['send_notification', 'create_purchase_suggestion'],
-      notification_template: 'Estoque de {{product_name}} está abaixo de 20% do mínimo',
-      notify_users: ['user-1', 'user-2'],
-      notification_channels: ['email', 'push'],
-      check_frequency: 'hourly',
-      last_checked_at: addHours(hoje, -1),
-      created_by: 'user-1',
-      created_at: addDays(hoje, -30),
-      updated_at: hoje,
-    },
-    {
-      id: 'rule-2',
-      name: 'Estoque Crítico - Categoria Eletrônicos',
-      description: 'Alerta crítico para produtos eletrônicos com estoque < 10 unidades',
-      type: 'critical_stock',
-      is_active: true,
-      conditions: [
-        { metric: 'quantity', operator: '<', threshold: 10 },
-      ],
-      applies_to: 'category',
-      category_ids: [1, 2, 3],
-      auto_actions: ['send_notification', 'create_purchase_suggestion', 'create_task'],
-      notification_template: 'URGENTE: {{product_name}} com apenas {{quantity}} unidades',
-      notify_users: ['user-1'],
-      notification_channels: ['email', 'sms', 'push'],
-      check_frequency: 'realtime',
-      created_by: 'user-1',
-      created_at: addDays(hoje, -60),
-      updated_at: hoje,
-    },
-    {
-      id: 'rule-3',
-      name: 'Produtos Vencendo',
-      description: 'Alerta para produtos que vencem em menos de 30 dias',
-      type: 'expiring_soon',
-      is_active: true,
-      conditions: [
-        { metric: 'days', operator: '<', threshold: 30 },
-      ],
-      applies_to: 'all',
-      auto_actions: ['send_notification'],
-      notification_template: '{{product_name}} vence em {{days}} dias - Lote {{batch_number}}',
-      notify_users: ['user-1', 'user-3'],
-      notification_channels: ['email'],
-      check_frequency: 'daily',
-      last_checked_at: startOfDay(hoje),
-      created_by: 'user-1',
-      created_at: addDays(hoje, -45),
-      updated_at: hoje,
-    },
-    {
-      id: 'rule-4',
-      name: 'Excesso de Estoque',
-      description: 'Alerta quando estoque ultrapassar 150% do máximo',
-      type: 'overstock',
-      is_active: true,
-      conditions: [
-        { metric: 'percentage', operator: '>', threshold: 150 },
-      ],
-      applies_to: 'all',
-      auto_actions: ['send_notification'],
-      notification_template: '{{product_name}} com excesso de estoque - {{quantity}} unidades',
-      notify_users: ['user-2'],
-      notification_channels: ['email'],
-      check_frequency: 'weekly',
-      created_by: 'user-2',
-      created_at: addDays(hoje, -90),
-      updated_at: hoje,
-    },
-  ];
-};
-
-const generateMockLogs = (): AutomationLog[] => {
-  const logs: AutomationLog[] = [];
-  const hoje = new Date();
-
-  for (let i = 1; i <= 15; i++) {
-    logs.push({
-      id: `log-${i}`,
-      rule_id: `rule-${Math.floor(Math.random() * 4) + 1}`,
-      rule_name: `Regra ${Math.floor(Math.random() * 4) + 1}`,
-      automation_type: ['alert', 'purchase', 'notification'][Math.floor(Math.random() * 3)] as any,
-      action_taken: 'Notificação enviada para gestores de estoque',
-      triggered_by: Math.random() > 0.5 ? 'rule' : 'system',
-      trigger_details: 'Estoque abaixo do limite configurado',
-      status: Math.random() > 0.9 ? 'failed' : 'success',
-      error_message: Math.random() > 0.9 ? 'Erro ao enviar notificação' : undefined,
-      affected_items: [
-        {
-          product_id: Math.floor(Math.random() * 20) + 1,
-          warehouse_id: `warehouse-${Math.floor(Math.random() * 3) + 1}`,
-          quantity: Math.floor(Math.random() * 100),
-        },
-      ],
-      executed_at: addHours(hoje, -Math.random() * 72),
-      execution_time_ms: Math.floor(Math.random() * 1000) + 100,
-    });
-  }
-
-  return logs.sort((a, b) => b.executed_at.getTime() - a.executed_at.getTime());
-};
+interface RuleStatsAPI {
+  total_rules: number;
+  active_rules: number;
+  inactive_rules: number;
+}
 
 // ============================================
 // HOOK
@@ -249,11 +115,137 @@ interface UseStockAlertsReturn {
 }
 
 export const useStockAlerts = (): UseStockAlertsReturn => {
-  const [alerts, setAlerts] = useState<StockAlert[]>(generateMockAlerts);
-  const [rules, setRules] = useState<AlertRule[]>(generateMockRules);
-  const [logs, setLogs] = useState<AutomationLog[]>(generateMockLogs);
+  const [alerts, setAlerts] = useState<StockAlert[]>([]);
+  const [rules, setRules] = useState<AlertRule[]>([]);
+  const [logs, setLogs] = useState<AutomationLog[]>([]);
   const [filters, setFilters] = useState<StockAlertFilters>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [alertStats, setAlertStats] = useState<AlertStatsAPI>({
+    total_alerts: 0,
+    active_alerts: 0,
+    critical_alerts: 0,
+    high_alerts: 0,
+    acknowledged_alerts: 0
+  });
+
+  const [ruleStats, setRuleStats] = useState<RuleStatsAPI>({
+    total_rules: 0,
+    active_rules: 0,
+    inactive_rules: 0
+  });
+
+  // ============================================
+  // FETCH DATA FROM API
+  // ============================================
+
+  const fetchAlerts = useCallback(async () => {
+    console.log('🔄 [useStockAlerts] Buscando alertas da API');
+    try {
+      const response = await api.get<StockAlertAPI[]>('/automation/alerts');
+      console.log('✅ [useStockAlerts] Alertas recebidos:', response.length);
+
+      const converted: StockAlert[] = response.map(a => ({
+        id: a.id.toString(),
+        type: a.type,
+        severity: a.severity,
+        product_id: a.product_id,
+        product_name: a.product_name,
+        warehouse_id: a.warehouse_id?.toString(),
+        warehouse_name: a.warehouse_name,
+        batch_id: a.batch_id?.toString(),
+        message: a.message,
+        current_value: a.current_value,
+        threshold_value: a.threshold_value,
+        recommended_action: a.recommended_action,
+        notify_users: a.notify_users,
+        notification_channels: a.notification_channels,
+        sent_at: a.sent_at ? new Date(a.sent_at) : undefined,
+        status: a.status,
+        acknowledged_by: a.acknowledged_by?.toString(),
+        acknowledged_at: a.acknowledged_at ? new Date(a.acknowledged_at) : undefined,
+        resolved_at: a.resolved_at ? new Date(a.resolved_at) : undefined,
+        resolution_notes: a.resolution_notes,
+        created_at: new Date(a.created_at)
+      }));
+
+      setAlerts(converted);
+    } catch (err) {
+      console.error('❌ [useStockAlerts] Erro ao buscar alertas:', err);
+      setAlerts([]);
+    }
+  }, []);
+
+  const fetchAlertStats = useCallback(async () => {
+    try {
+      const response = await api.get<AlertStatsAPI>('/automation/alerts/stats');
+      console.log('✅ [useStockAlerts] Stats de alertas recebidas:', response);
+      setAlertStats(response);
+    } catch (err) {
+      console.error('❌ [useStockAlerts] Erro ao buscar stats de alertas:', err);
+    }
+  }, []);
+
+  const fetchRules = useCallback(async () => {
+    console.log('🔄 [useStockAlerts] Buscando regras da API');
+    try {
+      const response = await api.get<AlertRuleAPI[]>('/automation/rules');
+      console.log('✅ [useStockAlerts] Regras recebidas:', response.length);
+
+      const converted: AlertRule[] = response.map(r => ({
+        id: r.id.toString(),
+        name: r.name,
+        description: r.description,
+        type: r.type,
+        is_active: r.is_active,
+        conditions: r.conditions,
+        applies_to: r.applies_to as any,
+        category_ids: r.category_ids,
+        product_ids: r.product_ids,
+        warehouse_ids: r.warehouse_ids?.map(id => id.toString()),
+        auto_actions: r.auto_actions as any,
+        notification_template: r.notification_template,
+        notify_users: r.notify_users,
+        notification_channels: r.notification_channels as any,
+        check_frequency: r.check_frequency as any,
+        last_checked_at: r.last_checked_at ? new Date(r.last_checked_at) : undefined,
+        created_by: r.created_by?.toString(),
+        created_at: new Date(r.created_at),
+        updated_at: new Date(r.updated_at)
+      }));
+
+      setRules(converted);
+    } catch (err) {
+      console.error('❌ [useStockAlerts] Erro ao buscar regras:', err);
+      setRules([]);
+    }
+  }, []);
+
+  const fetchRuleStats = useCallback(async () => {
+    try {
+      const response = await api.get<RuleStatsAPI>('/automation/rules/stats');
+      console.log('✅ [useStockAlerts] Stats de regras recebidas:', response);
+      setRuleStats(response);
+    } catch (err) {
+      console.error('❌ [useStockAlerts] Erro ao buscar stats de regras:', err);
+    }
+  }, []);
+
+  // Buscar dados ao montar
+  useEffect(() => {
+    const fetchAll = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchAlerts(),
+        fetchAlertStats(),
+        fetchRules(),
+        fetchRuleStats()
+      ]);
+      setLoading(false);
+    };
+
+    fetchAll();
+  }, [fetchAlerts, fetchAlertStats, fetchRules, fetchRuleStats]);
 
   // ============================================
   // COMPUTED DATA
@@ -303,58 +295,64 @@ export const useStockAlerts = (): UseStockAlertsReturn => {
   }, [alerts, filters]);
 
   const stats = useMemo(() => {
-    const activeAlerts = alerts.filter(a => a.status === 'active').length;
-    const criticalAlerts = alerts.filter(a => a.severity === 'critical' && a.status === 'active').length;
-    const highAlerts = alerts.filter(a => a.severity === 'high' && a.status === 'active').length;
-    const acknowledgedAlerts = alerts.filter(a => a.status === 'acknowledged').length;
-    const activeRules = rules.filter(r => r.is_active).length;
-    const successfulAutomations = logs.filter(l => l.status === 'success').length;
-    const automationSuccessRate = logs.length > 0 ? (successfulAutomations / logs.length) * 100 : 100;
+    // Automação de sucesso - ainda não implementado
+    const successfulAutomations = 0;
+    const totalAutomations = 0;
+    const automationSuccessRate = totalAutomations > 0 ? (successfulAutomations / totalAutomations) * 100 : 100;
 
     return {
-      activeAlerts,
-      criticalAlerts,
-      highAlerts,
-      acknowledgedAlerts,
-      activeRules,
+      activeAlerts: alertStats.active_alerts,
+      criticalAlerts: alertStats.critical_alerts,
+      highAlerts: alertStats.high_alerts,
+      acknowledgedAlerts: alertStats.acknowledged_alerts,
+      activeRules: ruleStats.active_rules,
       successfulAutomations,
       automationSuccessRate,
     };
-  }, [alerts, rules, logs]);
+  }, [alertStats, ruleStats]);
 
   // ============================================
   // ACTIONS - ALERTS
   // ============================================
 
   const acknowledgeAlert = useCallback((alertId: string, userId: string) => {
+    // Atualizar localmente
     setAlerts(prev => prev.map(a =>
       a.id === alertId ? {
         ...a,
-        status: 'acknowledged',
+        status: 'acknowledged' as const,
         acknowledged_by: userId,
         acknowledged_at: new Date(),
       } : a
     ));
+
+    // TODO: Chamar API para atualizar no backend
   }, []);
 
   const resolveAlert = useCallback((alertId: string, notes: string) => {
+    // Atualizar localmente
     setAlerts(prev => prev.map(a =>
       a.id === alertId ? {
         ...a,
-        status: 'resolved',
+        status: 'resolved' as const,
         resolved_at: new Date(),
         resolution_notes: notes,
       } : a
     ));
+
+    // TODO: Chamar API para atualizar no backend
   }, []);
 
   const dismissAlert = useCallback((alertId: string) => {
+    // Atualizar localmente
     setAlerts(prev => prev.map(a =>
       a.id === alertId ? {
         ...a,
-        status: 'dismissed',
+        status: 'dismissed' as const,
       } : a
     ));
+
+    // TODO: Chamar API para atualizar no backend
   }, []);
 
   // ============================================
@@ -362,45 +360,43 @@ export const useStockAlerts = (): UseStockAlertsReturn => {
   // ============================================
 
   const createRule = useCallback((ruleData: Omit<AlertRule, 'id' | 'created_at' | 'updated_at'>) => {
-    const hoje = new Date();
-    const newRule: AlertRule = {
-      ...ruleData,
-      id: `rule-${Date.now()}`,
-      created_at: hoje,
-      updated_at: hoje,
-    };
-    setRules(prev => [...prev, newRule]);
+    console.warn('createRule: Não implementado');
+    // TODO: Chamar API para criar regra
   }, []);
 
   const updateRule = useCallback((ruleId: string, updates: Partial<AlertRule>) => {
-    setRules(prev => prev.map(r =>
-      r.id === ruleId ? { ...r, ...updates, updated_at: new Date() } : r
-    ));
+    console.warn('updateRule: Não implementado');
+    // TODO: Chamar API para atualizar regra
   }, []);
 
   const toggleRule = useCallback((ruleId: string) => {
+    // Atualizar localmente
     setRules(prev => prev.map(r =>
       r.id === ruleId ? { ...r, is_active: !r.is_active, updated_at: new Date() } : r
     ));
+
+    // TODO: Chamar API para atualizar no backend
   }, []);
 
   const deleteRule = useCallback((ruleId: string) => {
-    setRules(prev => prev.filter(r => r.id !== ruleId));
+    console.warn('deleteRule: Não implementado');
+    // TODO: Chamar API para deletar regra
   }, []);
 
   // ============================================
   // REFRESH
   // ============================================
 
-  const refresh = useCallback(() => {
+  const refresh = useCallback(async () => {
     setLoading(true);
-    setTimeout(() => {
-      setAlerts(generateMockAlerts());
-      setRules(generateMockRules());
-      setLogs(generateMockLogs());
-      setLoading(false);
-    }, 500);
-  }, []);
+    await Promise.all([
+      fetchAlerts(),
+      fetchAlertStats(),
+      fetchRules(),
+      fetchRuleStats()
+    ]);
+    setLoading(false);
+  }, [fetchAlerts, fetchAlertStats, fetchRules, fetchRuleStats]);
 
   const clearFilters = useCallback(() => {
     setFilters({});
@@ -411,7 +407,7 @@ export const useStockAlerts = (): UseStockAlertsReturn => {
     alerts,
     filteredAlerts,
     rules,
-    logs,
+    logs, // Vazio por enquanto - não implementado
 
     // Filters
     filters,
