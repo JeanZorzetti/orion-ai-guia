@@ -22,7 +22,8 @@ from app.api.api_v1.endpoints import (
     logistics,
     analytics,
     stock_movements,
-    inventory
+    inventory,
+    stock_reports
 )
 
 api_router = APIRouter()
@@ -47,5 +48,6 @@ api_router.include_router(logistics.router, prefix="/logistics", tags=["logistic
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 api_router.include_router(stock_movements.router, prefix="/stock", tags=["stock-movements"])
 api_router.include_router(inventory.router, prefix="/inventory", tags=["inventory"])
+api_router.include_router(stock_reports.router, prefix="/stock-reports", tags=["stock-reports"])
 api_router.include_router(super_admin.router, prefix="/super-admin", tags=["super-admin"])
 api_router.include_router(admin_reset.router, prefix="/admin-utils", tags=["admin-utils"])

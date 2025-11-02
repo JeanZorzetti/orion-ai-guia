@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,11 +11,20 @@ import {
   PieChart,
   AlertTriangle,
   FileText,
-  FileSpreadsheet
+  FileSpreadsheet,
+  RefreshCw
 } from 'lucide-react';
+import { useStockReports } from '@/hooks/useStockReports';
 
 const RelatoriosEstoquePage: React.FC = () => {
-  const relatorios = [
+  const {
+    statistics,
+    loading,
+    error,
+    refresh
+  } = useStockReports();
+
+  const relatoriosTipos = [
     {
       titulo: 'Posição de Estoque',
       descricao: 'Listagem completa de produtos e quantidades',
@@ -21,6 +32,7 @@ const RelatoriosEstoquePage: React.FC = () => {
       color: 'text-blue-500',
       bgColor: 'bg-blue-50 dark:bg-blue-950/20',
       periodo: 'Atualizado em tempo real',
+      endpoint: 'position'
     },
     {
       titulo: 'Movimentações Consolidadas',
@@ -29,6 +41,7 @@ const RelatoriosEstoquePage: React.FC = () => {
       color: 'text-green-500',
       bgColor: 'bg-green-50 dark:bg-green-950/20',
       periodo: 'Personalizado',
+      endpoint: 'movements'
     },
     {
       titulo: 'Produtos Abaixo do Mínimo',
@@ -37,6 +50,7 @@ const RelatoriosEstoquePage: React.FC = () => {
       color: 'text-orange-500',
       bgColor: 'bg-orange-50 dark:bg-orange-950/20',
       periodo: 'Atualizado em tempo real',
+      endpoint: 'below-minimum'
     },
     {
       titulo: 'Análise de Giro de Estoque',
@@ -45,6 +59,7 @@ const RelatoriosEstoquePage: React.FC = () => {
       color: 'text-purple-500',
       bgColor: 'bg-purple-50 dark:bg-purple-950/20',
       periodo: 'Mensal',
+      endpoint: 'turnover'
     },
     {
       titulo: 'Valor de Estoque',
@@ -53,6 +68,7 @@ const RelatoriosEstoquePage: React.FC = () => {
       color: 'text-cyan-500',
       bgColor: 'bg-cyan-50 dark:bg-cyan-950/20',
       periodo: 'Atualizado em tempo real',
+      endpoint: 'value-by-category'
     },
     {
       titulo: 'Inventário Físico',
@@ -61,20 +77,35 @@ const RelatoriosEstoquePage: React.FC = () => {
       color: 'text-indigo-500',
       bgColor: 'bg-indigo-50 dark:bg-indigo-950/20',
       periodo: 'Por inventário',
+      endpoint: 'inventory-reports'
     },
   ];
 
-  const relatoriosRecentes = [
-    { nome: 'Posicao_Estoque_Janeiro_2024.pdf', data: '15/01/2024', tamanho: '342 KB' },
-    { nome: 'Movimentacoes_Dezembro_2023.xlsx', data: '05/01/2024', tamanho: '198 KB' },
-    { nome: 'Alerta_Estoque_Baixo_Janeiro_2024.pdf', data: '10/01/2024', tamanho: '124 KB' },
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2 text-purple-500" />
+          <p className="text-muted-foreground">Carregando relatórios...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const estatisticas = [
-    { label: 'Produtos Cadastrados', valor: '342', icon: Package, color: 'text-blue-500' },
-    { label: 'Valor Total', valor: 'R$ 125.480', icon: TrendingUp, color: 'text-green-500' },
-    { label: 'Itens Baixo Estoque', valor: '12', icon: AlertTriangle, color: 'text-orange-500' },
-  ];
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-500 mb-2">Erro ao carregar relatórios</p>
+          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          <Button onClick={refresh}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Tentar Novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -88,28 +119,59 @@ const RelatoriosEstoquePage: React.FC = () => {
             Análises e demonstrativos de estoque
           </p>
         </div>
+        <Button variant="outline" onClick={refresh}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Atualizar
+        </Button>
       </div>
 
       {/* Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {estatisticas.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${stat.color}`}>{stat.valor}</div>
-            </CardContent>
-          </Card>
-        ))}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Produtos Cadastrados</CardTitle>
+            <Package className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-500">
+              {statistics?.total_products || 0}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-500">
+              {new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+              }).format(statistics?.total_stock_value || 0)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Itens Baixo Estoque</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-500">
+              {statistics?.products_below_minimum || 0}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tipos de Relatórios */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Gerar Relatório</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {relatorios.map((relatorio, index) => (
+          {relatoriosTipos.map((relatorio, index) => (
             <Card key={index} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className={`p-3 rounded-lg ${relatorio.bgColor} w-fit mb-3`}>
@@ -126,11 +188,27 @@ const RelatoriosEstoquePage: React.FC = () => {
                   <span className="font-medium text-xs">{relatorio.periodo}</span>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" size="sm">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    size="sm"
+                    onClick={() => {
+                      // TODO: Implementar geração de PDF
+                      console.log('Gerar PDF:', relatorio.endpoint);
+                    }}
+                  >
                     <FileText className="mr-2 h-3 w-3" />
                     PDF
                   </Button>
-                  <Button variant="outline" className="flex-1" size="sm">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    size="sm"
+                    onClick={() => {
+                      // TODO: Implementar geração de Excel
+                      console.log('Gerar Excel:', relatorio.endpoint);
+                    }}
+                  >
                     <FileSpreadsheet className="mr-2 h-3 w-3" />
                     Excel
                   </Button>
@@ -141,54 +219,26 @@ const RelatoriosEstoquePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Relatórios Recentes */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Relatórios Gerados Recentemente</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {relatoriosRecentes.map((rel, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/20">
-                    <FileText className="h-5 w-5 text-purple-500" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{rel.nome}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-muted-foreground">{rel.data}</span>
-                      <span className="text-xs text-muted-foreground">•</span>
-                      <span className="text-xs text-muted-foreground">{rel.tamanho}</span>
-                    </div>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Download className="mr-2 h-3 w-3" />
-                  Download
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Dica */}
+      {/* Informação sobre relatórios */}
       <Card className="border-purple-200 dark:border-purple-900 bg-purple-50/50 dark:bg-purple-950/20">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Package className="h-5 w-5 text-purple-500" />
-            <CardTitle>Dica</CardTitle>
+            <CardTitle>Sobre os Relatórios</CardTitle>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Configure alertas automáticos para receber relatórios de estoque baixo por e-mail.
-            Acesse <span className="font-semibold text-foreground">Configurações → Notificações</span> para ativar.
+            Todos os relatórios são gerados em tempo real com base nos dados mais recentes do sistema.
           </p>
+          <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+            <li><strong>Posição de Estoque:</strong> Lista todos os produtos com quantidades atuais</li>
+            <li><strong>Movimentações:</strong> Histórico de entradas e saídas no período selecionado</li>
+            <li><strong>Abaixo do Mínimo:</strong> Produtos que precisam de reposição urgente</li>
+            <li><strong>Giro de Estoque:</strong> Análise de velocidade de venda dos produtos</li>
+            <li><strong>Valor por Categoria:</strong> Distribuição do investimento em estoque</li>
+            <li><strong>Inventário Físico:</strong> Resumo das contagens físicas realizadas</li>
+          </ul>
         </CardContent>
       </Card>
     </div>
