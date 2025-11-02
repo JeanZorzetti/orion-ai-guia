@@ -21,6 +21,7 @@ from app.models.automation import (
     AlertRule
 )
 from app.models.customer import Customer
+from app.models.stock_adjustment import StockAdjustment
 from app.models.sales_pipeline import SalesPipeline, PipelineStage, Opportunity
 from app.models.marketplace import (
     MarketplaceIntegration,
@@ -68,6 +69,7 @@ __all__ = [
     "StockAlert",
     "AlertRule",
     "Customer",
+    "StockAdjustment",
     "SalesPipeline",
     "PipelineStage",
     "Opportunity",

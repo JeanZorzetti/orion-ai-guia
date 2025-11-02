@@ -20,7 +20,8 @@ from app.api.api_v1.endpoints import (
     marketplace,
     sales_pipeline,
     logistics,
-    analytics
+    analytics,
+    stock_movements
 )
 
 api_router = APIRouter()
@@ -43,5 +44,6 @@ api_router.include_router(marketplace.router, prefix="/marketplace", tags=["mark
 api_router.include_router(sales_pipeline.router, prefix="/sales-pipeline", tags=["sales-pipeline"])
 api_router.include_router(logistics.router, prefix="/logistics", tags=["logistics"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
+api_router.include_router(stock_movements.router, prefix="/stock", tags=["stock-movements"])
 api_router.include_router(super_admin.router, prefix="/super-admin", tags=["super-admin"])
 api_router.include_router(admin_reset.router, prefix="/admin-utils", tags=["admin-utils"])

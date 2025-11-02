@@ -105,6 +105,7 @@ class Workspace(Base):
     bank_accounts = relationship("BankAccount", back_populates="workspace", cascade="all, delete-orphan")
     cash_flow_transactions = relationship("CashFlowTransaction", back_populates="workspace", cascade="all, delete-orphan")
     product_batches = relationship("ProductBatch", back_populates="workspace", cascade="all, delete-orphan")
+    stock_adjustments = relationship("StockAdjustment", back_populates="workspace", cascade="all, delete-orphan")
     sales_pipelines = relationship("SalesPipeline", back_populates="workspace", cascade="all, delete-orphan")
     marketplace_integrations = relationship("MarketplaceIntegration", back_populates="workspace", cascade="all, delete-orphan")
     unified_orders = relationship("UnifiedOrder", back_populates="workspace", cascade="all, delete-orphan")

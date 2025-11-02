@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,92 +13,81 @@ import {
   Filter,
   Calendar,
   Package,
-  User
+  User,
+  RefreshCw
 } from 'lucide-react';
+import { useStockMovements } from '@/hooks/useStockMovements';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const MovimentacoesPage: React.FC = () => {
-  const movimentacoes = [
-    {
-      id: 1,
-      data: '2024-01-15',
-      tipo: 'entrada',
-      produto: 'Produto A - Eletrônico Premium',
-      codigo: 'PRD-001',
-      quantidade: 50,
-      usuario: 'João Silva',
-      observacao: 'Compra do fornecedor ABC',
-    },
-    {
-      id: 2,
-      data: '2024-01-15',
-      tipo: 'saida',
-      produto: 'Produto B - Ferramenta Profissional',
-      codigo: 'PRD-002',
-      quantidade: 15,
-      usuario: 'Maria Santos',
-      observacao: 'Venda NF-1234',
-    },
-    {
-      id: 3,
-      data: '2024-01-14',
-      tipo: 'entrada',
-      produto: 'Produto C - Material de Construção',
-      codigo: 'PRD-003',
-      quantidade: 100,
-      usuario: 'João Silva',
-      observacao: 'Reposição de estoque',
-    },
-    {
-      id: 4,
-      data: '2024-01-14',
-      tipo: 'saida',
-      produto: 'Produto D - Consumível Industrial',
-      codigo: 'PRD-004',
-      quantidade: 8,
-      usuario: 'Pedro Costa',
-      observacao: 'Uso interno - Produção',
-    },
-    {
-      id: 5,
-      data: '2024-01-13',
-      tipo: 'entrada',
-      produto: 'Produto E - Acessório Automotivo',
-      codigo: 'PRD-005',
-      quantidade: 30,
-      usuario: 'Maria Santos',
-      observacao: 'Transferência entre filiais',
-    },
-    {
-      id: 6,
-      data: '2024-01-13',
-      tipo: 'saida',
-      produto: 'Produto A - Eletrônico Premium',
-      codigo: 'PRD-001',
-      quantidade: 5,
-      usuario: 'João Silva',
-      observacao: 'Venda NF-1235',
-    },
-  ];
+  const {
+    movements,
+    summary,
+    loading,
+    error,
+    refresh
+  } = useStockMovements();
 
-  const resumo = {
-    totalEntradas: movimentacoes.filter(m => m.tipo === 'entrada').reduce((sum, m) => sum + m.quantidade, 0),
-    totalSaidas: movimentacoes.filter(m => m.tipo === 'saida').reduce((sum, m) => sum + m.quantidade, 0),
-    movimentacoesMes: movimentacoes.length,
-  };
+  const [searchTerm, setSearchTerm] = useState('');
 
   const getStatusBadge = (tipo: string) => {
-    if (tipo === 'entrada') {
+    if (tipo === 'in') {
       return <Badge className="bg-green-500">Entrada</Badge>;
     }
-    return <Badge className="bg-red-500">Saída</Badge>;
+    if (tipo === 'out') {
+      return <Badge className="bg-red-500">Saída</Badge>;
+    }
+    return <Badge className="bg-blue-500">Correção</Badge>;
   };
 
   const getStatusIcon = (tipo: string) => {
-    if (tipo === 'entrada') {
+    if (tipo === 'in') {
       return <TrendingUp className="h-4 w-4 text-green-500" />;
     }
-    return <TrendingDown className="h-4 w-4 text-red-500" />;
+    if (tipo === 'out') {
+      return <TrendingDown className="h-4 w-4 text-red-500" />;
+    }
+    return <Package className="h-4 w-4 text-blue-500" />;
   };
+
+  // Filtrar movimentações localmente
+  const filteredMovements = movements.filter(mov => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      mov.product_name.toLowerCase().includes(search) ||
+      mov.product_code.toLowerCase().includes(search) ||
+      mov.user_name.toLowerCase().includes(search) ||
+      mov.reason.toLowerCase().includes(search)
+    );
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-500" />
+          <p className="text-muted-foreground">Carregando movimentações...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-500 mb-2">Erro ao carregar movimentações</p>
+          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          <Button onClick={refresh}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Tentar Novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -110,10 +101,16 @@ const MovimentacoesPage: React.FC = () => {
             Entrada e saída de mercadorias
           </p>
         </div>
-        <Button size="lg">
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Movimentação
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={refresh}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Atualizar
+          </Button>
+          <Button size="lg">
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Movimentação
+          </Button>
+        </div>
       </div>
 
       {/* Cards de Resumo */}
@@ -125,7 +122,7 @@ const MovimentacoesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {resumo.totalEntradas}
+              {summary?.total_entries || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Unidades este mês
@@ -140,7 +137,7 @@ const MovimentacoesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {resumo.totalSaidas}
+              {summary?.total_exits || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Unidades este mês
@@ -155,7 +152,7 @@ const MovimentacoesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {resumo.movimentacoesMes}
+              {summary?.total_movements || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Registros este mês
@@ -174,6 +171,8 @@ const MovimentacoesPage: React.FC = () => {
                 type="text"
                 placeholder="Buscar por produto, código ou usuário..."
                 className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <Button variant="outline">
@@ -191,61 +190,82 @@ const MovimentacoesPage: React.FC = () => {
       {/* Tabela de Movimentações */}
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de Movimentações ({movimentacoes.length})</CardTitle>
+          <CardTitle>
+            Histórico de Movimentações ({filteredMovements.length})
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 font-semibold text-sm">Data</th>
-                  <th className="text-left p-3 font-semibold text-sm">Tipo</th>
-                  <th className="text-left p-3 font-semibold text-sm">Produto</th>
-                  <th className="text-right p-3 font-semibold text-sm">Quantidade</th>
-                  <th className="text-left p-3 font-semibold text-sm">Usuário</th>
-                  <th className="text-left p-3 font-semibold text-sm">Observação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {movimentacoes.map((mov) => (
-                  <tr key={mov.id} className="border-b hover:bg-muted/50 transition-colors">
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{mov.data}</span>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(mov.tipo)}
-                        {getStatusBadge(mov.tipo)}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div>
-                        <p className="font-medium">{mov.produto}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{mov.codigo}</p>
-                      </div>
-                    </td>
-                    <td className="p-3 text-right">
-                      <span className={`font-semibold ${mov.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>
-                        {mov.tipo === 'entrada' ? '+' : '-'}{mov.quantidade}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{mov.usuario}</span>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <span className="text-sm text-muted-foreground">{mov.observacao}</span>
-                    </td>
+          {filteredMovements.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>Nenhuma movimentação encontrada</p>
+              {searchTerm && (
+                <p className="text-sm mt-1">Tente ajustar os filtros de busca</p>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-3 font-semibold text-sm">Data</th>
+                    <th className="text-left p-3 font-semibold text-sm">Tipo</th>
+                    <th className="text-left p-3 font-semibold text-sm">Produto</th>
+                    <th className="text-right p-3 font-semibold text-sm">Quantidade</th>
+                    <th className="text-left p-3 font-semibold text-sm">Usuário</th>
+                    <th className="text-left p-3 font-semibold text-sm">Observação</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredMovements.map((mov) => (
+                    <tr key={mov.id} className="border-b hover:bg-muted/50 transition-colors">
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {format(mov.date, 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(mov.type)}
+                          {getStatusBadge(mov.type)}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div>
+                          <p className="font-medium">{mov.product_name}</p>
+                          <p className="text-xs text-muted-foreground font-mono">
+                            {mov.product_code}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className={`font-semibold ${
+                          mov.type === 'in' ? 'text-green-600' :
+                          mov.type === 'out' ? 'text-red-600' :
+                          'text-blue-600'
+                        }`}>
+                          {mov.type === 'in' ? '+' : mov.type === 'out' ? '-' : ''}
+                          {mov.quantity}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{mov.user_name}</span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-sm text-muted-foreground">{mov.reason}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
