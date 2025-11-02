@@ -29,6 +29,15 @@ from app.models.marketplace import (
     SyncJob,
     SyncConflict
 )
+from app.models.logistics import (
+    BoxType,
+    PickingList,
+    PackingStation,
+    PackingJob,
+    Vehicle,
+    DeliveryRoute,
+    Delivery
+)
 
 __all__ = [
     "Base",
@@ -59,4 +68,11 @@ __all__ = [
     "UnifiedOrder",
     "SyncJob",
     "SyncConflict",
+    "BoxType",
+    "PickingList",
+    "PackingStation",
+    "PackingJob",
+    "Vehicle",
+    "DeliveryRoute",
+    "Delivery",
 ]

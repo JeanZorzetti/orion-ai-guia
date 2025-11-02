@@ -109,6 +109,13 @@ class Workspace(Base):
     marketplace_integrations = relationship("MarketplaceIntegration", back_populates="workspace", cascade="all, delete-orphan")
     unified_orders = relationship("UnifiedOrder", back_populates="workspace", cascade="all, delete-orphan")
     sync_jobs = relationship("SyncJob", back_populates="workspace", cascade="all, delete-orphan")
+    box_types = relationship("BoxType", back_populates="workspace", cascade="all, delete-orphan")
+    picking_lists = relationship("PickingList", back_populates="workspace", cascade="all, delete-orphan")
+    packing_stations = relationship("PackingStation", back_populates="workspace", cascade="all, delete-orphan")
+    packing_jobs = relationship("PackingJob", back_populates="workspace", cascade="all, delete-orphan")
+    vehicles = relationship("Vehicle", back_populates="workspace", cascade="all, delete-orphan")
+    delivery_routes = relationship("DeliveryRoute", back_populates="workspace", cascade="all, delete-orphan")
+    deliveries = relationship("Delivery", back_populates="workspace", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Workspace(id={self.id}, name='{self.name}', slug='{self.slug}')>"

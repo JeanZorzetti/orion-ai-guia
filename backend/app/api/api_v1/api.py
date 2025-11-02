@@ -18,7 +18,8 @@ from app.api.api_v1.endpoints import (
     cash_flow_analytics,
     reports,
     marketplace,
-    sales_pipeline
+    sales_pipeline,
+    logistics
 )
 
 api_router = APIRouter()
@@ -39,5 +40,6 @@ api_router.include_router(fiscal.router, prefix="/fiscal", tags=["fiscal"])
 api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
 api_router.include_router(marketplace.router, prefix="/marketplace", tags=["marketplace"])
 api_router.include_router(sales_pipeline.router, prefix="/sales-pipeline", tags=["sales-pipeline"])
+api_router.include_router(logistics.router, prefix="/logistics", tags=["logistics"])
 api_router.include_router(super_admin.router, prefix="/super-admin", tags=["super-admin"])
 api_router.include_router(admin_reset.router, prefix="/admin-utils", tags=["admin-utils"])

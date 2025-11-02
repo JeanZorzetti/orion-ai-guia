@@ -312,7 +312,7 @@ export const LogisticsManagement: React.FC = () => {
                       <Button
                         size="sm"
                         className="w-full text-xs"
-                        onClick={() => startPicking(picking.id, 'user-1')}
+                        onClick={() => startPicking(picking.id)}
                       >
                         Iniciar Separação
                       </Button>
@@ -423,7 +423,7 @@ export const LogisticsManagement: React.FC = () => {
                       <Button
                         size="sm"
                         className="w-full text-xs"
-                        onClick={() => startPacking(job.id, 'station-1', 'user-1')}
+                        onClick={() => startPacking(job.id)}
                       >
                         Iniciar Embalagem
                       </Button>
@@ -461,7 +461,7 @@ export const LogisticsManagement: React.FC = () => {
                         <Button
                           size="sm"
                           className="flex-1 text-xs bg-green-600"
-                          onClick={() => completePacking(job.id, 'box-2')}
+                          onClick={() => completePacking(job.id)}
                         >
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Concluir
@@ -594,7 +594,7 @@ export const LogisticsManagement: React.FC = () => {
                               size="sm"
                               variant="outline"
                               className="text-xs"
-                              onClick={() => completeDelivery(delivery.id, 'signature-url', 'photo-url')}
+                              onClick={() => completeDelivery(delivery.id)}
                             >
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Entregar

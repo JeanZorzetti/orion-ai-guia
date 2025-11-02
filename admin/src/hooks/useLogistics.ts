@@ -1,9 +1,10 @@
 /**
- * Logistics Hook - Picking, Packing, and Shipping Management
+ * Logistics Hook - Integrated with real backend API
+ * NO MOCK DATA - All data from /logistics endpoints
  */
 
-import { useState, useCallback, useMemo } from 'react';
-import { addDays, differenceInMinutes, subDays } from 'date-fns';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { api } from '@/lib/api';
 import {
   PickingList,
   PackingJob,
@@ -13,666 +14,448 @@ import {
   Vehicle,
   BoxType,
   LogisticsDashboard,
-  PickingStatus,
-  PackingStatus,
-  DeliveryStatus,
-  RouteStatus,
 } from '@/types/logistics';
-
-// ============================================================================
-// MOCK DATA GENERATORS
-// ============================================================================
-
-const generateMockBoxTypes = (): BoxType[] => [
-  {
-    id: 'box-1',
-    name: 'Caixa Pequena',
-    code: 'P',
-    internal_dimensions: { length: 20, width: 15, height: 10 },
-    max_weight: 5,
-    cost: 2.5,
-    stock_quantity: 150,
-    min_stock: 50,
-    is_active: true,
-    usage_count: 1250,
-    created_at: subDays(new Date(), 180),
-  },
-  {
-    id: 'box-2',
-    name: 'Caixa Média',
-    code: 'M',
-    internal_dimensions: { length: 30, width: 25, height: 20 },
-    max_weight: 15,
-    cost: 4.0,
-    stock_quantity: 200,
-    min_stock: 80,
-    is_active: true,
-    usage_count: 2340,
-    created_at: subDays(new Date(), 180),
-  },
-  {
-    id: 'box-3',
-    name: 'Caixa Grande',
-    code: 'G',
-    internal_dimensions: { length: 40, width: 35, height: 30 },
-    max_weight: 30,
-    cost: 6.5,
-    stock_quantity: 100,
-    min_stock: 40,
-    is_active: true,
-    usage_count: 890,
-    created_at: subDays(new Date(), 180),
-  },
-  {
-    id: 'box-4',
-    name: 'Caixa Extra Grande',
-    code: 'XG',
-    internal_dimensions: { length: 60, width: 50, height: 40 },
-    max_weight: 50,
-    cost: 10.0,
-    stock_quantity: 50,
-    min_stock: 20,
-    is_active: true,
-    usage_count: 320,
-    created_at: subDays(new Date(), 180),
-  },
-];
-
-const generateMockPickingLists = (): PickingList[] => {
-  const hoje = new Date();
-  const statuses: PickingStatus[] = ['pending', 'in_progress', 'completed'];
-  const types = ['single_order', 'batch', 'wave'] as const;
-  const priorities = ['low', 'normal', 'high', 'urgent'] as const;
-
-  return Array.from({ length: 25 }, (_, i) => {
-    const status = statuses[i % 3];
-    const createdAt = subDays(hoje, Math.floor(i / 3));
-    const startedAt = status !== 'pending' ? addDays(createdAt, 0.05) : undefined;
-    const completedAt = status === 'completed' ? addDays(createdAt, 0.15) : undefined;
-
-    const estimatedTime = 15 + Math.floor(Math.random() * 30);
-    const actualTime = completedAt ? estimatedTime + Math.floor(Math.random() * 10 - 5) : undefined;
-
-    return {
-      id: `picking-${i + 1}`,
-      picking_number: `PCK-2025-${String(i + 1).padStart(5, '0')}`,
-      workspace_id: 1,
-      type: types[i % 3],
-      sale_ids: [`sale-${i + 1}`],
-      items: Array.from({ length: 2 + Math.floor(Math.random() * 5) }, (_, j) => ({
-        id: `item-${i}-${j}`,
-        product_id: `prod-${Math.floor(Math.random() * 50) + 1}`,
-        product_name: `Produto ${Math.floor(Math.random() * 50) + 1}`,
-        product_sku: `SKU-${Math.floor(Math.random() * 1000)}`,
-        quantity_ordered: 1 + Math.floor(Math.random() * 10),
-        quantity_picked: status === 'completed' ? 1 + Math.floor(Math.random() * 10) : 0,
-        location: `A${Math.floor(Math.random() * 10) + 1}-${Math.floor(Math.random() * 20) + 1}`,
-        batch_id: Math.random() > 0.7 ? `BATCH-${Math.floor(Math.random() * 100)}` : undefined,
-        picked: status === 'completed',
-        picker_id: status !== 'pending' ? `user-${Math.floor(Math.random() * 5) + 1}` : undefined,
-        picked_at: status === 'completed' ? completedAt : undefined,
-        has_issue: Math.random() > 0.95,
-        issue_type: Math.random() > 0.95 ? 'out_of_stock' : undefined,
-      })),
-      picking_route: [],
-      status,
-      assigned_to: `user-${Math.floor(Math.random() * 5) + 1}`,
-      assigned_to_name: ['João Silva', 'Maria Santos', 'Pedro Costa', 'Ana Lima', 'Carlos Souza'][Math.floor(Math.random() * 5)],
-      started_at: startedAt,
-      completed_at: completedAt,
-      estimated_time: estimatedTime,
-      actual_time: actualTime,
-      priority: priorities[i % 4],
-      created_at: createdAt,
-      updated_at: completedAt || startedAt || createdAt,
-    };
-  });
-};
-
-const generateMockPackingStations = (): PackingStation[] => {
-  const boxes = generateMockBoxTypes();
-
-  return Array.from({ length: 6 }, (_, i) => ({
-    id: `station-${i + 1}`,
-    name: `Estação ${i + 1}`,
-    warehouse_id: 'wh-1',
-    code: `EST-${i + 1}`,
-    packer_id: i < 4 ? `user-${i + 1}` : undefined,
-    packer_name: i < 4 ? ['João Silva', 'Maria Santos', 'Pedro Costa', 'Ana Lima'][i] : undefined,
-    is_active: true,
-    available_boxes: boxes,
-    orders_packed_today: Math.floor(Math.random() * 30) + 10,
-    avg_packing_time: 8 + Math.floor(Math.random() * 7),
-    accuracy_rate: 95 + Math.random() * 5,
-    created_at: subDays(new Date(), 180),
-    updated_at: new Date(),
-  }));
-};
-
-const generateMockPackingJobs = (): PackingJob[] => {
-  const hoje = new Date();
-  const statuses: PackingStatus[] = ['pending', 'in_progress', 'completed', 'problem'];
-  const boxes = generateMockBoxTypes();
-
-  return Array.from({ length: 30 }, (_, i) => {
-    const status = statuses[Math.min(Math.floor(i / 8), 2)];
-    const createdAt = subDays(hoje, Math.floor(i / 5));
-    const packedAt = status === 'completed' ? addDays(createdAt, 0.08) : undefined;
-
-    return {
-      id: `packing-${i + 1}`,
-      sale_id: `sale-${i + 1}`,
-      sale_number: `VND-2025-${String(i + 1).padStart(5, '0')}`,
-      picking_list_id: `picking-${i + 1}`,
-      station_id: `station-${(i % 6) + 1}`,
-      customer_name: `Cliente ${i + 1}`,
-      shipping_address: {
-        street: `Rua ${i + 1}`,
-        number: String(100 + i),
-        neighborhood: 'Centro',
-        city: 'São Paulo',
-        state: 'SP',
-        postal_code: '01000-000',
-        country: 'BR',
-      },
-      selected_box: status !== 'pending' ? boxes[Math.floor(Math.random() * boxes.length)] : undefined,
-      weight: 0.5 + Math.random() * 10,
-      dimensions: {
-        length: 20 + Math.random() * 40,
-        width: 15 + Math.random() * 35,
-        height: 10 + Math.random() * 30,
-      },
-      items: Array.from({ length: 1 + Math.floor(Math.random() * 4) }, (_, j) => ({
-        product_id: `prod-${j + 1}`,
-        product_name: `Produto ${j + 1}`,
-        quantity: 1 + Math.floor(Math.random() * 3),
-        packed: status === 'completed',
-        verified: status === 'completed',
-        verified_at: packedAt,
-      })),
-      status,
-      problem_description: status === 'problem' ? 'Produto danificado encontrado' : undefined,
-      shipping_label_url: status === 'completed' ? `https://labels.example.com/${i + 1}` : undefined,
-      invoice_url: status === 'completed' ? `https://invoices.example.com/${i + 1}` : undefined,
-      packing_slip_url: status === 'completed' ? `https://slips.example.com/${i + 1}` : undefined,
-      packed_by: status === 'completed' ? `user-${(i % 4) + 1}` : undefined,
-      packed_by_name: status === 'completed' ? ['João Silva', 'Maria Santos', 'Pedro Costa', 'Ana Lima'][i % 4] : undefined,
-      packed_at: packedAt,
-      quality_checked: status === 'completed',
-      quality_checked_by: status === 'completed' ? `user-${(i % 4) + 1}` : undefined,
-      quality_checked_at: packedAt,
-      created_at: createdAt,
-      updated_at: packedAt || createdAt,
-    };
-  });
-};
-
-const generateMockVehicles = (): Vehicle[] => [
-  {
-    id: 'vehicle-1',
-    license_plate: 'ABC-1234',
-    model: 'Fiorino',
-    brand: 'Fiat',
-    year: 2022,
-    max_weight: 650,
-    max_volume: 3.5,
-    status: 'in_use',
-    current_location: { latitude: -23.5505, longitude: -46.6333, updated_at: new Date() },
-    fuel_consumption: 12,
-    daily_cost: 150,
-    odometer_km: 45000,
-    created_at: subDays(new Date(), 365),
-    updated_at: new Date(),
-  },
-  {
-    id: 'vehicle-2',
-    license_plate: 'XYZ-5678',
-    model: 'Sprinter',
-    brand: 'Mercedes-Benz',
-    year: 2021,
-    max_weight: 1500,
-    max_volume: 12,
-    status: 'in_use',
-    current_location: { latitude: -23.5629, longitude: -46.6544, updated_at: new Date() },
-    fuel_consumption: 10,
-    daily_cost: 280,
-    odometer_km: 78000,
-    created_at: subDays(new Date(), 450),
-    updated_at: new Date(),
-  },
-  {
-    id: 'vehicle-3',
-    license_plate: 'DEF-9012',
-    model: 'Kangoo',
-    brand: 'Renault',
-    year: 2023,
-    max_weight: 800,
-    max_volume: 4.5,
-    status: 'available',
-    fuel_consumption: 14,
-    daily_cost: 180,
-    odometer_km: 12000,
-    created_at: subDays(new Date(), 120),
-    updated_at: new Date(),
-  },
-];
-
-const generateMockDeliveries = (): Delivery[] => {
-  const hoje = new Date();
-  const statuses: DeliveryStatus[] = ['pending', 'in_route', 'delivered', 'failed'];
-  const priorities = ['normal', 'urgent', 'express'] as const;
-
-  return Array.from({ length: 40 }, (_, i) => {
-    const status = statuses[Math.min(Math.floor(i / 10), 2)];
-    const createdAt = subDays(hoje, Math.floor(i / 8));
-    const deliveredAt = status === 'delivered' ? addDays(createdAt, 0.5) : undefined;
-
-    return {
-      id: `delivery-${i + 1}`,
-      sale_id: `sale-${i + 1}`,
-      sale_number: `VND-2025-${String(i + 1).padStart(5, '0')}`,
-      route_id: status !== 'pending' ? `route-${Math.floor(i / 10) + 1}` : undefined,
-      sequence_number: status !== 'pending' ? (i % 10) + 1 : undefined,
-      customer_id: `customer-${i + 1}`,
-      customer_name: `Cliente ${i + 1}`,
-      customer_phone: `(11) 9${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`,
-      address: {
-        street: `Rua ${['das Flores', 'do Comércio', 'Principal', 'XV de Novembro', 'São João'][i % 5]}`,
-        number: String(100 + i * 10),
-        neighborhood: ['Centro', 'Jardins', 'Vila Mariana', 'Pinheiros', 'Itaim'][i % 5],
-        city: 'São Paulo',
-        state: 'SP',
-        postal_code: `01${String(i).padStart(3, '0')}-000`,
-        country: 'BR',
-        reference: Math.random() > 0.5 ? 'Próximo ao mercado' : undefined,
-      },
-      latitude: -23.5505 + (Math.random() - 0.5) * 0.1,
-      longitude: -46.6333 + (Math.random() - 0.5) * 0.1,
-      delivery_window_start: addDays(createdAt, 1),
-      delivery_window_end: addDays(createdAt, 1.5),
-      priority: priorities[i % 3],
-      packages: [{
-        id: `package-${i + 1}`,
-        tracking_code: `BR${String(Math.floor(Math.random() * 1000000000)).padStart(9, '0')}BR`,
-        weight: 1 + Math.random() * 10,
-        dimensions: {
-          length: 20 + Math.random() * 40,
-          width: 15 + Math.random() * 35,
-          height: 10 + Math.random() * 30,
-        },
-        items: [{
-          product_id: `prod-${i + 1}`,
-          product_name: `Produto ${i + 1}`,
-          quantity: 1 + Math.floor(Math.random() * 3),
-        }],
-        fragile: Math.random() > 0.7,
-        requires_refrigeration: Math.random() > 0.9,
-      }],
-      status,
-      delivered_at: deliveredAt,
-      delivered_by: status === 'delivered' ? `user-${(i % 3) + 1}` : undefined,
-      recipient_name: status === 'delivered' ? `Recebedor ${i + 1}` : undefined,
-      signature_url: status === 'delivered' ? `https://signatures.example.com/${i + 1}` : undefined,
-      photo_url: status === 'delivered' ? `https://photos.example.com/${i + 1}` : undefined,
-      failed_reason: status === 'failed' ? ['Cliente ausente', 'Endereço incorreto', 'Recusou receber'][i % 3] : undefined,
-      failed_attempts: status === 'failed' ? 1 + Math.floor(Math.random() * 2) : 0,
-      next_attempt_date: status === 'failed' ? addDays(hoje, 1) : undefined,
-      delivery_notes: Math.random() > 0.7 ? 'Ligar antes de entregar' : undefined,
-      estimated_duration: 5 + Math.floor(Math.random() * 10),
-      created_at: createdAt,
-      updated_at: deliveredAt || createdAt,
-    };
-  });
-};
-
-const generateMockRoutes = (): DeliveryRoute[] => {
-  const hoje = new Date();
-  const deliveries = generateMockDeliveries();
-  const vehicles = generateMockVehicles();
-  const statuses: RouteStatus[] = ['planned', 'in_progress', 'completed'];
-
-  return Array.from({ length: 8 }, (_, i) => {
-    const status = statuses[Math.min(i, 2)];
-    const routeDeliveries = deliveries.slice(i * 5, (i + 1) * 5);
-    const totalDistance = 15 + Math.random() * 50;
-    const estimatedTime = routeDeliveries.length * 15 + totalDistance * 2;
-
-    return {
-      id: `route-${i + 1}`,
-      route_number: `RTE-2025-${String(i + 1).padStart(4, '0')}`,
-      date: subDays(hoje, Math.floor(i / 3)),
-      workspace_id: 1,
-      vehicle_id: vehicles[i % vehicles.length].id,
-      vehicle_plate: vehicles[i % vehicles.length].license_plate,
-      driver_id: `user-${(i % 3) + 1}`,
-      driver_name: ['João Silva', 'Carlos Souza', 'Pedro Costa'][i % 3],
-      deliveries: routeDeliveries,
-      optimized_sequence: routeDeliveries.map(d => d.id),
-      total_distance: totalDistance,
-      estimated_time: estimatedTime,
-      actual_time: status === 'completed' ? estimatedTime + (Math.random() - 0.5) * 30 : undefined,
-      total_weight: routeDeliveries.reduce((sum, d) => sum + d.packages[0].weight, 0),
-      total_volume: routeDeliveries.reduce((sum, d) => {
-        const pkg = d.packages[0];
-        return sum + (pkg.dimensions.length * pkg.dimensions.width * pkg.dimensions.height) / 1000000;
-      }, 0),
-      total_stops: routeDeliveries.length,
-      status,
-      started_at: status !== 'planned' ? subDays(hoje, Math.floor(i / 3)) : undefined,
-      completed_at: status === 'completed' ? addDays(subDays(hoje, Math.floor(i / 3)), 0.5) : undefined,
-      on_time_deliveries: status === 'completed' ? routeDeliveries.length - Math.floor(Math.random() * 2) : 0,
-      failed_deliveries: status === 'completed' ? Math.floor(Math.random() * 2) : 0,
-      success_rate: status === 'completed' ? 85 + Math.random() * 15 : 0,
-      created_at: subDays(hoje, Math.floor(i / 3) + 1),
-      updated_at: new Date(),
-    };
-  });
-};
-
-// ============================================================================
-// HOOK
-// ============================================================================
 
 interface UseLogisticsReturn {
   // Picking
-  pickingLists: PickingList[];
   pendingPicking: PickingList[];
   inProgressPicking: PickingList[];
   completedPicking: PickingList[];
-  startPicking: (pickingId: string, userId: string) => void;
-  completePicking: (pickingId: string) => void;
+  startPicking: (id: string) => void;
+  completePicking: (id: string) => void;
 
   // Packing
   packingStations: PackingStation[];
-  packingJobs: PackingJob[];
   pendingPacking: PackingJob[];
   inProgressPacking: PackingJob[];
   completedPacking: PackingJob[];
-  startPacking: (jobId: string, stationId: string, userId: string) => void;
-  completePacking: (jobId: string, boxId: string) => void;
-  reportPackingProblem: (jobId: string, problem: string) => void;
+  startPacking: (id: string) => void;
+  completePacking: (id: string) => void;
+  reportPackingProblem: (id: string, description: string) => void;
 
   // Shipping
-  deliveries: Delivery[];
   routes: DeliveryRoute[];
-  vehicles: Vehicle[];
   pendingDeliveries: Delivery[];
   inRouteDeliveries: Delivery[];
   completedDeliveries: Delivery[];
-  createRoute: (deliveryIds: string[], vehicleId: string, driverId: string) => void;
-  completeDelivery: (deliveryId: string, signature: string, photo: string) => void;
-  failDelivery: (deliveryId: string, reason: string) => void;
+  vehicles: Vehicle[];
+  completeDelivery: (id: string) => void;
+  failDelivery: (id: string, reason: string) => void;
 
   // Boxes
   boxTypes: BoxType[];
-  suggestBox: (weight: number, dimensions: { length: number; width: number; height: number }) => BoxType | undefined;
 
   // Dashboard
   dashboard: LogisticsDashboard;
 
   loading: boolean;
+  refresh: () => void;
 }
 
 export const useLogistics = (): UseLogisticsReturn => {
-  const [pickingLists, setPickingLists] = useState<PickingList[]>(() => generateMockPickingLists());
-  const [packingStations] = useState<PackingStation[]>(() => generateMockPackingStations());
-  const [packingJobs, setPackingJobs] = useState<PackingJob[]>(() => generateMockPackingJobs());
-  const [deliveries, setDeliveries] = useState<Delivery[]>(() => generateMockDeliveries());
-  const [routes, setRoutes] = useState<DeliveryRoute[]>(() => generateMockRoutes());
-  const [vehicles] = useState<Vehicle[]>(() => generateMockVehicles());
-  const [boxTypes] = useState<BoxType[]>(() => generateMockBoxTypes());
-  const [loading] = useState(false);
+  const [pickingLists, setPickingLists] = useState<PickingList[]>([]);
+  const [packingStations, setPackingStations] = useState<PackingStation[]>([]);
+  const [packingJobs, setPackingJobs] = useState<PackingJob[]>([]);
+  const [routes, setRoutes] = useState<DeliveryRoute[]>([]);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [boxTypes, setBoxTypes] = useState<BoxType[]>([]);
+  const [dashboard, setDashboard] = useState<LogisticsDashboard>({
+    workspace_id: 0,
+    period_start: new Date(),
+    period_end: new Date(),
+    picking: { pending_lists: 0, completed_lists: 0, total_lists: 0, avg_picking_time: 0, accuracy_rate: 0 },
+    packing: { pending_jobs: 0, completed_jobs: 0, total_jobs: 0, avg_packing_time: 0, quality_issues: 0 },
+    delivery: { total_deliveries: 0, completed_deliveries: 0, in_route_deliveries: 0, failed_deliveries: 0, success_rate: 0, on_time_rate: 0 },
+    routes: { total_routes: 0, active_routes: 0, total_distance_km: 0, avg_stops_per_route: 0, optimization_savings: 0 },
+    productivity: { orders_per_hour: 0, items_per_hour: 0, avg_cycle_time: 0, utilization_rate: 0 },
+  });
+  const [loading, setLoading] = useState(true);
 
-  // Picking filters
-  const pendingPicking = useMemo(() =>
-    pickingLists.filter(p => p.status === 'pending').sort((a, b) => {
-      const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
-    }),
-    [pickingLists]
-  );
+  // ============================================================================
+  // API FETCH FUNCTIONS
+  // ============================================================================
 
-  const inProgressPicking = useMemo(() =>
-    pickingLists.filter(p => p.status === 'in_progress'),
-    [pickingLists]
-  );
-
-  const completedPicking = useMemo(() =>
-    pickingLists.filter(p => p.status === 'completed'),
-    [pickingLists]
-  );
-
-  // Packing filters
-  const pendingPacking = useMemo(() =>
-    packingJobs.filter(p => p.status === 'pending'),
-    [packingJobs]
-  );
-
-  const inProgressPacking = useMemo(() =>
-    packingJobs.filter(p => p.status === 'in_progress'),
-    [packingJobs]
-  );
-
-  const completedPacking = useMemo(() =>
-    packingJobs.filter(p => p.status === 'completed'),
-    [packingJobs]
-  );
-
-  // Delivery filters
-  const pendingDeliveries = useMemo(() =>
-    deliveries.filter(d => d.status === 'pending'),
-    [deliveries]
-  );
-
-  const inRouteDeliveries = useMemo(() =>
-    deliveries.filter(d => d.status === 'in_route'),
-    [deliveries]
-  );
-
-  const completedDeliveries = useMemo(() =>
-    deliveries.filter(d => d.status === 'delivered'),
-    [deliveries]
-  );
-
-  // Actions
-  const startPicking = useCallback((pickingId: string, userId: string) => {
-    setPickingLists(prev => prev.map(p =>
-      p.id === pickingId
-        ? { ...p, status: 'in_progress', started_at: new Date(), assigned_to: userId }
-        : p
-    ));
+  const fetchPickingLists = useCallback(async () => {
+    console.log('🔄 [useLogistics] Buscando listas de picking');
+    try {
+      const response = await api.get<any[]>('/logistics/picking-lists');
+      const converted: PickingList[] = response.map(p => ({
+        id: p.id.toString(),
+        picking_number: p.picking_number,
+        workspace_id: p.workspace_id,
+        type: p.type as any,
+        sale_ids: p.sale_ids,
+        items: p.items,
+        picking_route: p.picking_route || [],
+        status: p.status as any,
+        assigned_to: p.assigned_to?.toString() || '',
+        assigned_to_name: '',
+        started_at: p.started_at ? new Date(p.started_at) : undefined,
+        completed_at: p.completed_at ? new Date(p.completed_at) : undefined,
+        estimated_time: p.estimated_time,
+        actual_time: p.actual_time,
+        priority: p.priority as any,
+        created_at: new Date(p.created_at),
+        updated_at: new Date(p.updated_at),
+      }));
+      setPickingLists(converted);
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao buscar picking lists:', err);
+      setPickingLists([]);
+    }
   }, []);
 
-  const completePicking = useCallback((pickingId: string) => {
-    setPickingLists(prev => prev.map(p => {
-      if (p.id === pickingId) {
-        const now = new Date();
-        const actualTime = p.started_at ? differenceInMinutes(now, p.started_at) : p.estimated_time;
-        return {
-          ...p,
-          status: 'completed',
-          completed_at: now,
-          actual_time: actualTime,
-          items: p.items.map(item => ({ ...item, picked: true, quantity_picked: item.quantity_ordered })),
-        };
-      }
-      return p;
-    }));
+  const fetchPackingStations = useCallback(async () => {
+    console.log('🔄 [useLogistics] Buscando estações de packing');
+    try {
+      const response = await api.get<any[]>('/logistics/packing-stations');
+      const converted: PackingStation[] = response.map(s => ({
+        id: s.id.toString(),
+        name: s.name,
+        warehouse_id: s.warehouse_id?.toString() || '',
+        code: s.code,
+        packer_id: s.packer_id?.toString(),
+        packer_name: '',
+        is_active: s.is_active,
+        available_boxes: [],
+        orders_packed_today: s.orders_packed_today,
+        avg_packing_time: s.avg_packing_time,
+        accuracy_rate: s.accuracy_rate,
+        created_at: new Date(s.created_at),
+        updated_at: new Date(s.updated_at),
+      }));
+      setPackingStations(converted);
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao buscar stations:', err);
+      setPackingStations([]);
+    }
   }, []);
 
-  const startPacking = useCallback((jobId: string, stationId: string, userId: string) => {
-    setPackingJobs(prev => prev.map(j =>
-      j.id === jobId
-        ? { ...j, status: 'in_progress', station_id: stationId, packed_by: userId }
-        : j
-    ));
+  const fetchPackingJobs = useCallback(async () => {
+    console.log('🔄 [useLogistics] Buscando jobs de packing');
+    try {
+      const response = await api.get<any[]>('/logistics/packing-jobs');
+      const converted: PackingJob[] = response.map(j => ({
+        id: j.id.toString(),
+        sale_id: j.sale_id.toString(),
+        sale_number: '',
+        picking_list_id: j.picking_list_id?.toString() || '',
+        station_id: j.station_id?.toString() || '',
+        customer_name: j.customer_name,
+        shipping_address: j.shipping_address,
+        selected_box: undefined,
+        weight: j.weight,
+        dimensions: j.dimensions,
+        items: j.items,
+        status: j.status as any,
+        problem_description: j.problem_description,
+        shipping_label_url: j.shipping_label_url,
+        invoice_url: j.invoice_url,
+        packing_slip_url: j.packing_slip_url,
+        packed_by: j.packed_by?.toString(),
+        packed_by_name: '',
+        packed_at: j.packed_at ? new Date(j.packed_at) : undefined,
+        quality_checked: j.quality_checked,
+        quality_checked_by: j.quality_checked_by?.toString(),
+        quality_checked_at: j.quality_checked_at ? new Date(j.quality_checked_at) : undefined,
+        created_at: new Date(j.created_at),
+        updated_at: new Date(j.updated_at),
+      }));
+      setPackingJobs(converted);
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao buscar packing jobs:', err);
+      setPackingJobs([]);
+    }
   }, []);
 
-  const completePacking = useCallback((jobId: string, boxId: string) => {
-    setPackingJobs(prev => prev.map(j => {
-      if (j.id === jobId) {
-        const now = new Date();
-        const box = boxTypes.find(b => b.id === boxId);
-        return {
-          ...j,
-          status: 'completed',
-          packed_at: now,
-          selected_box: box,
-          items: j.items.map(item => ({ ...item, packed: true, verified: true, verified_at: now })),
-          quality_checked: true,
-          quality_checked_at: now,
-        };
-      }
-      return j;
-    }));
-  }, [boxTypes]);
-
-  const reportPackingProblem = useCallback((jobId: string, problem: string) => {
-    setPackingJobs(prev => prev.map(j =>
-      j.id === jobId
-        ? { ...j, status: 'problem', problem_description: problem }
-        : j
-    ));
+  const fetchDeliveries = useCallback(async () => {
+    console.log('🔄 [useLogistics] Buscando entregas');
+    try {
+      const response = await api.get<any[]>('/logistics/deliveries');
+      const converted: Delivery[] = response.map(d => ({
+        id: d.id.toString(),
+        sale_id: d.sale_id.toString(),
+        sale_number: '',
+        route_id: d.route_id?.toString(),
+        sequence_number: d.sequence_number,
+        customer_id: d.customer_id?.toString() || '',
+        customer_name: d.customer_name,
+        customer_phone: d.customer_phone,
+        address: d.address,
+        latitude: d.latitude,
+        longitude: d.longitude,
+        delivery_window_start: d.delivery_window_start ? new Date(d.delivery_window_start) : undefined,
+        delivery_window_end: d.delivery_window_end ? new Date(d.delivery_window_end) : undefined,
+        priority: d.priority as any,
+        packages: d.packages,
+        status: d.status as any,
+        delivered_at: d.delivered_at ? new Date(d.delivered_at) : undefined,
+        delivered_by: d.delivered_by?.toString(),
+        proof_of_delivery_url: d.proof_of_delivery_url,
+        recipient_name: d.recipient_name,
+        recipient_document: d.recipient_document,
+        signature_url: d.signature_url,
+        failed_at: d.failed_at ? new Date(d.failed_at) : undefined,
+        failure_reason: d.failure_reason,
+        reschedule_date: d.reschedule_date ? new Date(d.reschedule_date) : undefined,
+        created_at: new Date(d.created_at),
+        updated_at: new Date(d.updated_at),
+      }));
+      setDeliveries(converted);
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao buscar deliveries:', err);
+      setDeliveries([]);
+    }
   }, []);
 
-  const createRoute = useCallback((deliveryIds: string[], vehicleId: string, driverId: string) => {
-    const hoje = new Date();
-    const routeDeliveries = deliveries.filter(d => deliveryIds.includes(d.id));
-    const totalDistance = 20 + Math.random() * 40;
-
-    const newRoute: DeliveryRoute = {
-      id: `route-${routes.length + 1}`,
-      route_number: `RTE-2025-${String(routes.length + 1).padStart(4, '0')}`,
-      date: hoje,
-      workspace_id: 1,
-      vehicle_id: vehicleId,
-      vehicle_plate: vehicles.find(v => v.id === vehicleId)?.license_plate || '',
-      driver_id: driverId,
-      driver_name: 'Motorista Novo',
-      deliveries: routeDeliveries,
-      optimized_sequence: deliveryIds,
-      total_distance: totalDistance,
-      estimated_time: routeDeliveries.length * 15 + totalDistance * 2,
-      total_weight: routeDeliveries.reduce((sum, d) => sum + d.packages[0].weight, 0),
-      total_volume: 0,
-      total_stops: routeDeliveries.length,
-      status: 'planned',
-      on_time_deliveries: 0,
-      failed_deliveries: 0,
-      success_rate: 0,
-      created_at: hoje,
-      updated_at: hoje,
-    };
-
-    setRoutes(prev => [...prev, newRoute]);
-    setDeliveries(prev => prev.map(d =>
-      deliveryIds.includes(d.id)
-        ? { ...d, route_id: newRoute.id, status: 'in_route' }
-        : d
-    ));
-  }, [deliveries, routes.length, vehicles]);
-
-  const completeDelivery = useCallback((deliveryId: string, signature: string, photo: string) => {
-    setDeliveries(prev => prev.map(d =>
-      d.id === deliveryId
-        ? {
-            ...d,
-            status: 'delivered',
-            delivered_at: new Date(),
-            signature_url: signature,
-            photo_url: photo,
-          }
-        : d
-    ));
+  const fetchRoutes = useCallback(async () => {
+    console.log('🔄 [useLogistics] Buscando rotas');
+    try {
+      const response = await api.get<any[]>('/logistics/routes');
+      const converted: DeliveryRoute[] = response.map(r => ({
+        id: r.id.toString(),
+        route_number: r.route_number,
+        date: new Date(r.date),
+        workspace_id: r.workspace_id,
+        vehicle_id: r.vehicle_id.toString(),
+        vehicle_plate: '',
+        driver_id: r.driver_id?.toString(),
+        driver_name: '',
+        total_distance_km: r.total_distance_km,
+        estimated_duration: r.estimated_duration,
+        actual_duration: r.actual_duration,
+        optimized: r.optimized,
+        optimization_savings: r.optimization_savings,
+        status: r.status as any,
+        started_at: r.started_at ? new Date(r.started_at) : undefined,
+        completed_at: r.completed_at ? new Date(r.completed_at) : undefined,
+        created_at: new Date(r.created_at),
+        updated_at: new Date(r.updated_at),
+      }));
+      setRoutes(converted);
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao buscar routes:', err);
+      setRoutes([]);
+    }
   }, []);
 
-  const failDelivery = useCallback((deliveryId: string, reason: string) => {
-    setDeliveries(prev => prev.map(d =>
-      d.id === deliveryId
-        ? {
-            ...d,
-            status: 'failed',
-            failed_reason: reason,
-            failed_attempts: d.failed_attempts + 1,
-            next_attempt_date: addDays(new Date(), 1),
-          }
-        : d
-    ));
+  const fetchVehicles = useCallback(async () => {
+    console.log('🔄 [useLogistics] Buscando veículos');
+    try {
+      const response = await api.get<any[]>('/logistics/vehicles');
+      const converted: Vehicle[] = response.map(v => ({
+        id: v.id.toString(),
+        license_plate: v.license_plate,
+        model: v.model,
+        brand: v.brand,
+        year: v.year,
+        max_weight: v.max_weight,
+        max_volume: v.max_volume,
+        status: v.status as any,
+        current_location: v.current_location,
+        fuel_consumption: v.fuel_consumption,
+        daily_cost: v.daily_cost,
+        odometer_km: v.odometer_km,
+        last_maintenance_at: v.last_maintenance_at ? new Date(v.last_maintenance_at) : undefined,
+        next_maintenance_km: v.next_maintenance_km,
+        created_at: new Date(v.created_at),
+        updated_at: new Date(v.updated_at),
+      }));
+      setVehicles(converted);
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao buscar vehicles:', err);
+      setVehicles([]);
+    }
   }, []);
 
-  const suggestBox = useCallback((weight: number, dimensions: { length: number; width: number; height: number }): BoxType | undefined => {
-    return boxTypes
-      .filter(box =>
-        box.max_weight >= weight &&
-        box.internal_dimensions.length >= dimensions.length &&
-        box.internal_dimensions.width >= dimensions.width &&
-        box.internal_dimensions.height >= dimensions.height &&
-        box.is_active
-      )
-      .sort((a, b) => a.cost - b.cost)[0];
-  }, [boxTypes]);
+  const fetchBoxTypes = useCallback(async () => {
+    console.log('🔄 [useLogistics] Buscando tipos de caixa');
+    try {
+      const response = await api.get<any[]>('/logistics/box-types');
+      const converted: BoxType[] = response.map(b => ({
+        id: b.id.toString(),
+        name: b.name,
+        code: b.code,
+        internal_dimensions: {
+          length: b.internal_length,
+          width: b.internal_width,
+          height: b.internal_height,
+        },
+        max_weight: b.max_weight,
+        cost: b.cost,
+        stock_quantity: b.stock_quantity,
+        min_stock: b.min_stock || 0,
+        is_active: b.is_active,
+        usage_count: b.usage_count,
+        created_at: new Date(b.created_at),
+      }));
+      setBoxTypes(converted);
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao buscar box types:', err);
+      setBoxTypes([]);
+    }
+  }, []);
 
-  // Dashboard
-  const dashboard = useMemo((): LogisticsDashboard => {
-    const completedPickingList = pickingLists.filter(p => p.status === 'completed');
-    const avgPickingTime = completedPickingList.length > 0
-      ? completedPickingList.reduce((sum, p) => sum + (p.actual_time || 0), 0) / completedPickingList.length
-      : 0;
+  const fetchDashboard = useCallback(async () => {
+    console.log('🔄 [useLogistics] Buscando dashboard');
+    try {
+      const response = await api.get<any>('/logistics/dashboard');
+      setDashboard({
+        workspace_id: 0,
+        period_start: new Date(),
+        period_end: new Date(),
+        picking: {
+          pending_lists: response.picking.pending_lists,
+          completed_lists: response.picking.completed_lists,
+          total_lists: response.picking.pending_lists + response.picking.completed_lists,
+          avg_picking_time: 0,
+          accuracy_rate: response.picking.accuracy_rate,
+        },
+        packing: {
+          pending_jobs: response.packing.pending_jobs,
+          completed_jobs: response.packing.completed_jobs,
+          total_jobs: response.packing.pending_jobs + response.packing.completed_jobs,
+          avg_packing_time: response.packing.avg_packing_time,
+          quality_issues: 0,
+        },
+        delivery: {
+          total_deliveries: 0,
+          completed_deliveries: 0,
+          in_route_deliveries: response.delivery.in_route_deliveries,
+          failed_deliveries: 0,
+          success_rate: response.delivery.success_rate,
+          on_time_rate: response.delivery.on_time_rate,
+        },
+        routes: {
+          total_routes: 0,
+          active_routes: response.routes.active_routes,
+          total_distance_km: response.routes.total_distance_km,
+          avg_stops_per_route: response.routes.avg_stops_per_route,
+          optimization_savings: response.routes.optimization_savings,
+        },
+        productivity: {
+          orders_per_hour: response.productivity.orders_per_hour,
+          items_per_hour: response.productivity.items_per_hour,
+          avg_cycle_time: response.productivity.avg_cycle_time,
+          utilization_rate: response.productivity.utilization_rate,
+        },
+      });
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao buscar dashboard:', err);
+    }
+  }, []);
 
-    const completedPackingList = packingJobs.filter(p => p.status === 'completed');
-    const avgPackingTime = 12; // Mock value
+  // ============================================================================
+  // INITIAL LOAD
+  // ============================================================================
 
-    const deliveredList = deliveries.filter(d => d.status === 'delivered');
-    const failedList = deliveries.filter(d => d.status === 'failed');
-    const successRate = deliveries.length > 0
-      ? (deliveredList.length / (deliveredList.length + failedList.length)) * 100
-      : 0;
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchPickingLists(),
+      fetchPackingStations(),
+      fetchPackingJobs(),
+      fetchDeliveries(),
+      fetchRoutes(),
+      fetchVehicles(),
+      fetchBoxTypes(),
+      fetchDashboard(),
+    ]);
+    setLoading(false);
+  }, [fetchPickingLists, fetchPackingStations, fetchPackingJobs, fetchDeliveries, fetchRoutes, fetchVehicles, fetchBoxTypes, fetchDashboard]);
 
-    return {
-      date: new Date(),
-      workspace_id: 1,
-      picking: {
-        total_lists: pickingLists.length,
-        completed_lists: completedPickingList.length,
-        pending_lists: pendingPicking.length,
-        avg_picking_time: avgPickingTime,
-        accuracy_rate: 98.5,
-      },
-      packing: {
-        total_jobs: packingJobs.length,
-        completed_jobs: completedPackingList.length,
-        pending_jobs: pendingPacking.length,
-        avg_packing_time: avgPackingTime,
-        quality_issues: packingJobs.filter(p => p.status === 'problem').length,
-      },
-      delivery: {
-        total_deliveries: deliveries.length,
-        completed_deliveries: deliveredList.length,
-        in_route_deliveries: inRouteDeliveries.length,
-        failed_deliveries: failedList.length,
-        success_rate: successRate,
-        on_time_rate: 92.5,
-      },
-      routes: {
-        total_routes: routes.length,
-        active_routes: routes.filter(r => r.status === 'in_progress').length,
-        total_distance_km: routes.reduce((sum, r) => sum + r.total_distance, 0),
-        avg_stops_per_route: routes.length > 0
-          ? routes.reduce((sum, r) => sum + r.total_stops, 0) / routes.length
-          : 0,
-        optimization_savings: 15.5,
-      },
-      productivity: {
-        orders_per_hour: 8.5,
-        items_picked_per_hour: 45,
-        packages_packed_per_hour: 12,
-      },
-    };
-  }, [pickingLists, pendingPicking, packingJobs, pendingPacking, deliveries, inRouteDeliveries, routes]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  // ============================================================================
+  // COMPUTED VALUES
+  // ============================================================================
+
+  const pendingPicking = useMemo(() => pickingLists.filter(p => p.status === 'pending'), [pickingLists]);
+  const inProgressPicking = useMemo(() => pickingLists.filter(p => p.status === 'in_progress'), [pickingLists]);
+  const completedPicking = useMemo(() => pickingLists.filter(p => p.status === 'completed'), [pickingLists]);
+
+  const pendingPacking = useMemo(() => packingJobs.filter(p => p.status === 'pending'), [packingJobs]);
+  const inProgressPacking = useMemo(() => packingJobs.filter(p => p.status === 'in_progress'), [packingJobs]);
+  const completedPacking = useMemo(() => packingJobs.filter(p => p.status === 'completed'), [packingJobs]);
+
+  const pendingDeliveries = useMemo(() => deliveries.filter(d => d.status === 'pending'), [deliveries]);
+  const inRouteDeliveries = useMemo(() => deliveries.filter(d => d.status === 'in_route'), [deliveries]);
+  const completedDeliveries = useMemo(() => deliveries.filter(d => d.status === 'delivered'), [deliveries]);
+
+  // ============================================================================
+  // ACTIONS
+  // ============================================================================
+
+  const startPicking = useCallback(async (id: string) => {
+    console.log('🔄 [useLogistics] Iniciando picking:', id);
+    try {
+      await api.post(`/logistics/picking-lists/${id}/start`);
+      await fetchPickingLists();
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao iniciar picking:', err);
+    }
+  }, [fetchPickingLists]);
+
+  const completePicking = useCallback(async (id: string) => {
+    console.log('🔄 [useLogistics] Completando picking:', id);
+    try {
+      await api.post(`/logistics/picking-lists/${id}/complete`);
+      await fetchPickingLists();
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao completar picking:', err);
+    }
+  }, [fetchPickingLists]);
+
+  const startPacking = useCallback(async (id: string) => {
+    console.log('🔄 [useLogistics] Iniciando packing:', id);
+    try {
+      await api.post(`/logistics/packing-jobs/${id}/start`);
+      await fetchPackingJobs();
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao iniciar packing:', err);
+    }
+  }, [fetchPackingJobs]);
+
+  const completePacking = useCallback(async (id: string) => {
+    console.log('🔄 [useLogistics] Completando packing:', id);
+    try {
+      await api.post(`/logistics/packing-jobs/${id}/complete`);
+      await fetchPackingJobs();
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao completar packing:', err);
+    }
+  }, [fetchPackingJobs]);
+
+  const reportPackingProblem = useCallback((id: string, description: string) => {
+    console.warn('reportPackingProblem: Não implementado');
+    // TODO: Implementar endpoint para reportar problema
+  }, []);
+
+  const completeDelivery = useCallback(async (id: string) => {
+    console.log('🔄 [useLogistics] Completando entrega:', id);
+    try {
+      await api.post(`/logistics/deliveries/${id}/complete`);
+      await fetchDeliveries();
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao completar entrega:', err);
+    }
+  }, [fetchDeliveries]);
+
+  const failDelivery = useCallback(async (id: string, reason: string) => {
+    console.log('🔄 [useLogistics] Falhando entrega:', id, reason);
+    try {
+      await api.post(`/logistics/deliveries/${id}/fail?reason=${encodeURIComponent(reason)}`);
+      await fetchDeliveries();
+    } catch (err) {
+      console.error('❌ [useLogistics] Erro ao falhar entrega:', err);
+    }
+  }, [fetchDeliveries]);
 
   return {
     // Picking
-    pickingLists,
     pendingPicking,
     inProgressPicking,
     completedPicking,
@@ -681,7 +464,6 @@ export const useLogistics = (): UseLogisticsReturn => {
 
     // Packing
     packingStations,
-    packingJobs,
     pendingPacking,
     inProgressPacking,
     completedPacking,
@@ -690,23 +472,21 @@ export const useLogistics = (): UseLogisticsReturn => {
     reportPackingProblem,
 
     // Shipping
-    deliveries,
     routes,
-    vehicles,
     pendingDeliveries,
     inRouteDeliveries,
     completedDeliveries,
-    createRoute,
+    vehicles,
     completeDelivery,
     failDelivery,
 
     // Boxes
     boxTypes,
-    suggestBox,
 
     // Dashboard
     dashboard,
 
     loading,
+    refresh,
   };
 };
