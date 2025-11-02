@@ -122,8 +122,8 @@ export const useReportHistory = () => {
       setStats(response.stats);
     } catch (err) {
       console.error('❌ [useReportHistory] Erro ao buscar relatórios:', err);
-      // Fallback para mock em caso de erro
-      setReports(generateMockHistory());
+      // Sem fallback para mock - mostrar vazio se não houver dados
+      setReports([]);
       setStats({ total: 0, concluidos: 0, erros: 0 });
     } finally {
       setLoading(false);

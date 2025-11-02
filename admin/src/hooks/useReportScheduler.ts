@@ -268,8 +268,8 @@ export const useReportScheduler = () => {
       setStats(response.stats);
     } catch (err) {
       console.error('❌ [useReportScheduler] Erro ao buscar agendamentos:', err);
-      // Fallback para mock em caso de erro
-      setSchedules(generateMockSchedules());
+      // Sem fallback para mock - mostrar vazio se não houver dados
+      setSchedules([]);
       setStats({ total: 0, ativos: 0, execucoes_sucesso: 0, execucoes_erro: 0 });
     } finally {
       setLoading(false);
