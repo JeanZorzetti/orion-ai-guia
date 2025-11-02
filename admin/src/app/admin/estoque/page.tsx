@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,21 +16,10 @@ import {
   Calendar,
   Brain
 } from 'lucide-react';
+import { useInventory } from '@/hooks/useInventory';
 
 const EstoquePage: React.FC = () => {
-  const resumoEstoque = {
-    totalProdutos: 342,
-    produtosBaixoEstoque: 12,
-    valorTotal: 125480.00,
-    movimentacoesMes: 87,
-  };
-
-  const produtosBaixoEstoque = [
-    { id: 1, nome: 'Produto A', codigo: 'PRD-001', estoque: 5, minimo: 20, categoria: 'Eletrônicos' },
-    { id: 2, nome: 'Produto B', codigo: 'PRD-002', estoque: 12, minimo: 50, categoria: 'Ferramentas' },
-    { id: 3, nome: 'Produto C', codigo: 'PRD-003', estoque: 8, minimo: 30, categoria: 'Material' },
-    { id: 4, nome: 'Produto D', codigo: 'PRD-004', estoque: 3, minimo: 15, categoria: 'Consumíveis' },
-  ];
+  const { summary: resumoEstoque, lowStockProducts: produtosBaixoEstoque, loading } = useInventory();
 
   const modulosEstoque = [
     {
@@ -111,7 +102,11 @@ const EstoquePage: React.FC = () => {
             <Package className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{resumoEstoque.totalProdutos}</div>
+            {loading ? (
+              <div className="text-2xl font-bold text-muted-foreground">...</div>
+            ) : (
+              <div className="text-2xl font-bold">{resumoEstoque.totalProdutos}</div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">
               Itens cadastrados
             </p>
@@ -124,9 +119,13 @@ const EstoquePage: React.FC = () => {
             <AlertTriangle className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {resumoEstoque.produtosBaixoEstoque}
-            </div>
+            {loading ? (
+              <div className="text-2xl font-bold text-muted-foreground">...</div>
+            ) : (
+              <div className="text-2xl font-bold text-orange-600">
+                {resumoEstoque.produtosBaixoEstoque}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">
               Produtos abaixo do mínimo
             </p>
@@ -139,9 +138,13 @@ const EstoquePage: React.FC = () => {
             <ShoppingCart className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              R$ {resumoEstoque.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
+            {loading ? (
+              <div className="text-2xl font-bold text-muted-foreground">...</div>
+            ) : (
+              <div className="text-2xl font-bold text-green-600">
+                R$ {resumoEstoque.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">
               Valor total do inventário
             </p>
@@ -154,7 +157,11 @@ const EstoquePage: React.FC = () => {
             <TrendingUp className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{resumoEstoque.movimentacoesMes}</div>
+            {loading ? (
+              <div className="text-2xl font-bold text-muted-foreground">...</div>
+            ) : (
+              <div className="text-2xl font-bold">{resumoEstoque.movimentacoesMes}</div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">
               Este mês
             </p>
@@ -177,31 +184,41 @@ const EstoquePage: React.FC = () => {
           </Link>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {produtosBaixoEstoque.map((produto) => (
-              <div
-                key={produto.id}
-                className="flex items-center justify-between p-4 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-semibold">{produto.nome}</p>
-                    <Badge variant="outline" className="text-xs">
-                      {produto.codigo}
-                    </Badge>
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Carregando produtos...
+            </div>
+          ) : produtosBaixoEstoque.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhum produto com estoque baixo.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {produtosBaixoEstoque.map((produto) => (
+                <div
+                  key={produto.id}
+                  className="flex items-center justify-between p-4 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold">{produto.nome}</p>
+                      <Badge variant="outline" className="text-xs">
+                        {produto.codigo}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Categoria: {produto.categoria} • Mínimo: {produto.minimo} unidades
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Categoria: {produto.categoria} • Mínimo: {produto.minimo} unidades
-                  </p>
-                </div>
-                <div className="text-right">
-                  <Badge variant="destructive" className="text-sm">
-                    {produto.estoque} em estoque
+                  <div className="text-right">
+                    <Badge variant="destructive" className="text-sm">
+                      {produto.estoque} em estoque
                   </Badge>
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

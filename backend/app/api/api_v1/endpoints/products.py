@@ -481,3 +481,61 @@ def generate_fake_sales(
             "end": fake_sales[-1].sale_date.isoformat()
         }
     }
+
+
+@router.get("/stats/inventory-summary")
+def get_inventory_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna estatísticas resumidas do estoque (para página de Estoque)
+
+    Returns:
+        - total_produtos: Total de produtos cadastrados
+        - produtos_baixo_estoque: Quantidade de produtos com estoque abaixo do mínimo
+        - valor_total: Valor total do estoque (custo)
+        - movimentacoes_mes: Número de ajustes de estoque no mês atual
+    """
+    from sqlalchemy import func, extract
+    from datetime import datetime
+
+    # Total de produtos ativos
+    total_produtos = db.query(func.count(Product.id)).filter(
+        Product.workspace_id == current_user.workspace_id,
+        Product.active == True
+    ).scalar() or 0
+
+    # Produtos com estoque baixo (stock_quantity <= min_stock_level)
+    produtos_baixo_estoque = db.query(func.count(Product.id)).filter(
+        Product.workspace_id == current_user.workspace_id,
+        Product.active == True,
+        Product.stock_quantity <= Product.min_stock_level
+    ).scalar() or 0
+
+    # Valor total do estoque (custo * quantidade)
+    valor_total_query = db.query(
+        func.sum(Product.cost_price * Product.stock_quantity)
+    ).filter(
+        Product.workspace_id == current_user.workspace_id,
+        Product.active == True
+    ).scalar()
+
+    valor_total = float(valor_total_query) if valor_total_query else 0.0
+
+    # Movimentações no mês atual
+    current_month = datetime.utcnow().month
+    current_year = datetime.utcnow().year
+
+    movimentacoes_mes = db.query(func.count(StockAdjustment.id)).filter(
+        StockAdjustment.workspace_id == current_user.workspace_id,
+        extract('month', StockAdjustment.created_at) == current_month,
+        extract('year', StockAdjustment.created_at) == current_year
+    ).scalar() or 0
+
+    return {
+        "total_produtos": total_produtos,
+        "produtos_baixo_estoque": produtos_baixo_estoque,
+        "valor_total": valor_total,
+        "movimentacoes_mes": movimentacoes_mes
+    }
