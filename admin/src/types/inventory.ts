@@ -18,16 +18,18 @@ export interface ProductBatch {
   cost_price: number;
 
   // Localização
-  warehouse_id: string;
-  location: string; // Ex: "Corredor A, Prateleira 3, Posição 5"
+  warehouse_id?: string;
+  location?: string; // Ex: "Corredor A, Prateleira 3, Posição 5"
 
   // Rastreabilidade
-  origin: string; // Nota fiscal, ordem de compra, etc.
+  origin?: string; // Nota fiscal, ordem de compra, etc.
   status: 'active' | 'quarantine' | 'expired' | 'recalled';
+  quality_certificate?: string;
+  notes?: string;
 
   // Alertas
   days_to_expire?: number;
-  near_expiry: boolean; // < 30 dias
+  near_expiry?: boolean; // < 30 dias
 
   created_at: Date;
   updated_at: Date;
@@ -55,8 +57,8 @@ export interface BatchMovement {
   quantity: number;
   from_warehouse_id?: string;
   to_warehouse_id?: string;
-  reference: string; // Sale ID, Purchase ID, etc.
-  user_id: string;
+  reference?: string; // Sale ID, Purchase ID, etc.
+  user_id?: string;
   notes?: string;
   created_at: Date;
 }

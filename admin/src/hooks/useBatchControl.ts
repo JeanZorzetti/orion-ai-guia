@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { api } from '@/lib/api';
 import {
   ProductBatch,
   ExpiryAlert,
@@ -6,102 +7,65 @@ import {
   BatchFilters,
   InventorySettings
 } from '@/types/inventory';
-import { addDays, differenceInDays, isBefore, isAfter, startOfDay } from 'date-fns';
 
-// ============================================
-// MOCK DATA GENERATORS
-// ============================================
+// API Response Types
+interface ProductBatchAPI {
+  id: number;
+  product_id: number;
+  batch_number: string;
+  manufacturing_date: string;
+  expiry_date: string;
+  quantity: number;
+  cost_price: number;
+  supplier_id?: number;
+  origin?: string;
+  warehouse_id?: number;
+  location?: string;
+  status: 'active' | 'quarantine' | 'expired' | 'recalled';
+  quality_certificate?: string;
+  notes?: string;
+  days_to_expire: number;
+  near_expiry: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
-const generateMockBatches = (productId?: number): ProductBatch[] => {
-  const batches: ProductBatch[] = [];
-  const hoje = new Date();
+interface BatchStatsAPI {
+  total_batches: number;
+  active_batches: number;
+  expired_batches: number;
+  critical_alerts: number;
+  warning_alerts: number;
+  total_value: number;
+}
 
-  for (let i = 1; i <= 15; i++) {
-    const manufacturingDate = addDays(hoje, -Math.random() * 180);
-    const expiryDate = addDays(manufacturingDate, 180 + Math.random() * 180);
-    const daysToExpire = differenceInDays(expiryDate, hoje);
+interface ExpiryAlertAPI {
+  id: string;
+  product_id: number;
+  product_name: string;
+  batch: ProductBatchAPI;
+  days_remaining: number;
+  quantity: number;
+  severity: 'critical' | 'warning' | 'info';
+  action_taken: 'none' | 'promotion' | 'donation' | 'disposal';
+  resolved: boolean;
+  created_at: string;
+}
 
-    batches.push({
-      id: `batch-${i}`,
-      product_id: productId || Math.floor(Math.random() * 50) + 1,
-      batch_number: `LOTE${String(i).padStart(6, '0')}`,
-      manufacturing_date: manufacturingDate,
-      expiry_date: expiryDate,
-      quantity: Math.floor(Math.random() * 500) + 50,
-      supplier_id: Math.floor(Math.random() * 10) + 1,
-      cost_price: Math.random() * 100 + 10,
+interface BatchMovementAPI {
+  id: number;
+  batch_id: number;
+  type: 'entry' | 'exit' | 'transfer' | 'adjustment';
+  quantity: number;
+  from_warehouse_id?: number;
+  to_warehouse_id?: number;
+  reference?: string;
+  notes?: string;
+  user_id?: number;
+  created_at: string;
+}
 
-      warehouse_id: `warehouse-${Math.floor(Math.random() * 3) + 1}`,
-      location: `Corredor ${String.fromCharCode(65 + Math.floor(Math.random() * 5))}, Prateleira ${Math.floor(Math.random() * 10) + 1}, Posição ${Math.floor(Math.random() * 20) + 1}`,
-
-      origin: `NF-${Math.floor(Math.random() * 10000)}`,
-      status: daysToExpire < 0 ? 'expired' : daysToExpire < 7 ? 'quarantine' : 'active',
-
-      days_to_expire: daysToExpire,
-      near_expiry: daysToExpire > 0 && daysToExpire < 30,
-
-      created_at: addDays(hoje, -Math.random() * 90),
-      updated_at: hoje,
-    });
-  }
-
-  return batches;
-};
-
-const generateExpiryAlerts = (batches: ProductBatch[]): ExpiryAlert[] => {
-  const alerts: ExpiryAlert[] = [];
-  const hoje = new Date();
-
-  batches.forEach((batch, index) => {
-    const daysRemaining = differenceInDays(batch.expiry_date, hoje);
-
-    if (daysRemaining >= 0 && daysRemaining < 90) {
-      alerts.push({
-        id: `alert-${index + 1}`,
-        product_id: batch.product_id,
-        product_name: `Produto ${batch.product_id}`,
-        batch,
-        days_remaining: daysRemaining,
-        quantity: batch.quantity,
-        severity: daysRemaining < 7 ? 'critical' : daysRemaining < 30 ? 'warning' : 'info',
-        action_taken: daysRemaining < 7 ? (Math.random() > 0.5 ? 'promotion' : 'none') : 'none',
-        resolved: false,
-        created_at: hoje,
-      });
-    }
-  });
-
-  return alerts.sort((a, b) => a.days_remaining - b.days_remaining);
-};
-
-const generateBatchMovements = (batchId: string): BatchMovement[] => {
-  const movements: BatchMovement[] = [];
-  const hoje = new Date();
-
-  for (let i = 1; i <= 10; i++) {
-    const type = ['entry', 'exit', 'transfer', 'adjustment'][Math.floor(Math.random() * 4)] as BatchMovement['type'];
-
-    movements.push({
-      id: `movement-${i}`,
-      batch_id: batchId,
-      type,
-      quantity: Math.floor(Math.random() * 50) + 1,
-      from_warehouse_id: type === 'transfer' ? `warehouse-${Math.floor(Math.random() * 3) + 1}` : undefined,
-      to_warehouse_id: type === 'transfer' ? `warehouse-${Math.floor(Math.random() * 3) + 1}` : undefined,
-      reference: type === 'entry' ? `NF-${Math.floor(Math.random() * 10000)}` : `SALE-${Math.floor(Math.random() * 10000)}`,
-      user_id: `user-${Math.floor(Math.random() * 5) + 1}`,
-      notes: Math.random() > 0.7 ? 'Movimentação automática do sistema' : undefined,
-      created_at: addDays(hoje, -Math.random() * 30),
-    });
-  }
-
-  return movements.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
-};
-
-// ============================================
 // DEFAULT SETTINGS
-// ============================================
-
 const DEFAULT_SETTINGS: InventorySettings = {
   workspace_id: 1,
   stock_valuation_method: 'fifo',
@@ -126,10 +90,6 @@ const DEFAULT_SETTINGS: InventorySettings = {
   updated_at: new Date(),
   updated_by: 'system',
 };
-
-// ============================================
-// HOOK
-// ============================================
 
 interface UseBatchControlReturn {
   // Data
@@ -183,27 +143,181 @@ interface UseBatchControlReturn {
 }
 
 export const useBatchControl = (productId?: number): UseBatchControlReturn => {
-  const [batches, setBatches] = useState<ProductBatch[]>(() => generateMockBatches(productId));
+  const [batches, setBatches] = useState<ProductBatch[]>([]);
   const [filters, setFilters] = useState<BatchFilters>({});
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [settings, setSettings] = useState<InventorySettings>(DEFAULT_SETTINGS);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<BatchStatsAPI>({
+    total_batches: 0,
+    active_batches: 0,
+    expired_batches: 0,
+    critical_alerts: 0,
+    warning_alerts: 0,
+    total_value: 0
+  });
+  const [expiryAlerts, setExpiryAlerts] = useState<ExpiryAlert[]>([]);
+  const [selectedBatchMovements, setSelectedBatchMovements] = useState<BatchMovement[]>([]);
 
-  // ============================================
-  // COMPUTED DATA
-  // ============================================
+  // Buscar lotes da API
+  const fetchBatches = useCallback(async () => {
+    console.log('🔄 [useBatchControl] Buscando lotes da API');
+    setLoading(true);
 
+    try {
+      const params = new URLSearchParams();
+      if (productId) params.append('product_id', productId.toString());
+
+      const response = await api.get<ProductBatchAPI[]>(`/batches?${params.toString()}`);
+      console.log('✅ [useBatchControl] Lotes recebidos:', response.length);
+
+      // Converter para formato do frontend
+      const converted: ProductBatch[] = response.map(b => ({
+        id: b.id.toString(),
+        product_id: b.product_id,
+        batch_number: b.batch_number,
+        manufacturing_date: new Date(b.manufacturing_date),
+        expiry_date: new Date(b.expiry_date),
+        quantity: b.quantity,
+        cost_price: b.cost_price,
+        supplier_id: b.supplier_id,
+        origin: b.origin,
+        warehouse_id: b.warehouse_id?.toString(),
+        location: b.location || '',
+        status: b.status,
+        quality_certificate: b.quality_certificate,
+        notes: b.notes,
+        days_to_expire: b.days_to_expire,
+        near_expiry: b.near_expiry,
+        created_at: new Date(b.created_at),
+        updated_at: new Date(b.updated_at)
+      }));
+
+      setBatches(converted);
+    } catch (err) {
+      console.error('❌ [useBatchControl] Erro ao buscar lotes:', err);
+      // Sem fallback para mock - mostrar vazio se não houver dados
+      setBatches([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [productId]);
+
+  // Buscar estatísticas
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await api.get<BatchStatsAPI>('/batches/stats');
+      console.log('✅ [useBatchControl] Estatísticas recebidas:', response);
+      setStats(response);
+    } catch (err) {
+      console.error('❌ [useBatchControl] Erro ao buscar estatísticas:', err);
+      setStats({
+        total_batches: 0,
+        active_batches: 0,
+        expired_batches: 0,
+        critical_alerts: 0,
+        warning_alerts: 0,
+        total_value: 0
+      });
+    }
+  }, []);
+
+  // Buscar alertas de validade
+  const fetchAlerts = useCallback(async () => {
+    try {
+      const response = await api.get<ExpiryAlertAPI[]>('/batches/alerts');
+      console.log('✅ [useBatchControl] Alertas recebidos:', response.length);
+
+      const converted: ExpiryAlert[] = response.map(a => ({
+        id: a.id,
+        product_id: a.product_id,
+        product_name: a.product_name,
+        batch: {
+          id: a.batch.id.toString(),
+          product_id: a.batch.product_id,
+          batch_number: a.batch.batch_number,
+          manufacturing_date: new Date(a.batch.manufacturing_date),
+          expiry_date: new Date(a.batch.expiry_date),
+          quantity: a.batch.quantity,
+          cost_price: a.batch.cost_price,
+          supplier_id: a.batch.supplier_id,
+          origin: a.batch.origin,
+          warehouse_id: a.batch.warehouse_id?.toString(),
+          location: a.batch.location || '',
+          status: a.batch.status,
+          days_to_expire: a.batch.days_to_expire,
+          near_expiry: a.batch.near_expiry,
+          created_at: new Date(a.batch.created_at),
+          updated_at: new Date(a.batch.updated_at)
+        },
+        days_remaining: a.days_remaining,
+        quantity: a.quantity,
+        severity: a.severity,
+        action_taken: a.action_taken,
+        resolved: a.resolved,
+        created_at: new Date(a.created_at)
+      }));
+
+      setExpiryAlerts(converted);
+    } catch (err) {
+      console.error('❌ [useBatchControl] Erro ao buscar alertas:', err);
+      setExpiryAlerts([]);
+    }
+  }, []);
+
+  // Buscar movimentações de um lote
+  const fetchBatchMovements = useCallback(async (batchId: string) => {
+    try {
+      const response = await api.get<BatchMovementAPI[]>(`/batches/${batchId}/movements`);
+      console.log('✅ [useBatchControl] Movimentações recebidas:', response.length);
+
+      const converted: BatchMovement[] = response.map(m => ({
+        id: m.id.toString(),
+        batch_id: batchId,
+        type: m.type,
+        quantity: m.quantity,
+        from_warehouse_id: m.from_warehouse_id?.toString(),
+        to_warehouse_id: m.to_warehouse_id?.toString(),
+        reference: m.reference,
+        notes: m.notes,
+        user_id: m.user_id?.toString(),
+        created_at: new Date(m.created_at)
+      }));
+
+      setSelectedBatchMovements(converted);
+    } catch (err) {
+      console.error('❌ [useBatchControl] Erro ao buscar movimentações:', err);
+      setSelectedBatchMovements([]);
+    }
+  }, []);
+
+  // Buscar dados ao montar
+  useEffect(() => {
+    const fetchAll = async () => {
+      await Promise.all([
+        fetchBatches(),
+        fetchStats(),
+        fetchAlerts()
+      ]);
+    };
+
+    fetchAll();
+  }, [fetchBatches, fetchStats, fetchAlerts]);
+
+  // Quando selecionar um lote, buscar suas movimentações
+  useEffect(() => {
+    if (selectedBatchId) {
+      fetchBatchMovements(selectedBatchId);
+    }
+  }, [selectedBatchId, fetchBatchMovements]);
+
+  // Filtrar lotes
   const filteredBatches = useMemo(() => {
     let result = [...batches];
 
     // Filter by product
     if (filters.product_id) {
       result = result.filter(b => b.product_id === filters.product_id);
-    }
-
-    // Filter by warehouse
-    if (filters.warehouse_id) {
-      result = result.filter(b => b.warehouse_id === filters.warehouse_id);
     }
 
     // Filter by status
@@ -213,11 +327,11 @@ export const useBatchControl = (productId?: number): UseBatchControlReturn => {
 
     // Filter by expiring soon
     if (filters.expiring_in_days !== undefined) {
-      const hoje = new Date();
-      result = result.filter(b => {
-        const daysToExpire = differenceInDays(b.expiry_date, hoje);
-        return daysToExpire >= 0 && daysToExpire <= filters.expiring_in_days!;
-      });
+      result = result.filter(b =>
+        b.days_to_expire !== undefined &&
+        b.days_to_expire >= 0 &&
+        b.days_to_expire <= filters.expiring_in_days!
+      );
     }
 
     // Search
@@ -225,257 +339,114 @@ export const useBatchControl = (productId?: number): UseBatchControlReturn => {
       const searchLower = filters.search.toLowerCase();
       result = result.filter(b =>
         b.batch_number.toLowerCase().includes(searchLower) ||
-        b.location.toLowerCase().includes(searchLower) ||
-        b.origin.toLowerCase().includes(searchLower)
+        b.location?.toLowerCase().includes(searchLower)
       );
     }
 
     return result;
   }, [batches, filters]);
 
-  const expiryAlerts = useMemo(() =>
-    generateExpiryAlerts(batches),
-    [batches]
-  );
-
-  const selectedBatch = useMemo(() =>
-    selectedBatchId ? batches.find(b => b.id === selectedBatchId) || null : null,
-    [batches, selectedBatchId]
-  );
-
-  const batchMovements = useMemo(() =>
-    selectedBatchId ? generateBatchMovements(selectedBatchId) : [],
-    [selectedBatchId]
-  );
-
-  const stats = useMemo(() => {
-    const hoje = new Date();
-    return {
-      totalBatches: batches.length,
-      activeBatches: batches.filter(b => b.status === 'active').length,
-      expiredBatches: batches.filter(b => b.status === 'expired').length,
-      criticalAlerts: expiryAlerts.filter(a => a.severity === 'critical' && !a.resolved).length,
-      warningAlerts: expiryAlerts.filter(a => a.severity === 'warning' && !a.resolved).length,
-      totalValue: batches.reduce((sum, b) => sum + (b.quantity * b.cost_price), 0),
-    };
-  }, [batches, expiryAlerts]);
-
-  // ============================================
-  // CRUD OPERATIONS
-  // ============================================
+  const selectedBatch = useMemo(() => {
+    return selectedBatchId ? batches.find(b => b.id === selectedBatchId) || null : null;
+  }, [batches, selectedBatchId]);
 
   const selectBatch = useCallback((batchId: string | null) => {
     setSelectedBatchId(batchId);
   }, []);
 
-  const createBatch = useCallback((batchData: Omit<ProductBatch, 'id' | 'created_at' | 'updated_at' | 'days_to_expire' | 'near_expiry'>) => {
-    const hoje = new Date();
-    const daysToExpire = differenceInDays(batchData.expiry_date, hoje);
-
-    const newBatch: ProductBatch = {
-      ...batchData,
-      id: `batch-${Date.now()}`,
-      days_to_expire: daysToExpire,
-      near_expiry: daysToExpire > 0 && daysToExpire < settings.expiry_warning_days,
-      created_at: hoje,
-      updated_at: hoje,
-    };
-
-    setBatches(prev => [...prev, newBatch]);
-  }, [settings.expiry_warning_days]);
-
-  const updateBatch = useCallback((batchId: string, updates: Partial<ProductBatch>) => {
-    setBatches(prev => prev.map(batch => {
-      if (batch.id === batchId) {
-        const updated = { ...batch, ...updates, updated_at: new Date() };
-
-        // Recalculate expiry fields if expiry_date changed
-        if (updates.expiry_date) {
-          const daysToExpire = differenceInDays(updates.expiry_date, new Date());
-          updated.days_to_expire = daysToExpire;
-          updated.near_expiry = daysToExpire > 0 && daysToExpire < settings.expiry_warning_days;
-          updated.status = daysToExpire < 0 ? 'expired' : updated.status;
-        }
-
-        return updated;
-      }
-      return batch;
-    }));
-  }, [settings.expiry_warning_days]);
-
-  const deleteBatch = useCallback((batchId: string) => {
-    setBatches(prev => prev.filter(b => b.id !== batchId));
-    if (selectedBatchId === batchId) {
-      setSelectedBatchId(null);
-    }
-  }, [selectedBatchId]);
-
-  // ============================================
-  // STOCK ALLOCATION (FIFO/LIFO)
-  // ============================================
-
-  const allocateStock = useCallback((productId: number, quantity: number, warehouseId: string): ProductBatch[] => {
-    const availableBatches = batches
-      .filter(b =>
-        b.product_id === productId &&
-        b.warehouse_id === warehouseId &&
-        b.status === 'active' &&
-        b.quantity > 0
-      )
-      .sort((a, b) => {
-        // FIFO: Oldest first (by manufacturing date)
-        if (settings.stock_valuation_method === 'fifo') {
-          return a.manufacturing_date.getTime() - b.manufacturing_date.getTime();
-        }
-        // LIFO: Newest first
-        else if (settings.stock_valuation_method === 'lifo') {
-          return b.manufacturing_date.getTime() - a.manufacturing_date.getTime();
-        }
-        // Prefer near expiry
-        else if (settings.prefer_near_expiry) {
-          return (a.days_to_expire || Infinity) - (b.days_to_expire || Infinity);
-        }
-        return 0;
-      });
-
-    const allocated: ProductBatch[] = [];
-    let remaining = quantity;
-
-    for (const batch of availableBatches) {
-      if (remaining <= 0) break;
-
-      const allocateQty = Math.min(batch.quantity, remaining);
-      allocated.push({ ...batch, quantity: allocateQty });
-      remaining -= allocateQty;
-    }
-
-    return allocated;
-  }, [batches, settings.stock_valuation_method, settings.prefer_near_expiry]);
-
-  const reserveStock = useCallback((productId: number, quantity: number, warehouseId: string, saleId: string): boolean => {
-    const allocated = allocateStock(productId, quantity, warehouseId);
-    const totalAllocated = allocated.reduce((sum, b) => sum + b.quantity, 0);
-
-    if (totalAllocated < quantity && settings.prevent_negative_stock) {
-      return false; // Insufficient stock
-    }
-
-    // Update batches (in real app, would create reservation records)
-    allocated.forEach(allocatedBatch => {
-      updateBatch(allocatedBatch.id, {
-        quantity: batches.find(b => b.id === allocatedBatch.id)!.quantity - allocatedBatch.quantity
-      });
-    });
-
-    return true;
-  }, [allocateStock, batches, settings.prevent_negative_stock, updateBatch]);
-
-  const releaseStock = useCallback((productId: number, quantity: number, warehouseId: string, saleId: string) => {
-    // In real app, would find reservation and return stock
-    // For now, just demonstration logic
-    const batch = batches.find(b => b.product_id === productId && b.warehouse_id === warehouseId);
-    if (batch) {
-      updateBatch(batch.id, { quantity: batch.quantity + quantity });
-    }
-  }, [batches, updateBatch]);
-
-  // ============================================
-  // EXPIRY MANAGEMENT
-  // ============================================
-
-  const resolveAlert = useCallback((alertId: string, action: ExpiryAlert['action_taken']) => {
-    // In real app, would update alert in database
-    console.log(`Alert ${alertId} resolved with action: ${action}`);
-  }, []);
-
-  const checkExpiredBatches = useCallback(() => {
-    const hoje = startOfDay(new Date());
-    return batches.filter(b => isBefore(b.expiry_date, hoje) && b.status !== 'expired');
-  }, [batches]);
-
-  // ============================================
-  // MOVEMENTS
-  // ============================================
-
-  const addMovement = useCallback((movement: Omit<BatchMovement, 'id' | 'created_at'>) => {
-    // In real app, would save to database and update batch quantities
-    console.log('Movement added:', movement);
-  }, []);
-
-  const getMovementHistory = useCallback((batchId: string) => {
-    return generateBatchMovements(batchId);
-  }, []);
-
-  // ============================================
-  // SETTINGS
-  // ============================================
-
-  const updateSettings = useCallback((updates: Partial<InventorySettings>) => {
-    setSettings(prev => ({
-      ...prev,
-      ...updates,
-      updated_at: new Date(),
-    }));
-  }, []);
-
-  // ============================================
-  // REFRESH
-  // ============================================
-
-  const refresh = useCallback(() => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setBatches(generateMockBatches(productId));
-      setLoading(false);
-    }, 500);
-  }, [productId]);
-
   const clearFilters = useCallback(() => {
     setFilters({});
   }, []);
 
+  const refresh = useCallback(async () => {
+    await Promise.all([
+      fetchBatches(),
+      fetchStats(),
+      fetchAlerts()
+    ]);
+  }, [fetchBatches, fetchStats, fetchAlerts]);
+
+  // Operações placeholder (não implementadas no backend ainda)
+  const createBatch = useCallback(() => {
+    console.warn('createBatch: Não implementado');
+  }, []);
+
+  const updateBatch = useCallback(() => {
+    console.warn('updateBatch: Não implementado');
+  }, []);
+
+  const deleteBatch = useCallback(() => {
+    console.warn('deleteBatch: Não implementado');
+  }, []);
+
+  const allocateStock = useCallback(() => {
+    console.warn('allocateStock: Não implementado');
+    return [];
+  }, []);
+
+  const reserveStock = useCallback(() => {
+    console.warn('reserveStock: Não implementado');
+    return false;
+  }, []);
+
+  const releaseStock = useCallback(() => {
+    console.warn('releaseStock: Não implementado');
+  }, []);
+
+  const resolveAlert = useCallback((alertId: string, action: ExpiryAlert['action_taken']) => {
+    // Atualizar localmente
+    setExpiryAlerts(prev => prev.map(a =>
+      a.id === alertId ? { ...a, action_taken: action, resolved: true } : a
+    ));
+  }, []);
+
+  const checkExpiredBatches = useCallback(() => {
+    return batches.filter(b => b.days_to_expire !== undefined && b.days_to_expire < 0);
+  }, [batches]);
+
+  const addMovement = useCallback(() => {
+    console.warn('addMovement: Não implementado');
+  }, []);
+
+  const getMovementHistory = useCallback((batchId: string) => {
+    return selectedBatchId === batchId ? selectedBatchMovements : [];
+  }, [selectedBatchId, selectedBatchMovements]);
+
+  const updateSettings = useCallback((updates: Partial<InventorySettings>) => {
+    setSettings(prev => ({ ...prev, ...updates, updated_at: new Date() }));
+  }, []);
+
   return {
-    // Data
     batches,
     filteredBatches,
     expiryAlerts,
     selectedBatch,
-    batchMovements,
+    batchMovements: selectedBatchMovements,
     settings,
-
-    // Filters
     filters,
     setFilters,
     clearFilters,
-
-    // CRUD
     selectBatch,
     createBatch,
     updateBatch,
     deleteBatch,
-
-    // Stock Operations
     allocateStock,
     reserveStock,
     releaseStock,
-
-    // Expiry
     resolveAlert,
     checkExpiredBatches,
-
-    // Movements
     addMovement,
     getMovementHistory,
-
-    // Settings
     updateSettings,
-
-    // Stats
-    stats,
-
-    // Loading
+    stats: {
+      totalBatches: stats.total_batches,
+      activeBatches: stats.active_batches,
+      expiredBatches: stats.expired_batches,
+      criticalAlerts: stats.critical_alerts,
+      warningAlerts: stats.warning_alerts,
+      totalValue: stats.total_value
+    },
     loading,
-    refresh,
+    refresh
   };
 };
