@@ -77,6 +77,15 @@ export const AnalyticsDashboard: React.FC = () => {
     }
   };
 
+  // Show loading or empty state
+  if (loading) {
+    return <div className="text-center py-8">Carregando analytics...</div>;
+  }
+
+  if (!salesMetrics || !inventoryMetrics || !customerMetrics) {
+    return <div className="text-center py-8">Sem dados disponíveis</div>;
+  }
+
   return (
     <div className="space-y-6">
       {/* KPIs Grid */}

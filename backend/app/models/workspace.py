@@ -117,5 +117,13 @@ class Workspace(Base):
     delivery_routes = relationship("DeliveryRoute", back_populates="workspace", cascade="all, delete-orphan")
     deliveries = relationship("Delivery", back_populates="workspace", cascade="all, delete-orphan")
 
+    # Analytics relationships
+    kpi_definitions = relationship("KPIDefinition", back_populates="workspace", cascade="all, delete-orphan")
+    kpi_values = relationship("KPIValue", back_populates="workspace", cascade="all, delete-orphan")
+    dashboard_alerts = relationship("DashboardAlert", back_populates="workspace", cascade="all, delete-orphan")
+    recommended_actions = relationship("RecommendedAction", back_populates="workspace", cascade="all, delete-orphan")
+    custom_reports = relationship("CustomReport", back_populates="workspace", cascade="all, delete-orphan")
+    report_executions = relationship("ReportExecution", back_populates="workspace", cascade="all, delete-orphan")
+
     def __repr__(self):
         return f"<Workspace(id={self.id}, name='{self.name}', slug='{self.slug}')>"

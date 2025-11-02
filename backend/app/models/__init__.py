@@ -38,6 +38,14 @@ from app.models.logistics import (
     DeliveryRoute,
     Delivery
 )
+from app.models.analytics import (
+    KPIDefinition,
+    KPIValue,
+    DashboardAlert,
+    RecommendedAction,
+    CustomReport,
+    ReportExecution
+)
 
 __all__ = [
     "Base",
@@ -75,4 +83,10 @@ __all__ = [
     "Vehicle",
     "DeliveryRoute",
     "Delivery",
+    "KPIDefinition",
+    "KPIValue",
+    "DashboardAlert",
+    "RecommendedAction",
+    "CustomReport",
+    "ReportExecution",
 ]
