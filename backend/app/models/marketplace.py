@@ -9,7 +9,7 @@ from sqlalchemy import (
     ForeignKey, Text, JSON, Enum as SQLEnum, Index
 )
 from sqlalchemy.orm import relationship
-from app.db.base_class import Base
+from app.core.database import Base
 
 
 # ============================================================================
