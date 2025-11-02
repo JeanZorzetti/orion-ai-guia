@@ -30,6 +30,7 @@ import type { ReportConfig } from '@/types/report';
 import { generateReport } from '@/lib/report-generator';
 import { format, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useReportHistory } from '@/hooks/useReportHistory';
 
 const RelatoriosFinanceirosPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -37,6 +38,9 @@ const RelatoriosFinanceirosPage: React.FC = () => {
   const [showConfigurator, setShowConfigurator] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [currentConfig, setCurrentConfig] = useState<ReportConfig | null>(null);
+
+  // Buscar dados reais de relatórios
+  const { reports, stats, loading: loadingReports } = useReportHistory();
   const handleOpenConfigurator = (subtipo: string) => {
     setSelectedReport({ tipo: 'financeiro', subtipo });
     setShowConfigurator(true);
@@ -162,11 +166,17 @@ const RelatoriosFinanceirosPage: React.FC = () => {
     },
   ];
 
-  const relatoriosRecentes = [
-    { nome: 'DRE_Janeiro_2024.pdf', data: '15/01/2024', tamanho: '234 KB' },
-    { nome: 'FluxoCaixa_Dezembro_2023.xlsx', data: '05/01/2024', tamanho: '156 KB' },
-    { nome: 'ContasPagar_Janeiro_2024.pdf', data: '10/01/2024', tamanho: '189 KB' },
-  ];
+  // Pegar últimos 3 relatórios gerados
+  const relatoriosRecentes = reports.slice(0, 3).map(r => ({
+    id: r.id,
+    nome: `${r.nome}.${r.arquivo.formato}`,
+    data: format(r.geradoEm, 'dd/MM/yyyy'),
+    tamanho: `${Math.round(r.arquivo.tamanho / 1024)} KB`,
+    url: r.arquivo.url
+  }));
+
+  // Último relatório gerado
+  const ultimoRelatorio = reports.length > 0 ? reports[0] : null;
 
   return (
     <div className="space-y-6">
@@ -241,9 +251,13 @@ const RelatoriosFinanceirosPage: React.FC = () => {
             <Calendar className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{relatoriosRecentes.length}</div>
+            {loadingReports ? (
+              <div className="text-2xl font-bold text-muted-foreground">...</div>
+            ) : (
+              <div className="text-2xl font-bold text-green-600">{stats.concluidos}</div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">
-              Janeiro 2024
+              {format(new Date(), 'MMMM yyyy', { locale: ptBR })}
             </p>
           </CardContent>
         </Card>
@@ -254,10 +268,23 @@ const RelatoriosFinanceirosPage: React.FC = () => {
             <Download className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold">DRE Janeiro</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Há 2 dias
-            </p>
+            {loadingReports ? (
+              <div className="text-lg font-bold text-muted-foreground">Carregando...</div>
+            ) : ultimoRelatorio ? (
+              <>
+                <div className="text-lg font-bold">{ultimoRelatorio.nome}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {format(ultimoRelatorio.geradoEm, 'dd/MM/yyyy')}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-lg font-bold text-muted-foreground">Nenhum</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Gere seu primeiro relatório
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -302,32 +329,42 @@ const RelatoriosFinanceirosPage: React.FC = () => {
           <CardTitle>Relatórios Gerados Recentemente</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {relatoriosRecentes.map((rel, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/20">
-                    <FileText className="h-5 w-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{rel.nome}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-muted-foreground">{rel.data}</span>
-                      <span className="text-xs text-muted-foreground">•</span>
-                      <span className="text-xs text-muted-foreground">{rel.tamanho}</span>
+          {loadingReports ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Carregando relatórios...
+            </div>
+          ) : relatoriosRecentes.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhum relatório gerado ainda. Comece gerando seu primeiro relatório acima.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {relatoriosRecentes.map((rel) => (
+                <div
+                  key={rel.id}
+                  className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                      <FileText className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{rel.nome}</p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-xs text-muted-foreground">{rel.data}</span>
+                        <span className="text-xs text-muted-foreground">•</span>
+                        <span className="text-xs text-muted-foreground">{rel.tamanho}</span>
+                      </div>
                     </div>
                   </div>
+                  <Button variant="outline" size="sm" disabled={!rel.url}>
+                    <Download className="mr-2 h-3 w-3" />
+                    Download
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm">
-                  <Download className="mr-2 h-3 w-3" />
-                  Download
-                </Button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
