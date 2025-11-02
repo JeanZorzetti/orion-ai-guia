@@ -5,7 +5,7 @@ Analytics and Business Intelligence Models
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, JSON, ForeignKey, Enum as SQLEnum, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.models.base import Base
+from app.core.database import Base
 from datetime import datetime
 from enum import Enum
 
