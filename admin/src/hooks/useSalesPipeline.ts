@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { api } from '@/lib/api';
 import {
   SalesPipeline,
   PipelineStage,
@@ -6,183 +7,89 @@ import {
   OpportunityFilters,
   PipelineAnalytics,
 } from '@/types/sales';
-import { addDays, addMonths, differenceInDays, startOfMonth, endOfMonth } from 'date-fns';
 
 // ============================================
-// MOCK DATA GENERATORS
+// API Response Types
 // ============================================
 
-const generateMockPipeline = (): SalesPipeline => {
-  const hoje = new Date();
+interface PipelineStageAPI {
+  id: number;
+  pipeline_id: number;
+  name: string;
+  order: number;
+  color?: string;
+  win_probability: number;
+  auto_actions?: any;
+  max_days_in_stage?: number;
+  alert_before_sla?: number;
+  opportunities_count: number;
+  total_value: number;
+}
 
-  return {
-    id: 'pipeline-1',
-    name: 'Pipeline de Vendas B2B',
-    description: 'Pipeline principal para vendas empresariais',
-    workspace_id: 1,
-    stages: [
-      {
-        id: 'stage-1',
-        pipeline_id: 'pipeline-1',
-        name: 'Prospecção',
-        order: 1,
-        color: '#6B7280',
-        win_probability: 10,
-        auto_actions: {
-          create_task: 'Primeira ligação',
-          notify_users: ['user-1'],
-        },
-        max_days_in_stage: 7,
-        alert_before_sla: 2,
-        opportunities_count: 0,
-        total_value: 0,
-      },
-      {
-        id: 'stage-2',
-        pipeline_id: 'pipeline-1',
-        name: 'Qualificação',
-        order: 2,
-        color: '#3B82F6',
-        win_probability: 25,
-        auto_actions: {
-          send_email: 'template-qualificacao',
-        },
-        max_days_in_stage: 10,
-        alert_before_sla: 3,
-        opportunities_count: 0,
-        total_value: 0,
-      },
-      {
-        id: 'stage-3',
-        pipeline_id: 'pipeline-1',
-        name: 'Proposta',
-        order: 3,
-        color: '#8B5CF6',
-        win_probability: 50,
-        auto_actions: {},
-        max_days_in_stage: 15,
-        alert_before_sla: 5,
-        opportunities_count: 0,
-        total_value: 0,
-      },
-      {
-        id: 'stage-4',
-        pipeline_id: 'pipeline-1',
-        name: 'Negociação',
-        order: 4,
-        color: '#F59E0B',
-        win_probability: 75,
-        auto_actions: {
-          notify_users: ['user-1', 'user-2'],
-        },
-        max_days_in_stage: 10,
-        alert_before_sla: 3,
-        opportunities_count: 0,
-        total_value: 0,
-      },
-      {
-        id: 'stage-5',
-        pipeline_id: 'pipeline-1',
-        name: 'Fechamento',
-        order: 5,
-        color: '#10B981',
-        win_probability: 90,
-        auto_actions: {
-          create_task: 'Preparar contrato',
-        },
-        max_days_in_stage: 5,
-        alert_before_sla: 2,
-        opportunities_count: 0,
-        total_value: 0,
-      },
-    ],
-    is_default: true,
-    is_active: true,
-    auto_move_on_event: false,
-    require_approval_stages: ['stage-5'],
-    created_by: 'user-1',
-    created_at: addMonths(hoje, -6),
-    updated_at: hoje,
-  };
-};
+interface SalesPipelineAPI {
+  id: number;
+  name: string;
+  description?: string;
+  workspace_id: number;
+  is_default: boolean;
+  is_active: boolean;
+  stages: PipelineStageAPI[];
+  created_at: string;
+  updated_at: string;
+}
 
-const generateMockOpportunities = (pipeline: SalesPipeline): Opportunity[] => {
-  const opportunities: Opportunity[] = [];
-  const hoje = new Date();
+interface OpportunityAPI {
+  id: number;
+  pipeline_id: number;
+  stage_id?: number;
+  stage_name?: string;
+  customer_id?: number;
+  customer_name?: string;
+  assigned_to?: number;
+  title: string;
+  description?: string;
+  value: number;
+  status: 'open' | 'won' | 'lost';
+  source?: 'website' | 'phone' | 'email' | 'referral' | 'marketplace' | 'social_media' | 'event' | 'other';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  expected_close_date?: string;
+  closed_date?: string;
+  won_date?: string;
+  lost_date?: string;
+  lost_reason?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  company_name?: string;
+  custom_fields?: any;
+  stage_entered_at?: string;
+  days_in_stage: number;
+  sla_overdue: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
-  for (let i = 1; i <= 30; i++) {
-    const stage = pipeline.stages[Math.floor(Math.random() * pipeline.stages.length)];
-    const createdAt = addDays(hoje, -Math.random() * 90);
-    const daysInCurrentStage = Math.floor(Math.random() * 20);
+interface OpportunityStatsAPI {
+  open_opportunities: number;
+  total_value: number;
+  weighted_value: number;
+  conversion_rate: number;
+  won_last_30_days: number;
+  won_value_last_30_days: number;
+}
 
-    const estimatedValue = Math.floor(Math.random() * 50000) + 5000;
-    const probability = stage.win_probability;
-    const weightedValue = (estimatedValue * probability) / 100;
-
-    const status: Opportunity['status'] = Math.random() > 0.8 ? (Math.random() > 0.5 ? 'won' : 'lost') : 'open';
-
-    opportunities.push({
-      id: `opp-${i}`,
-      title: `Oportunidade ${i} - ${['ERP Completo', 'Módulo Financeiro', 'Integração Marketplace', 'Sistema de Vendas'][Math.floor(Math.random() * 4)]}`,
-      description: 'Descrição detalhada da oportunidade de negócio',
-      customer_id: Math.floor(Math.random() * 20) + 1,
-      customer_name: `Cliente ${Math.floor(Math.random() * 20) + 1}`,
-      pipeline_id: pipeline.id,
-      pipeline_name: pipeline.name,
-      stage_id: stage.id,
-      stage_name: stage.name,
-      stage_history: [
-        {
-          stage_id: stage.id,
-          stage_name: stage.name,
-          entered_at: addDays(hoje, -daysInCurrentStage),
-          days_in_stage: daysInCurrentStage,
-        },
-      ],
-      estimated_value: estimatedValue,
-      probability,
-      weighted_value: weightedValue,
-      discount_percentage: Math.random() * 15,
-      discount_value: estimatedValue * (Math.random() * 0.15),
-      final_value: estimatedValue * (1 - Math.random() * 0.15),
-      products: [
-        {
-          id: `prod-${i}-1`,
-          product_id: Math.floor(Math.random() * 20) + 1,
-          product_name: `Produto ${Math.floor(Math.random() * 20) + 1}`,
-          quantity: Math.floor(Math.random() * 10) + 1,
-          unit_price: Math.floor(Math.random() * 5000) + 1000,
-          discount: Math.random() * 10,
-          total: 0,
-        },
-      ],
-      expected_close_date: addDays(hoje, Math.floor(Math.random() * 60) + 10),
-      actual_close_date: status !== 'open' ? addDays(hoje, -Math.random() * 30) : undefined,
-      owner_id: `user-${Math.floor(Math.random() * 3) + 1}`,
-      owner_name: `Vendedor ${Math.floor(Math.random() * 3) + 1}`,
-      team_id: `team-${Math.floor(Math.random() * 2) + 1}`,
-      team_name: `Equipe ${Math.floor(Math.random() * 2) + 1}`,
-      source: ['website', 'phone', 'email', 'referral', 'marketplace'][Math.floor(Math.random() * 5)] as any,
-      status,
-      lost_reason: status === 'lost' ? ['Preço', 'Concorrência', 'Timing'][Math.floor(Math.random() * 3)] : undefined,
-      won_at: status === 'won' ? addDays(hoje, -Math.random() * 30) : undefined,
-      lost_at: status === 'lost' ? addDays(hoje, -Math.random() * 30) : undefined,
-      last_contact_at: addDays(hoje, -Math.random() * 7),
-      contact_count: Math.floor(Math.random() * 20) + 1,
-      email_count: Math.floor(Math.random() * 10),
-      call_count: Math.floor(Math.random() * 5),
-      meeting_count: Math.floor(Math.random() * 3),
-      notes: 'Notas sobre o cliente e oportunidade',
-      activities: [],
-      tasks: [],
-      tags: ['B2B', 'Alto valor'],
-      created_at: createdAt,
-      updated_at: hoje,
-    });
-  }
-
-  return opportunities;
-};
+interface AnalyticsAPI {
+  conversion_by_source: Array<{
+    source: string;
+    total: number;
+    won: number;
+    conversion_rate: number;
+  }>;
+  avg_time_by_stage: Array<{
+    stage: string;
+    avg_days: number;
+  }>;
+}
 
 // ============================================
 // HOOK
@@ -231,12 +138,217 @@ interface UseSalesPipelineReturn {
 }
 
 export const useSalesPipeline = (): UseSalesPipelineReturn => {
-  const [pipeline, setPipeline] = useState<SalesPipeline>(generateMockPipeline);
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(() =>
-    generateMockOpportunities(generateMockPipeline())
-  );
+  const [pipeline, setPipeline] = useState<SalesPipeline>({
+    id: '',
+    name: '',
+    description: '',
+    workspace_id: 0,
+    stages: [],
+    is_default: false,
+    is_active: false,
+    auto_move_on_event: false,
+    created_by: '',
+    created_at: new Date(),
+    updated_at: new Date()
+  });
+
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [filters, setFilters] = useState<OpportunityFilters>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [opportunityStats, setOpportunityStats] = useState<OpportunityStatsAPI>({
+    open_opportunities: 0,
+    total_value: 0,
+    weighted_value: 0,
+    conversion_rate: 0,
+    won_last_30_days: 0,
+    won_value_last_30_days: 0
+  });
+
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsAPI>({
+    conversion_by_source: [],
+    avg_time_by_stage: []
+  });
+
+  // ============================================
+  // FETCH DATA FROM API
+  // ============================================
+
+  const fetchPipeline = useCallback(async () => {
+    console.log('🔄 [useSalesPipeline] Buscando pipeline padrão da API');
+    try {
+      const response = await api.get<SalesPipelineAPI>('/sales-pipeline/pipelines/default');
+      console.log('✅ [useSalesPipeline] Pipeline recebido:', response);
+
+      if (!response) {
+        console.warn('⚠️ [useSalesPipeline] Nenhum pipeline encontrado');
+        setPipeline({
+          id: '',
+          name: 'Sem Pipeline',
+          description: 'Nenhum pipeline configurado',
+          workspace_id: 0,
+          stages: [],
+          is_default: false,
+          is_active: false,
+          auto_move_on_event: false,
+          created_by: '',
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+        return;
+      }
+
+      const converted: SalesPipeline = {
+        id: response.id.toString(),
+        name: response.name,
+        description: response.description,
+        workspace_id: response.workspace_id,
+        stages: response.stages.map(s => ({
+          id: s.id.toString(),
+          pipeline_id: s.pipeline_id.toString(),
+          name: s.name,
+          order: s.order,
+          color: s.color || '#6B7280',
+          win_probability: s.win_probability,
+          auto_actions: s.auto_actions || {},
+          max_days_in_stage: s.max_days_in_stage,
+          alert_before_sla: s.alert_before_sla,
+          opportunities_count: s.opportunities_count,
+          total_value: s.total_value
+        })),
+        is_default: response.is_default,
+        is_active: response.is_active,
+        auto_move_on_event: false,
+        created_by: '',
+        created_at: new Date(response.created_at),
+        updated_at: new Date(response.updated_at)
+      };
+
+      setPipeline(converted);
+    } catch (err) {
+      console.error('❌ [useSalesPipeline] Erro ao buscar pipeline:', err);
+      setPipeline({
+        id: '',
+        name: 'Erro ao carregar',
+        description: '',
+        workspace_id: 0,
+        stages: [],
+        is_default: false,
+        is_active: false,
+        auto_move_on_event: false,
+        created_by: '',
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+    }
+  }, []);
+
+  const fetchOpportunities = useCallback(async () => {
+    console.log('🔄 [useSalesPipeline] Buscando oportunidades da API');
+    try {
+      const response = await api.get<OpportunityAPI[]>('/sales-pipeline/opportunities');
+      console.log('✅ [useSalesPipeline] Oportunidades recebidas:', response.length);
+
+      const converted: Opportunity[] = response.map(o => {
+        // Calcular weighted_value (valor * probabilidade)
+        const stage = pipeline.stages.find(s => s.id === o.stage_id?.toString());
+        const probability = stage ? stage.win_probability / 100 : 0;
+        const weighted_value = o.value * probability;
+
+        return {
+          id: o.id.toString(),
+          pipeline_id: o.pipeline_id.toString(),
+          pipeline_name: pipeline.name,
+          stage_id: o.stage_id?.toString() || '',
+          stage_name: o.stage_name || stage?.name || '',
+          customer_id: o.customer_id || 0,
+          customer_name: o.customer_name || '',
+          owner_id: o.assigned_to?.toString() || '',
+          owner_name: '', // TODO: buscar do usuário
+          title: o.title,
+          description: o.description,
+          estimated_value: o.value,
+          weighted_value: weighted_value,
+          final_value: o.value, // Sem desconto por enquanto
+          probability: stage ? stage.win_probability : 0,
+          products: [], // TODO: buscar produtos da oportunidade
+          status: o.status,
+          source: o.source === 'other' ? 'cold_call' : (o.source || 'cold_call'),
+          priority: o.priority,
+          expected_close_date: o.expected_close_date ? new Date(o.expected_close_date) : new Date(),
+          actual_close_date: o.closed_date ? new Date(o.closed_date) : undefined,
+          won_at: o.won_date ? new Date(o.won_date) : undefined,
+          lost_at: o.lost_date ? new Date(o.lost_date) : undefined,
+          lost_reason: o.lost_reason,
+          contact_name: o.contact_name,
+          contact_email: o.contact_email,
+          contact_phone: o.contact_phone,
+          company_name: o.company_name,
+          custom_fields: o.custom_fields || {},
+          stage_entered_at: o.stage_entered_at ? new Date(o.stage_entered_at) : undefined,
+          days_in_stage: o.days_in_stage,
+          sla_overdue: o.sla_overdue,
+          stage_history: [],
+          contact_count: 0,
+          email_count: 0,
+          call_count: 0,
+          meeting_count: 0,
+          activities: [],
+          tasks: [],
+          notes: '',
+          tags: [],
+          created_at: new Date(o.created_at),
+          updated_at: new Date(o.updated_at)
+        };
+      });
+
+      setOpportunities(converted);
+    } catch (err) {
+      console.error('❌ [useSalesPipeline] Erro ao buscar oportunidades:', err);
+      setOpportunities([]);
+    }
+  }, [pipeline.stages]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await api.get<OpportunityStatsAPI>('/sales-pipeline/opportunities/stats');
+      console.log('✅ [useSalesPipeline] Stats recebidas:', response);
+      setOpportunityStats(response);
+    } catch (err) {
+      console.error('❌ [useSalesPipeline] Erro ao buscar stats:', err);
+    }
+  }, []);
+
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      const response = await api.get<AnalyticsAPI>('/sales-pipeline/analytics');
+      console.log('✅ [useSalesPipeline] Analytics recebidas:', response);
+      setAnalyticsData(response);
+    } catch (err) {
+      console.error('❌ [useSalesPipeline] Erro ao buscar analytics:', err);
+    }
+  }, []);
+
+  // Buscar dados ao montar e quando pipeline mudar
+  useEffect(() => {
+    const fetchAll = async () => {
+      setLoading(true);
+      await fetchPipeline();
+      setLoading(false);
+    };
+
+    fetchAll();
+  }, [fetchPipeline]);
+
+  useEffect(() => {
+    if (pipeline.id) {
+      Promise.all([
+        fetchOpportunities(),
+        fetchStats(),
+        fetchAnalytics()
+      ]);
+    }
+  }, [pipeline.id, fetchOpportunities, fetchStats, fetchAnalytics]);
 
   // ============================================
   // COMPUTED DATA
@@ -287,13 +399,13 @@ export const useSalesPipeline = (): UseSalesPipelineReturn => {
 
   const stats = useMemo(() => {
     const totalOpportunities = opportunities.length;
-    const openOpportunities = opportunities.filter(o => o.status === 'open').length;
-    const wonOpportunities = opportunities.filter(o => o.status === 'won').length;
+    const openOpportunities = opportunityStats.open_opportunities;
+    const wonOpportunities = opportunityStats.won_last_30_days;
     const lostOpportunities = opportunities.filter(o => o.status === 'lost').length;
-    const totalValue = opportunities.filter(o => o.status === 'open').reduce((sum, o) => sum + o.estimated_value, 0);
-    const weightedValue = opportunities.filter(o => o.status === 'open').reduce((sum, o) => sum + o.weighted_value, 0);
-    const avgDealSize = totalValue / (openOpportunities || 1);
-    const winRate = totalOpportunities > 0 ? (wonOpportunities / (wonOpportunities + lostOpportunities)) * 100 : 0;
+    const totalValue = opportunityStats.total_value;
+    const weightedValue = opportunityStats.weighted_value;
+    const avgDealSize = openOpportunities > 0 ? totalValue / openOpportunities : 0;
+    const winRate = opportunityStats.conversion_rate;
 
     return {
       totalOpportunities,
@@ -305,150 +417,110 @@ export const useSalesPipeline = (): UseSalesPipelineReturn => {
       avgDealSize,
       winRate,
     };
-  }, [opportunities]);
+  }, [opportunities, opportunityStats]);
 
   const analytics = useMemo((): PipelineAnalytics => {
-    const hoje = new Date();
-    const periodStart = startOfMonth(hoje);
-    const periodEnd = endOfMonth(hoje);
-
-    const periodOpps = opportunities.filter(o =>
-      new Date(o.created_at) >= periodStart && new Date(o.created_at) <= periodEnd
-    );
-
-    const wonOpps = periodOpps.filter(o => o.status === 'won');
-    const lostOpps = periodOpps.filter(o => o.status === 'lost');
+    const totalOpps = opportunities.length;
+    const wonOpps = opportunities.filter(o => o.status === 'won').length;
+    const lostOpps = opportunities.filter(o => o.status === 'lost').length;
 
     return {
       pipeline_id: pipeline.id,
       pipeline_name: pipeline.name,
-      period_start: periodStart,
-      period_end: periodEnd,
-      total_opportunities: periodOpps.length,
-      total_value: periodOpps.reduce((sum, o) => sum + o.estimated_value, 0),
-      weighted_value: periodOpps.filter(o => o.status === 'open').reduce((sum, o) => sum + o.weighted_value, 0),
-      avg_deal_size: periodOpps.length > 0 ? periodOpps.reduce((sum, o) => sum + o.estimated_value, 0) / periodOpps.length : 0,
-      avg_days_to_close: wonOpps.length > 0
-        ? wonOpps.reduce((sum, o) => sum + differenceInDays(o.won_at || hoje, o.created_at), 0) / wonOpps.length
-        : 0,
-      stages: pipeline.stages.map(stage => {
-        const stageOpps = periodOpps.filter(o => o.stage_id === stage.id);
-        return {
-          stage_id: stage.id,
-          stage_name: stage.name,
-          opportunities_count: stageOpps.length,
-          total_value: stageOpps.reduce((sum, o) => sum + o.estimated_value, 0),
-          avg_days_in_stage: stageOpps.length > 0
-            ? stageOpps.reduce((sum, o) => sum + (o.stage_history[0]?.days_in_stage || 0), 0) / stageOpps.length
-            : 0,
-          conversion_rate: stageOpps.length > 0 ? (stageOpps.filter(o => o.status === 'won').length / stageOpps.length) * 100 : 0,
-        };
-      }),
-      overall_conversion_rate: periodOpps.length > 0 ? (wonOpps.length / periodOpps.length) * 100 : 0,
-      win_rate: (wonOpps.length + lostOpps.length) > 0 ? (wonOpps.length / (wonOpps.length + lostOpps.length)) * 100 : 0,
-      loss_rate: (wonOpps.length + lostOpps.length) > 0 ? (lostOpps.length / (wonOpps.length + lostOpps.length)) * 100 : 0,
+      period_start: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+      period_end: new Date(),
+
+      total_opportunities: totalOpps,
+      total_value: opportunityStats.total_value,
+      weighted_value: opportunityStats.weighted_value,
+      avg_deal_size: totalOpps > 0 ? opportunityStats.total_value / totalOpps : 0,
+      avg_days_to_close: 0, // TODO: calcular
+
+      stages: pipeline.stages.map(stage => ({
+        stage_id: stage.id,
+        stage_name: stage.name,
+        opportunities_count: stage.opportunities_count || 0,
+        total_value: stage.total_value || 0,
+        avg_days_in_stage: analyticsData.avg_time_by_stage.find(s => s.stage === stage.name)?.avg_days || 0,
+        conversion_rate: stage.win_probability
+      })),
+
+      overall_conversion_rate: opportunityStats.conversion_rate,
+      win_rate: totalOpps > 0 ? (wonOpps / totalOpps) * 100 : 0,
+      loss_rate: totalOpps > 0 ? (lostOpps / totalOpps) * 100 : 0,
+
       top_loss_reasons: [],
+
       velocity: {
-        opportunities_per_month: periodOpps.length,
-        avg_velocity: wonOpps.length > 0
-          ? wonOpps.reduce((sum, o) => sum + differenceInDays(o.won_at || hoje, o.created_at), 0) / wonOpps.length
-          : 0,
-      },
+        opportunities_per_month: totalOpps,
+        avg_velocity: 0
+      }
     };
-  }, [opportunities, pipeline]);
+  }, [analyticsData, pipeline, opportunities, opportunityStats]);
 
   // ============================================
   // ACTIONS - OPPORTUNITIES
   // ============================================
 
-  const createOpportunity = useCallback((oppData: Omit<Opportunity, 'id' | 'created_at' | 'updated_at' | 'stage_history' | 'weighted_value' | 'probability' | 'contact_count' | 'email_count' | 'call_count' | 'meeting_count' | 'activities' | 'tasks'>) => {
-    const hoje = new Date();
-    const stage = pipeline.stages.find(s => s.id === oppData.stage_id);
-
-    const newOpp: Opportunity = {
-      ...oppData,
-      id: `opp-${Date.now()}`,
-      probability: stage?.win_probability || 0,
-      weighted_value: (oppData.estimated_value * (stage?.win_probability || 0)) / 100,
-      stage_history: [
-        {
-          stage_id: oppData.stage_id,
-          stage_name: oppData.stage_name,
-          entered_at: hoje,
-          days_in_stage: 0,
-        },
-      ],
-      contact_count: 0,
-      email_count: 0,
-      call_count: 0,
-      meeting_count: 0,
-      activities: [],
-      tasks: [],
-      created_at: hoje,
-      updated_at: hoje,
-    };
-
-    setOpportunities(prev => [...prev, newOpp]);
-  }, [pipeline.stages]);
+  const createOpportunity = useCallback((opp: Omit<Opportunity, 'id' | 'created_at' | 'updated_at' | 'stage_history' | 'weighted_value' | 'probability' | 'contact_count' | 'email_count' | 'call_count' | 'meeting_count' | 'activities' | 'tasks'>) => {
+    console.warn('createOpportunity: Não implementado');
+    // TODO: Chamar API para criar oportunidade
+  }, []);
 
   const updateOpportunity = useCallback((oppId: string, updates: Partial<Opportunity>) => {
-    setOpportunities(prev => prev.map(o =>
-      o.id === oppId ? { ...o, ...updates, updated_at: new Date() } : o
-    ));
+    console.warn('updateOpportunity: Não implementado');
+    // TODO: Chamar API para atualizar oportunidade
   }, []);
 
   const moveOpportunity = useCallback((oppId: string, targetStageId: string) => {
-    const opp = opportunities.find(o => o.id === oppId);
-    const targetStage = pipeline.stages.find(s => s.id === targetStageId);
-
-    if (!opp || !targetStage) return;
-
-    const hoje = new Date();
-    const currentHistory = opp.stage_history[0];
-
-    const updatedHistory = [
-      {
+    // Atualizar localmente
+    setOpportunities(prev => prev.map(o =>
+      o.id === oppId ? {
+        ...o,
         stage_id: targetStageId,
-        stage_name: targetStage.name,
-        entered_at: hoje,
+        stage_entered_at: new Date(),
         days_in_stage: 0,
-      },
-      {
-        ...currentHistory,
-        exited_at: hoje,
-        days_in_stage: differenceInDays(hoje, currentHistory.entered_at),
-      },
-      ...opp.stage_history.slice(1),
-    ];
+        updated_at: new Date()
+      } : o
+    ));
 
-    updateOpportunity(oppId, {
-      stage_id: targetStageId,
-      stage_name: targetStage.name,
-      probability: targetStage.win_probability,
-      weighted_value: (opp.estimated_value * targetStage.win_probability) / 100,
-      stage_history: updatedHistory,
-    });
-  }, [opportunities, pipeline.stages, updateOpportunity]);
+    // TODO: Chamar API para mover oportunidade
+  }, []);
 
   const winOpportunity = useCallback((oppId: string) => {
-    updateOpportunity(oppId, {
-      status: 'won',
-      won_at: new Date(),
-      actual_close_date: new Date(),
-    });
-  }, [updateOpportunity]);
+    // Atualizar localmente
+    setOpportunities(prev => prev.map(o =>
+      o.id === oppId ? {
+        ...o,
+        status: 'won' as const,
+        won_at: new Date(),
+        closed_at: new Date(),
+        updated_at: new Date()
+      } : o
+    ));
+
+    // TODO: Chamar API para marcar como ganha
+  }, []);
 
   const loseOpportunity = useCallback((oppId: string, reason: string) => {
-    updateOpportunity(oppId, {
-      status: 'lost',
-      lost_reason: reason,
-      lost_at: new Date(),
-      actual_close_date: new Date(),
-    });
-  }, [updateOpportunity]);
+    // Atualizar localmente
+    setOpportunities(prev => prev.map(o =>
+      o.id === oppId ? {
+        ...o,
+        status: 'lost' as const,
+        lost_at: new Date(),
+        closed_at: new Date(),
+        lost_reason: reason,
+        updated_at: new Date()
+      } : o
+    ));
+
+    // TODO: Chamar API para marcar como perdida
+  }, []);
 
   const deleteOpportunity = useCallback((oppId: string) => {
-    setOpportunities(prev => prev.filter(o => o.id !== oppId));
+    console.warn('deleteOpportunity: Não implementado');
+    // TODO: Chamar API para deletar oportunidade
   }, []);
 
   // ============================================
@@ -456,26 +528,24 @@ export const useSalesPipeline = (): UseSalesPipelineReturn => {
   // ============================================
 
   const updateStage = useCallback((stageId: string, updates: Partial<PipelineStage>) => {
-    setPipeline(prev => ({
-      ...prev,
-      stages: prev.stages.map(s => s.id === stageId ? { ...s, ...updates } : s),
-      updated_at: new Date(),
-    }));
+    console.warn('updateStage: Não implementado');
+    // TODO: Chamar API para atualizar estágio
   }, []);
 
   // ============================================
   // REFRESH
   // ============================================
 
-  const refresh = useCallback(() => {
+  const refresh = useCallback(async () => {
     setLoading(true);
-    setTimeout(() => {
-      const newPipeline = generateMockPipeline();
-      setPipeline(newPipeline);
-      setOpportunities(generateMockOpportunities(newPipeline));
-      setLoading(false);
-    }, 500);
-  }, []);
+    await Promise.all([
+      fetchPipeline(),
+      fetchOpportunities(),
+      fetchStats(),
+      fetchAnalytics()
+    ]);
+    setLoading(false);
+  }, [fetchPipeline, fetchOpportunities, fetchStats, fetchAnalytics]);
 
   const clearFilters = useCallback(() => {
     setFilters({});
