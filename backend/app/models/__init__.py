@@ -22,6 +22,13 @@ from app.models.automation import (
 )
 from app.models.customer import Customer
 from app.models.sales_pipeline import SalesPipeline, PipelineStage, Opportunity
+from app.models.marketplace import (
+    MarketplaceIntegration,
+    ProductListing,
+    UnifiedOrder,
+    SyncJob,
+    SyncConflict
+)
 
 __all__ = [
     "Base",
@@ -47,4 +54,9 @@ __all__ = [
     "SalesPipeline",
     "PipelineStage",
     "Opportunity",
+    "MarketplaceIntegration",
+    "ProductListing",
+    "UnifiedOrder",
+    "SyncJob",
+    "SyncConflict",
 ]

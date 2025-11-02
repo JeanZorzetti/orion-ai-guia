@@ -1,9 +1,10 @@
 /**
  * Marketplace Hook - Unified Omnichannel Management
+ * Integrated with real backend API - NO MOCK DATA
  */
 
-import { useState, useCallback, useMemo } from 'react';
-import { addDays, subDays, differenceInDays } from 'date-fns';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { api } from '@/lib/api';
 import {
   MarketplaceIntegration,
   ProductListing,
@@ -13,266 +14,124 @@ import {
   MarketplacePerformance,
   MarketplaceDashboard,
   MarketplaceType,
-  SyncStatus,
-  ListingStatus,
-  UnifiedOrderStatus,
 } from '@/types/marketplace';
 
 // ============================================================================
-// MOCK DATA GENERATORS
+// API RESPONSE TYPES
 // ============================================================================
 
-const generateMockIntegrations = (): MarketplaceIntegration[] => {
-  const hoje = new Date();
-  const marketplaces: { type: MarketplaceType; name: string }[] = [
-    { type: 'mercado_livre', name: 'Mercado Livre' },
-    { type: 'shopify', name: 'Loja Shopify' },
-    { type: 'magalu', name: 'Magazine Luiza' },
-    { type: 'amazon', name: 'Amazon Brasil' },
-    { type: 'tiktok_shop', name: 'TikTok Shop' },
-  ];
+interface MarketplaceIntegrationAPI {
+  id: number;
+  workspace_id: number;
+  marketplace: string;
+  name: string;
+  is_active: boolean;
+  auto_sync: boolean;
+  sync_frequency: number;
+  last_sync_at: string | null;
+  last_sync_status: string;
+  last_sync_summary: {
+    products_synced: number;
+    orders_imported: number;
+    stock_updated: number;
+    errors: number;
+  } | null;
+  total_listings: number;
+  active_listings: number;
+  total_orders: number;
+  total_revenue: number;
+  created_at: string;
+  updated_at: string;
+}
 
-  return marketplaces.map((mp, i) => ({
-    id: `integration-${i + 1}`,
-    workspace_id: 1,
-    marketplace: mp.type,
-    name: mp.name,
-    credentials: {
-      client_id: `client_${i + 1}`,
-      client_secret: `secret_${i + 1}`,
-      access_token: `token_${i + 1}`,
-    },
-    is_active: i < 3, // First 3 active
-    auto_sync: i < 3,
-    sync_frequency: 30,
-    default_warehouse_id: 'wh-1',
-    price_adjustment: {
-      type: 'percentage',
-      value: i === 0 ? 10 : i === 1 ? 5 : 0,
-    },
-    sync_products: true,
-    sync_orders: true,
-    sync_stock: true,
-    last_sync_at: i < 3 ? subDays(hoje, Math.random() * 0.5) : undefined,
-    last_sync_status: i < 3 ? 'success' : 'pending',
-    last_sync_summary: i < 3 ? {
-      products_synced: Math.floor(Math.random() * 100) + 50,
-      orders_imported: Math.floor(Math.random() * 30) + 10,
-      stock_updated: Math.floor(Math.random() * 150) + 100,
-      errors: Math.floor(Math.random() * 5),
-    } : undefined,
-    total_listings: Math.floor(Math.random() * 200) + 100,
-    active_listings: Math.floor(Math.random() * 150) + 80,
-    total_orders: Math.floor(Math.random() * 500) + 200,
-    total_revenue: (Math.random() * 100000) + 50000,
-    created_at: subDays(hoje, 30 + i * 10),
-    updated_at: hoje,
-  }));
-};
+interface ProductListingAPI {
+  id: number;
+  product_id: number;
+  product_name: string;
+  product_sku: string;
+  marketplace_integration_id: number;
+  marketplace: string;
+  external_id: string;
+  external_sku: string | null;
+  listing_url: string | null;
+  price: number;
+  original_price: number | null;
+  stock_quantity: number;
+  status: string;
+  views: number;
+  sales: number;
+  conversion_rate: number;
+  revenue: number;
+  free_shipping: boolean;
+  last_synced_at: string | null;
+  pending_changes: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
-const generateMockListings = (integrations: MarketplaceIntegration[]): ProductListing[] => {
-  const hoje = new Date();
-  const statuses: ListingStatus[] = ['active', 'paused', 'out_of_stock', 'error'];
+interface UnifiedOrderAPI {
+  id: number;
+  workspace_id: number;
+  marketplace_integration_id: number;
+  marketplace: string;
+  marketplace_name: string;
+  external_order_id: string;
+  external_order_number: string;
+  customer: any;
+  items: any[];
+  shipping: any;
+  payment: any;
+  subtotal: number;
+  shipping_cost: number;
+  discount: number;
+  tax: number;
+  total: number;
+  status: string;
+  processed: boolean;
+  sale_id: number | null;
+  order_date: string;
+  created_at: string;
+  updated_at: string;
+}
 
-  const listings: ProductListing[] = [];
+interface SyncJobAPI {
+  id: number;
+  workspace_id: number;
+  marketplace_integration_id: number;
+  marketplace: string;
+  type: string;
+  status: string;
+  total_items: number;
+  processed_items: number;
+  successful_items: number;
+  failed_items: number;
+  progress_percentage: number;
+  result: any;
+  started_at: string;
+  completed_at: string | null;
+  duration_seconds: number | null;
+  created_at: string;
+  updated_at: string;
+}
 
-  integrations.filter(i => i.is_active).forEach((integration, intIdx) => {
-    const count = 30 + Math.floor(Math.random() * 20);
-
-    for (let i = 0; i < count; i++) {
-      const status = statuses[Math.floor(Math.random() * 100) < 80 ? 0 : Math.floor(Math.random() * 4)];
-      const price = 50 + Math.random() * 450;
-      const stockQty = Math.floor(Math.random() * 100);
-
-      listings.push({
-        id: `listing-${intIdx}-${i + 1}`,
-        product_id: `prod-${Math.floor(Math.random() * 100) + 1}`,
-        product_name: `Produto ${Math.floor(Math.random() * 100) + 1}`,
-        product_sku: `SKU-${Math.floor(Math.random() * 10000)}`,
-        marketplace_integration_id: integration.id,
-        marketplace: integration.marketplace,
-        external_id: `EXT-${Math.floor(Math.random() * 1000000)}`,
-        external_sku: `ML${Math.floor(Math.random() * 10000)}`,
-        listing_url: `https://${integration.marketplace}.com/product/${i + 1}`,
-        price,
-        original_price: Math.random() > 0.7 ? price * 1.2 : undefined,
-        stock_quantity: stockQty,
-        status,
-        is_synced: status === 'active',
-        sync_enabled: true,
-        title: Math.random() > 0.5 ? `Título Customizado ${i + 1}` : undefined,
-        views: Math.floor(Math.random() * 1000) + 100,
-        sales: Math.floor(Math.random() * 50),
-        conversion_rate: 1 + Math.random() * 5,
-        revenue: price * Math.floor(Math.random() * 50),
-        free_shipping: Math.random() > 0.5,
-        last_synced_at: status === 'active' ? subDays(hoje, Math.random()) : undefined,
-        sync_errors: status === 'error' ? ['Erro ao sincronizar preço'] : undefined,
-        pending_changes: Math.random() > 0.8,
-        created_at: subDays(hoje, 30 + i),
-        updated_at: hoje,
-      });
-    }
-  });
-
-  return listings;
-};
-
-const generateMockOrders = (integrations: MarketplaceIntegration[]): UnifiedOrder[] => {
-  const hoje = new Date();
-  const statuses: UnifiedOrderStatus[] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
-
-  const orders: UnifiedOrder[] = [];
-
-  integrations.filter(i => i.is_active).forEach((integration, intIdx) => {
-    const count = 15 + Math.floor(Math.random() * 10);
-
-    for (let i = 0; i < count; i++) {
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
-      const itemCount = 1 + Math.floor(Math.random() * 4);
-      const subtotal = (50 + Math.random() * 450) * itemCount;
-      const shippingCost = 10 + Math.random() * 30;
-
-      orders.push({
-        id: `order-${intIdx}-${i + 1}`,
-        workspace_id: 1,
-        marketplace_integration_id: integration.id,
-        marketplace: integration.marketplace,
-        marketplace_name: integration.name,
-        external_order_id: `EXT-ORD-${Math.floor(Math.random() * 1000000)}`,
-        external_order_number: `#${Math.floor(Math.random() * 100000)}`,
-        customer: {
-          name: `Cliente ${Math.floor(Math.random() * 1000)}`,
-          email: `cliente${i}@email.com`,
-          phone: `(11) 9${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`,
-          document: `${String(Math.floor(Math.random() * 100000000000)).padStart(11, '0')}`,
-        },
-        items: Array.from({ length: itemCount }, (_, j) => ({
-          id: `item-${intIdx}-${i}-${j}`,
-          product_id: `prod-${Math.floor(Math.random() * 100) + 1}`,
-          external_product_id: `EXT-PROD-${Math.floor(Math.random() * 100000)}`,
-          product_name: `Produto ${Math.floor(Math.random() * 100) + 1}`,
-          sku: `SKU-${Math.floor(Math.random() * 10000)}`,
-          quantity: 1 + Math.floor(Math.random() * 3),
-          unit_price: 50 + Math.random() * 450,
-          discount: Math.random() * 20,
-          tax: Math.random() * 10,
-          total: (50 + Math.random() * 450) * (1 + Math.floor(Math.random() * 3)),
-        })),
-        shipping: {
-          method: ['PAC', 'SEDEX', 'Entrega Rápida'][Math.floor(Math.random() * 3)],
-          cost: shippingCost,
-          address: {
-            street: `Rua ${Math.floor(Math.random() * 1000)}`,
-            number: String(100 + Math.floor(Math.random() * 900)),
-            neighborhood: 'Centro',
-            city: 'São Paulo',
-            state: 'SP',
-            postal_code: `01${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}-000`,
-            country: 'BR',
-          },
-          tracking_code: status !== 'pending' ? `BR${String(Math.floor(Math.random() * 1000000000)).padStart(9, '0')}BR` : undefined,
-          estimated_delivery: addDays(hoje, 3 + Math.floor(Math.random() * 7)),
-        },
-        payment: {
-          method: ['Cartão de Crédito', 'PIX', 'Boleto'][Math.floor(Math.random() * 3)],
-          status: status === 'cancelled' ? 'rejected' : 'approved',
-          paid_at: status !== 'pending' ? subDays(hoje, Math.random() * 5) : undefined,
-          transaction_id: `TXN-${Math.floor(Math.random() * 1000000)}`,
-        },
-        subtotal,
-        shipping_cost: shippingCost,
-        discount: Math.random() * 50,
-        tax: subtotal * 0.1,
-        total: subtotal + shippingCost,
-        status,
-        processed: status !== 'pending',
-        sale_id: status !== 'pending' ? `sale-${i + 1}` : undefined,
-        imported_at: subDays(hoje, Math.random() * 10),
-        order_date: subDays(hoje, Math.random() * 15),
-        created_at: subDays(hoje, Math.random() * 15),
-        updated_at: hoje,
-      });
-    }
-  });
-
-  return orders.sort((a, b) => b.order_date.getTime() - a.order_date.getTime());
-};
-
-const generateMockSyncJobs = (integrations: MarketplaceIntegration[]): SyncJob[] => {
-  const hoje = new Date();
-  const jobs: SyncJob[] = [];
-
-  integrations.filter(i => i.is_active).forEach((integration, intIdx) => {
-    for (let i = 0; i < 5; i++) {
-      const status = i === 0 ? 'running' : i < 3 ? 'completed' : 'failed';
-      const totalItems = 100 + Math.floor(Math.random() * 200);
-      const processedItems = status === 'running' ? Math.floor(totalItems * 0.6) : totalItems;
-
-      jobs.push({
-        id: `job-${intIdx}-${i + 1}`,
-        workspace_id: 1,
-        marketplace_integration_id: integration.id,
-        marketplace: integration.marketplace,
-        type: ['full_sync', 'incremental', 'stock_only', 'orders_only'][Math.floor(Math.random() * 4)] as any,
-        status: status as any,
-        total_items: totalItems,
-        processed_items: processedItems,
-        successful_items: processedItems - Math.floor(Math.random() * 10),
-        failed_items: Math.floor(Math.random() * 10),
-        progress_percentage: (processedItems / totalItems) * 100,
-        result: {
-          products_created: Math.floor(Math.random() * 20),
-          products_updated: Math.floor(Math.random() * 80),
-          listings_created: Math.floor(Math.random() * 30),
-          listings_updated: Math.floor(Math.random() * 70),
-          orders_imported: Math.floor(Math.random() * 40),
-          stock_synced: Math.floor(Math.random() * 100),
-          errors: [],
-        },
-        started_at: subDays(hoje, Math.random() * 2),
-        completed_at: status !== 'running' ? subDays(hoje, Math.random()) : undefined,
-        duration_seconds: status !== 'running' ? Math.floor(Math.random() * 300) + 60 : undefined,
-        retry_count: 0,
-        max_retries: 3,
-        created_at: subDays(hoje, Math.random() * 2),
-        updated_at: hoje,
-      });
-    }
-  });
-
-  return jobs.sort((a, b) => (b.started_at?.getTime() || 0) - (a.started_at?.getTime() || 0));
-};
-
-const generateMockConflicts = (listings: ProductListing[]): SyncConflict[] => {
-  const hoje = new Date();
-  const conflicts: SyncConflict[] = [];
-
-  const problematicListings = listings.filter(l => Math.random() > 0.9).slice(0, 10);
-
-  problematicListings.forEach((listing, i) => {
-    conflicts.push({
-      id: `conflict-${i + 1}`,
-      type: ['stock_discrepancy', 'price_mismatch', 'data_conflict'][Math.floor(Math.random() * 3)] as any,
-      product_id: listing.product_id,
-      product_name: listing.product_name,
-      listing_id: listing.id,
-      marketplace_integration_id: listing.marketplace_integration_id,
-      marketplace: listing.marketplace,
-      system_value: listing.price,
-      marketplace_value: listing.price * 1.1,
-      field_name: 'price',
-      resolution_strategy: 'manual',
-      resolved: Math.random() > 0.5,
-      resolved_at: Math.random() > 0.5 ? subDays(hoje, Math.random()) : undefined,
-      severity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as any,
-      auto_resolvable: Math.random() > 0.5,
-      created_at: subDays(hoje, Math.random() * 5),
-    });
-  });
-
-  return conflicts;
-};
+interface SyncConflictAPI {
+  id: number;
+  type: string;
+  product_id: number;
+  product_name: string;
+  listing_id: number | null;
+  marketplace_integration_id: number;
+  marketplace: string;
+  field_name: string;
+  system_value: string;
+  marketplace_value: string;
+  resolution_strategy: string;
+  resolved: boolean;
+  resolved_at: string | null;
+  severity: string;
+  auto_resolvable: boolean;
+  created_at: string;
+}
 
 // ============================================================================
 // HOOK
@@ -323,17 +182,315 @@ interface UseMarketplaceReturn {
   performance: MarketplacePerformance[];
 
   loading: boolean;
+  refresh: () => void;
 }
 
 export const useMarketplace = (): UseMarketplaceReturn => {
-  const [integrations, setIntegrations] = useState<MarketplaceIntegration[]>(() => generateMockIntegrations());
-  const [listings, setListings] = useState<ProductListing[]>(() => generateMockListings(generateMockIntegrations()));
-  const [orders, setOrders] = useState<UnifiedOrder[]>(() => generateMockOrders(generateMockIntegrations()));
-  const [syncJobs, setSyncJobs] = useState<SyncJob[]>(() => generateMockSyncJobs(generateMockIntegrations()));
-  const [conflicts, setConflicts] = useState<SyncConflict[]>(() => generateMockConflicts(listings));
-  const [loading] = useState(false);
+  const [integrations, setIntegrations] = useState<MarketplaceIntegration[]>([]);
+  const [listings, setListings] = useState<ProductListing[]>([]);
+  const [orders, setOrders] = useState<UnifiedOrder[]>([]);
+  const [syncJobs, setSyncJobs] = useState<SyncJob[]>([]);
+  const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
+  const [dashboard, setDashboard] = useState<MarketplaceDashboard>({
+    workspace_id: 0,
+    period: { start: new Date(), end: new Date() },
+    overview: {
+      total_integrations: 0,
+      active_integrations: 0,
+      total_listings: 0,
+      active_listings: 0,
+      total_orders: 0,
+      total_revenue: 0,
+    },
+    recent_orders: [],
+    recent_syncs: [],
+    pending_conflicts: 0,
+    alerts: [],
+    stats: {
+      orders_today: 0,
+      revenue_today: 0,
+      sync_errors_today: 0,
+      avg_sync_time: 0,
+    },
+  });
+  const [performance, setPerformance] = useState<MarketplacePerformance[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Integration filters
+  // ============================================================================
+  // API FETCH FUNCTIONS
+  // ============================================================================
+
+  const fetchIntegrations = useCallback(async () => {
+    console.log('🔄 [useMarketplace] Buscando integrações da API');
+    try {
+      const response = await api.get<MarketplaceIntegrationAPI[]>('/marketplace/integrations');
+      console.log('✅ [useMarketplace] Integrações recebidas:', response.length);
+
+      const converted: MarketplaceIntegration[] = response.map(i => ({
+        id: i.id.toString(),
+        workspace_id: i.workspace_id,
+        marketplace: i.marketplace as MarketplaceType,
+        name: i.name,
+        credentials: {},
+        is_active: i.is_active,
+        auto_sync: i.auto_sync,
+        sync_frequency: i.sync_frequency,
+        default_warehouse_id: '',
+        price_adjustment: { type: 'percentage', value: 0 },
+        sync_products: true,
+        sync_orders: true,
+        sync_stock: true,
+        last_sync_at: i.last_sync_at ? new Date(i.last_sync_at) : undefined,
+        last_sync_status: i.last_sync_status as any,
+        last_sync_summary: i.last_sync_summary || undefined,
+        total_listings: i.total_listings,
+        active_listings: i.active_listings,
+        total_orders: i.total_orders,
+        total_revenue: i.total_revenue,
+        created_at: new Date(i.created_at),
+        updated_at: new Date(i.updated_at),
+      }));
+
+      setIntegrations(converted);
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao buscar integrações:', err);
+      setIntegrations([]); // NO FALLBACK - empty array
+    }
+  }, []);
+
+  const fetchListings = useCallback(async () => {
+    console.log('🔄 [useMarketplace] Buscando anúncios da API');
+    try {
+      const response = await api.get<ProductListingAPI[]>('/marketplace/listings');
+      console.log('✅ [useMarketplace] Anúncios recebidos:', response.length);
+
+      const converted: ProductListing[] = response.map(l => ({
+        id: l.id.toString(),
+        product_id: l.product_id.toString(),
+        product_name: l.product_name,
+        product_sku: l.product_sku,
+        marketplace_integration_id: l.marketplace_integration_id.toString(),
+        marketplace: l.marketplace as MarketplaceType,
+        external_id: l.external_id,
+        external_sku: l.external_sku || '',
+        listing_url: l.listing_url || '',
+        price: l.price,
+        original_price: l.original_price || undefined,
+        stock_quantity: l.stock_quantity,
+        status: l.status as any,
+        is_synced: !l.pending_changes,
+        sync_enabled: true,
+        views: l.views,
+        sales: l.sales,
+        conversion_rate: l.conversion_rate,
+        revenue: l.revenue,
+        free_shipping: l.free_shipping,
+        last_synced_at: l.last_synced_at ? new Date(l.last_synced_at) : undefined,
+        pending_changes: l.pending_changes,
+        created_at: new Date(l.created_at),
+        updated_at: new Date(l.updated_at),
+      }));
+
+      setListings(converted);
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao buscar anúncios:', err);
+      setListings([]); // NO FALLBACK
+    }
+  }, []);
+
+  const fetchOrders = useCallback(async () => {
+    console.log('🔄 [useMarketplace] Buscando pedidos da API');
+    try {
+      const response = await api.get<UnifiedOrderAPI[]>('/marketplace/orders?limit=100');
+      console.log('✅ [useMarketplace] Pedidos recebidos:', response.length);
+
+      const converted: UnifiedOrder[] = response.map(o => ({
+        id: o.id.toString(),
+        workspace_id: o.workspace_id,
+        marketplace_integration_id: o.marketplace_integration_id.toString(),
+        marketplace: o.marketplace as MarketplaceType,
+        marketplace_name: o.marketplace_name,
+        external_order_id: o.external_order_id,
+        external_order_number: o.external_order_number,
+        customer: o.customer,
+        items: o.items,
+        shipping: o.shipping,
+        payment: o.payment,
+        subtotal: o.subtotal,
+        shipping_cost: o.shipping_cost,
+        discount: o.discount,
+        tax: o.tax,
+        total: o.total,
+        status: o.status as any,
+        processed: o.processed,
+        sale_id: o.sale_id?.toString(),
+        imported_at: new Date(o.created_at),
+        order_date: new Date(o.order_date),
+        created_at: new Date(o.created_at),
+        updated_at: new Date(o.updated_at),
+      }));
+
+      setOrders(converted);
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao buscar pedidos:', err);
+      setOrders([]); // NO FALLBACK
+    }
+  }, []);
+
+  const fetchSyncJobs = useCallback(async () => {
+    console.log('🔄 [useMarketplace] Buscando jobs de sincronização da API');
+    try {
+      const response = await api.get<SyncJobAPI[]>('/marketplace/sync-jobs?limit=50');
+      console.log('✅ [useMarketplace] Jobs recebidos:', response.length);
+
+      const converted: SyncJob[] = response.map(j => ({
+        id: j.id.toString(),
+        workspace_id: j.workspace_id,
+        marketplace_integration_id: j.marketplace_integration_id.toString(),
+        marketplace: j.marketplace as MarketplaceType,
+        type: j.type as any,
+        status: j.status as any,
+        total_items: j.total_items,
+        processed_items: j.processed_items,
+        successful_items: j.successful_items,
+        failed_items: j.failed_items,
+        progress_percentage: j.progress_percentage,
+        result: j.result,
+        started_at: new Date(j.started_at),
+        completed_at: j.completed_at ? new Date(j.completed_at) : undefined,
+        duration_seconds: j.duration_seconds || undefined,
+        retry_count: 0,
+        max_retries: 3,
+        created_at: new Date(j.created_at),
+        updated_at: new Date(j.updated_at),
+      }));
+
+      setSyncJobs(converted);
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao buscar jobs:', err);
+      setSyncJobs([]); // NO FALLBACK
+    }
+  }, []);
+
+  const fetchConflicts = useCallback(async () => {
+    console.log('🔄 [useMarketplace] Buscando conflitos da API');
+    try {
+      const response = await api.get<SyncConflictAPI[]>('/marketplace/conflicts');
+      console.log('✅ [useMarketplace] Conflitos recebidos:', response.length);
+
+      const converted: SyncConflict[] = response.map(c => ({
+        id: c.id.toString(),
+        type: c.type as any,
+        product_id: c.product_id.toString(),
+        product_name: c.product_name,
+        listing_id: c.listing_id?.toString(),
+        marketplace_integration_id: c.marketplace_integration_id.toString(),
+        marketplace: c.marketplace as MarketplaceType,
+        system_value: c.system_value,
+        marketplace_value: c.marketplace_value,
+        field_name: c.field_name,
+        resolution_strategy: c.resolution_strategy as any,
+        resolved: c.resolved,
+        resolved_at: c.resolved_at ? new Date(c.resolved_at) : undefined,
+        severity: c.severity as any,
+        auto_resolvable: c.auto_resolvable,
+        created_at: new Date(c.created_at),
+      }));
+
+      setConflicts(converted);
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao buscar conflitos:', err);
+      setConflicts([]); // NO FALLBACK
+    }
+  }, []);
+
+  const fetchDashboard = useCallback(async () => {
+    console.log('🔄 [useMarketplace] Buscando dashboard da API');
+    try {
+      const response = await api.get<any>('/marketplace/dashboard');
+      console.log('✅ [useMarketplace] Dashboard recebido');
+
+      setDashboard({
+        workspace_id: 0,
+        period: {
+          start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          end: new Date(),
+        },
+        overview: response.overview,
+        recent_orders: response.recent_orders,
+        recent_syncs: response.recent_syncs,
+        pending_conflicts: response.pending_conflicts,
+        alerts: response.alerts,
+        stats: response.stats,
+      });
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao buscar dashboard:', err);
+      // Keep default empty dashboard
+    }
+  }, []);
+
+  const fetchPerformance = useCallback(async () => {
+    console.log('🔄 [useMarketplace] Buscando performance da API');
+    try {
+      const response = await api.get<any[]>('/marketplace/performance');
+      console.log('✅ [useMarketplace] Performance recebida');
+
+      const converted: MarketplacePerformance[] = response.map(p => ({
+        marketplace_integration_id: p.marketplace_integration_id.toString(),
+        marketplace: p.marketplace as MarketplaceType,
+        period_start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        period_end: new Date(),
+        total_orders: p.total_orders,
+        total_revenue: p.total_revenue,
+        avg_order_value: p.avg_order_value,
+        items_sold: 0,
+        revenue_growth: p.revenue_growth,
+        orders_growth: p.orders_growth,
+        total_listings: p.total_listings,
+        active_listings: p.active_listings,
+        out_of_stock_listings: 0,
+        conversion_rate: p.conversion_rate,
+        avg_views_per_listing: 0,
+        avg_sales_per_listing: 0,
+        sync_errors: 0,
+        conflicts: 0,
+        failed_orders: 0,
+        top_products: [],
+      }));
+
+      setPerformance(converted);
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao buscar performance:', err);
+      setPerformance([]); // NO FALLBACK
+    }
+  }, []);
+
+  // ============================================================================
+  // INITIAL LOAD
+  // ============================================================================
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchIntegrations(),
+      fetchListings(),
+      fetchOrders(),
+      fetchSyncJobs(),
+      fetchConflicts(),
+      fetchDashboard(),
+      fetchPerformance(),
+    ]);
+    setLoading(false);
+  }, [fetchIntegrations, fetchListings, fetchOrders, fetchSyncJobs, fetchConflicts, fetchDashboard, fetchPerformance]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  // ============================================================================
+  // COMPUTED VALUES
+  // ============================================================================
+
   const activeIntegrations = useMemo(() =>
     integrations.filter(i => i.is_active),
     [integrations]
@@ -349,7 +506,6 @@ export const useMarketplace = (): UseMarketplaceReturn => {
     [integrations]
   );
 
-  // Listing filters
   const activeListings = useMemo(() =>
     listings.filter(l => l.status === 'active'),
     [listings]
@@ -370,7 +526,6 @@ export const useMarketplace = (): UseMarketplaceReturn => {
     [listings]
   );
 
-  // Order filters
   const pendingOrders = useMemo(() =>
     orders.filter(o => o.status === 'pending'),
     [orders]
@@ -391,7 +546,6 @@ export const useMarketplace = (): UseMarketplaceReturn => {
     [orders]
   );
 
-  // Sync job filters
   const runningJobs = useMemo(() =>
     syncJobs.filter(j => j.status === 'running'),
     [syncJobs]
@@ -402,86 +556,94 @@ export const useMarketplace = (): UseMarketplaceReturn => {
     [syncJobs]
   );
 
-  // Conflict filters
   const unresolvedConflicts = useMemo(() =>
     conflicts.filter(c => !c.resolved),
     [conflicts]
   );
 
-  // Actions
-  const toggleIntegration = useCallback((id: string) => {
-    setIntegrations(prev => prev.map(i =>
-      i.id === id ? { ...i, is_active: !i.is_active } : i
-    ));
+  // ============================================================================
+  // ACTIONS
+  // ============================================================================
+
+  const toggleIntegration = useCallback(async (id: string) => {
+    console.log('🔄 [useMarketplace] Alternando integração:', id);
+    try {
+      await api.put(`/marketplace/integrations/${id}/toggle`);
+      // Update local state optimistically
+      setIntegrations(prev => prev.map(i =>
+        i.id === id ? { ...i, is_active: !i.is_active } : i
+      ));
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao alternar integração:', err);
+    }
   }, []);
 
-  const syncIntegration = useCallback((id: string) => {
-    const integration = integrations.find(i => i.id === id);
-    if (!integration) return;
-
-    // Create new sync job
-    const newJob: SyncJob = {
-      id: `job-${Date.now()}`,
-      workspace_id: 1,
-      marketplace_integration_id: id,
-      marketplace: integration.marketplace,
-      type: 'full_sync',
-      status: 'running',
-      total_items: 150,
-      processed_items: 0,
-      successful_items: 0,
-      failed_items: 0,
-      progress_percentage: 0,
-      result: {
-        products_created: 0,
-        products_updated: 0,
-        listings_created: 0,
-        listings_updated: 0,
-        orders_imported: 0,
-        stock_synced: 0,
-        errors: [],
-      },
-      started_at: new Date(),
-      retry_count: 0,
-      max_retries: 3,
-      created_at: new Date(),
-      updated_at: new Date(),
-    };
-
-    setSyncJobs(prev => [newJob, ...prev]);
-  }, [integrations]);
+  const syncIntegration = useCallback(async (id: string) => {
+    console.log('🔄 [useMarketplace] Sincronizando integração:', id);
+    try {
+      await api.post(`/marketplace/integrations/${id}/sync`);
+      // Refresh sync jobs
+      await fetchSyncJobs();
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao sincronizar integração:', err);
+    }
+  }, [fetchSyncJobs]);
 
   const updateListingPrice = useCallback((listingId: string, price: number) => {
+    console.warn('updateListingPrice: Não implementado');
+    // TODO: Chamar API para atualizar preço
     setListings(prev => prev.map(l =>
       l.id === listingId ? { ...l, price, pending_changes: true, updated_at: new Date() } : l
     ));
   }, []);
 
   const updateListingStock = useCallback((listingId: string, stock: number) => {
+    console.warn('updateListingStock: Não implementado');
+    // TODO: Chamar API para atualizar estoque
     setListings(prev => prev.map(l =>
       l.id === listingId ? { ...l, stock_quantity: stock, pending_changes: true, updated_at: new Date() } : l
     ));
   }, []);
 
-  const pauseListing = useCallback((listingId: string) => {
-    setListings(prev => prev.map(l =>
-      l.id === listingId ? { ...l, status: 'paused', updated_at: new Date() } : l
-    ));
+  const pauseListing = useCallback(async (listingId: string) => {
+    console.log('🔄 [useMarketplace] Pausando anúncio:', listingId);
+    try {
+      await api.put(`/marketplace/listings/${listingId}/pause`);
+      setListings(prev => prev.map(l =>
+        l.id === listingId ? { ...l, status: 'paused', updated_at: new Date() } : l
+      ));
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao pausar anúncio:', err);
+    }
   }, []);
 
-  const activateListing = useCallback((listingId: string) => {
-    setListings(prev => prev.map(l =>
-      l.id === listingId ? { ...l, status: 'active', updated_at: new Date() } : l
-    ));
+  const activateListing = useCallback(async (listingId: string) => {
+    console.log('🔄 [useMarketplace] Ativando anúncio:', listingId);
+    try {
+      await api.put(`/marketplace/listings/${listingId}/activate`);
+      setListings(prev => prev.map(l =>
+        l.id === listingId ? { ...l, status: 'active', updated_at: new Date() } : l
+      ));
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao ativar anúncio:', err);
+    }
   }, []);
 
-  const processOrder = useCallback((orderId: string) => {
-    setOrders(prev => prev.map(o =>
-      o.id === orderId ? { ...o, status: 'processing', processed: true, updated_at: new Date() } : o
-    ));
+  const processOrder = useCallback(async (orderId: string) => {
+    console.log('🔄 [useMarketplace] Processando pedido:', orderId);
+    try {
+      await api.put(`/marketplace/orders/${orderId}/process`);
+      setOrders(prev => prev.map(o =>
+        o.id === orderId ? { ...o, status: 'processing', processed: true, updated_at: new Date() } : o
+      ));
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao processar pedido:', err);
+    }
   }, []);
 
   const cancelOrder = useCallback((orderId: string) => {
+    console.warn('cancelOrder: Não implementado');
+    // TODO: Chamar API para cancelar pedido
     setOrders(prev => prev.map(o =>
       o.id === orderId ? { ...o, status: 'cancelled', updated_at: new Date() } : o
     ));
@@ -491,87 +653,19 @@ export const useMarketplace = (): UseMarketplaceReturn => {
     syncIntegration(integrationId);
   }, [syncIntegration]);
 
-  const resolveConflict = useCallback((conflictId: string, strategy: 'system_wins' | 'marketplace_wins') => {
-    setConflicts(prev => prev.map(c =>
-      c.id === conflictId
-        ? { ...c, resolved: true, resolved_at: new Date(), resolution_strategy: strategy }
-        : c
-    ));
+  const resolveConflict = useCallback(async (conflictId: string, strategy: 'system_wins' | 'marketplace_wins') => {
+    console.log('🔄 [useMarketplace] Resolvendo conflito:', conflictId, strategy);
+    try {
+      await api.put(`/marketplace/conflicts/${conflictId}/resolve?strategy=${strategy}`);
+      setConflicts(prev => prev.map(c =>
+        c.id === conflictId
+          ? { ...c, resolved: true, resolved_at: new Date(), resolution_strategy: strategy }
+          : c
+      ));
+    } catch (err) {
+      console.error('❌ [useMarketplace] Erro ao resolver conflito:', err);
+    }
   }, []);
-
-  // Dashboard
-  const dashboard = useMemo((): MarketplaceDashboard => {
-    const hoje = new Date();
-    const ordersToday = orders.filter(o => differenceInDays(hoje, o.order_date) === 0);
-    const revenueToday = ordersToday.reduce((sum, o) => sum + o.total, 0);
-
-    return {
-      workspace_id: 1,
-      period: {
-        start: subDays(hoje, 30),
-        end: hoje,
-      },
-      overview: {
-        total_integrations: integrations.length,
-        active_integrations: activeIntegrations.length,
-        total_listings: listings.length,
-        active_listings: activeListings.length,
-        total_orders: orders.length,
-        total_revenue: orders.reduce((sum, o) => sum + o.total, 0),
-      },
-      recent_orders: orders.slice(0, 5),
-      recent_syncs: syncJobs.slice(0, 5),
-      pending_conflicts: unresolvedConflicts.length,
-      alerts: unresolvedConflicts.slice(0, 3).map(c => ({
-        type: 'warning' as const,
-        message: `Conflito de ${c.field_name} no produto ${c.product_name}`,
-        marketplace: c.marketplace,
-        action_required: true,
-        created_at: c.created_at,
-      })),
-      stats: {
-        orders_today: ordersToday.length,
-        revenue_today: revenueToday,
-        sync_errors_today: syncJobs.filter(j => j.status === 'failed').length,
-        avg_sync_time: 120,
-      },
-    };
-  }, [integrations, activeIntegrations, listings, activeListings, orders, syncJobs, unresolvedConflicts]);
-
-  // Performance by marketplace
-  const performance = useMemo((): MarketplacePerformance[] => {
-    const hoje = new Date();
-    const periodStart = subDays(hoje, 30);
-
-    return activeIntegrations.map(integration => {
-      const integrationOrders = orders.filter(o => o.marketplace_integration_id === integration.id);
-      const integrationListings = listings.filter(l => l.marketplace_integration_id === integration.id);
-      const totalRevenue = integrationOrders.reduce((sum, o) => sum + o.total, 0);
-
-      return {
-        marketplace_integration_id: integration.id,
-        marketplace: integration.marketplace,
-        period_start: periodStart,
-        period_end: hoje,
-        total_orders: integrationOrders.length,
-        total_revenue: totalRevenue,
-        avg_order_value: integrationOrders.length > 0 ? totalRevenue / integrationOrders.length : 0,
-        items_sold: integrationOrders.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0),
-        revenue_growth: 15.5,
-        orders_growth: 12.3,
-        total_listings: integrationListings.length,
-        active_listings: integrationListings.filter(l => l.status === 'active').length,
-        out_of_stock_listings: integrationListings.filter(l => l.status === 'out_of_stock').length,
-        conversion_rate: 2.5,
-        avg_views_per_listing: integrationListings.reduce((sum, l) => sum + l.views, 0) / integrationListings.length,
-        avg_sales_per_listing: integrationListings.reduce((sum, l) => sum + l.sales, 0) / integrationListings.length,
-        sync_errors: Math.floor(Math.random() * 10),
-        conflicts: conflicts.filter(c => c.marketplace_integration_id === integration.id).length,
-        failed_orders: integrationOrders.filter(o => o.status === 'cancelled').length,
-        top_products: [],
-      };
-    });
-  }, [activeIntegrations, orders, listings, conflicts]);
 
   return {
     // Integrations
@@ -618,5 +712,6 @@ export const useMarketplace = (): UseMarketplaceReturn => {
     performance,
 
     loading,
+    refresh,
   };
 };

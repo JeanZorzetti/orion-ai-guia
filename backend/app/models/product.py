@@ -67,6 +67,7 @@ class Product(Base):
     # Relationships
     workspace = relationship("Workspace", back_populates="products")
     sales = relationship("Sale", back_populates="product", cascade="all, delete-orphan")
+    marketplace_listings = relationship("ProductListing", back_populates="product", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Product(id={self.id}, name='{self.name}', workspace_id={self.workspace_id})>"

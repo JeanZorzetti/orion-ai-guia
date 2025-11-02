@@ -106,6 +106,9 @@ class Workspace(Base):
     cash_flow_transactions = relationship("CashFlowTransaction", back_populates="workspace", cascade="all, delete-orphan")
     product_batches = relationship("ProductBatch", back_populates="workspace", cascade="all, delete-orphan")
     sales_pipelines = relationship("SalesPipeline", back_populates="workspace", cascade="all, delete-orphan")
+    marketplace_integrations = relationship("MarketplaceIntegration", back_populates="workspace", cascade="all, delete-orphan")
+    unified_orders = relationship("UnifiedOrder", back_populates="workspace", cascade="all, delete-orphan")
+    sync_jobs = relationship("SyncJob", back_populates="workspace", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Workspace(id={self.id}, name='{self.name}', slug='{self.slug}')>"
