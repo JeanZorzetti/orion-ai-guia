@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from datetime import datetime, timedelta
 
-from app.api import deps
+from app.core.database import get_db
+from app.core.auth import get_current_user
 from app.models.user import User
 from app.models.logistics import (
     BoxType, PickingList, PackingStation, PackingJob,
@@ -110,8 +111,8 @@ class DashboardResponse(BaseModel):
 
 @router.get("/box-types", response_model=List[BoxTypeResponse])
 def list_box_types(
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List all box types"""
     boxes = db.query(BoxType).filter(
@@ -127,8 +128,8 @@ def list_box_types(
 @router.get("/picking-lists", response_model=List[PickingListResponse])
 def list_picking_lists(
     status: Optional[str] = Query(None),
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List picking lists"""
     query = db.query(PickingList).filter(
@@ -145,8 +146,8 @@ def list_picking_lists(
 @router.post("/picking-lists/{list_id}/start")
 def start_picking(
     list_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Start picking a list"""
     picking_list = db.query(PickingList).filter(
@@ -170,8 +171,8 @@ def start_picking(
 @router.post("/picking-lists/{list_id}/complete")
 def complete_picking(
     list_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Complete picking a list"""
     picking_list = db.query(PickingList).filter(
@@ -203,8 +204,8 @@ def complete_picking(
 
 @router.get("/packing-stations", response_model=List)
 def list_packing_stations(
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List packing stations"""
     stations = db.query(PackingStation).filter(
@@ -216,8 +217,8 @@ def list_packing_stations(
 @router.get("/packing-jobs", response_model=List[PackingJobResponse])
 def list_packing_jobs(
     status: Optional[str] = Query(None),
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List packing jobs"""
     query = db.query(PackingJob).filter(
@@ -234,8 +235,8 @@ def list_packing_jobs(
 @router.post("/packing-jobs/{job_id}/start")
 def start_packing(
     job_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Start packing a job"""
     job = db.query(PackingJob).filter(
@@ -258,8 +259,8 @@ def start_packing(
 @router.post("/packing-jobs/{job_id}/complete")
 def complete_packing(
     job_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Complete packing a job"""
     job = db.query(PackingJob).filter(
@@ -288,8 +289,8 @@ def complete_packing(
 @router.get("/deliveries", response_model=List[DeliveryResponse])
 def list_deliveries(
     status: Optional[str] = Query(None),
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List deliveries"""
     query = db.query(Delivery).filter(
@@ -306,8 +307,8 @@ def list_deliveries(
 @router.post("/deliveries/{delivery_id}/complete")
 def complete_delivery(
     delivery_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Complete a delivery"""
     delivery = db.query(Delivery).filter(
@@ -333,8 +334,8 @@ def complete_delivery(
 def fail_delivery(
     delivery_id: int,
     reason: str = Query(...),
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Mark delivery as failed"""
     delivery = db.query(Delivery).filter(
@@ -363,8 +364,8 @@ def fail_delivery(
 @router.get("/routes", response_model=List[RouteResponse])
 def list_routes(
     status: Optional[str] = Query(None),
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List delivery routes"""
     query = db.query(DeliveryRoute).filter(
@@ -380,8 +381,8 @@ def list_routes(
 
 @router.get("/vehicles", response_model=List)
 def list_vehicles(
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List vehicles"""
     vehicles = db.query(Vehicle).filter(
@@ -396,8 +397,8 @@ def list_vehicles(
 
 @router.get("/dashboard", response_model=DashboardResponse)
 def get_dashboard(
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Get logistics dashboard"""
 

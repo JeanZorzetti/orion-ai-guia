@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 from datetime import datetime, timedelta
 
-from app.api import deps
+from app.core.database import get_db
+from app.core.auth import get_current_user
 from app.models.user import User
 from app.models.marketplace import (
     MarketplaceIntegration,
@@ -187,8 +188,8 @@ router = APIRouter()
 
 @router.get("/integrations", response_model=List[MarketplaceIntegrationResponse])
 def list_integrations(
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List all marketplace integrations for workspace"""
     integrations = db.query(MarketplaceIntegration).filter(
@@ -231,8 +232,8 @@ def list_integrations(
 @router.post("/integrations/{integration_id}/sync")
 def sync_integration(
     integration_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Trigger synchronization for a marketplace integration"""
     integration = db.query(MarketplaceIntegration).filter(
@@ -283,8 +284,8 @@ def sync_integration(
 @router.put("/integrations/{integration_id}/toggle")
 def toggle_integration(
     integration_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Toggle integration active status"""
     integration = db.query(MarketplaceIntegration).filter(
@@ -312,8 +313,8 @@ def toggle_integration(
 def list_listings(
     marketplace_integration_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List product listings"""
     query = db.query(
@@ -352,8 +353,8 @@ def list_listings(
 @router.put("/listings/{listing_id}/pause")
 def pause_listing(
     listing_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Pause a listing"""
     listing = db.query(ProductListing).join(
@@ -379,8 +380,8 @@ def pause_listing(
 @router.put("/listings/{listing_id}/activate")
 def activate_listing(
     listing_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Activate a listing"""
     listing = db.query(ProductListing).join(
@@ -412,8 +413,8 @@ def list_orders(
     marketplace_integration_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
     limit: int = Query(50, le=100),
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List unified orders from marketplaces"""
     query = db.query(UnifiedOrder).join(
@@ -447,8 +448,8 @@ def list_orders(
 @router.put("/orders/{order_id}/process")
 def process_order(
     order_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Process a marketplace order"""
     order = db.query(UnifiedOrder).join(
@@ -483,8 +484,8 @@ def list_sync_jobs(
     marketplace_integration_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
     limit: int = Query(20, le=100),
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List sync jobs"""
     query = db.query(SyncJob).filter(
@@ -511,8 +512,8 @@ def list_sync_jobs(
 @router.get("/conflicts", response_model=List[SyncConflictResponse])
 def list_conflicts(
     resolved: Optional[bool] = Query(None),
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List sync conflicts"""
     query = db.query(
@@ -545,8 +546,8 @@ def list_conflicts(
 def resolve_conflict(
     conflict_id: int,
     strategy: str = Query(..., regex="^(system_wins|marketplace_wins)$"),
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Resolve a sync conflict"""
     conflict = db.query(SyncConflict).join(
@@ -582,8 +583,8 @@ def resolve_conflict(
 
 @router.get("/dashboard", response_model=MarketplaceDashboardResponse)
 def get_dashboard(
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Get marketplace dashboard data"""
     today = datetime.now().date()
@@ -695,8 +696,8 @@ def get_dashboard(
 
 @router.get("/performance", response_model=List[MarketplacePerformanceResponse])
 def get_performance(
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Get performance metrics by marketplace"""
     integrations = db.query(MarketplaceIntegration).filter(
