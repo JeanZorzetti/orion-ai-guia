@@ -567,3 +567,153 @@ async def get_executive_dashboard_insights(
         comparacao=comparacao,
         insights=insights
     )
+
+
+# ============================================
+# REPORTS CRUD - Listagem e Histórico
+# ============================================
+
+@router.get("/generated")
+async def list_generated_reports(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    tipo: Optional[str] = Query(None),
+    subtipo: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Listar relatórios gerados
+
+    Retorna lista paginada de relatórios gerados pelo usuário ou workspace
+    """
+    from app.models.report import GeneratedReport, ReportStatus, ReportTipo
+
+    query = db.query(GeneratedReport).filter(
+        GeneratedReport.gerado_por_id == current_user.id
+    )
+
+    # Filtros opcionais
+    if tipo:
+        query = query.filter(GeneratedReport.tipo == tipo)
+    if subtipo:
+        query = query.filter(GeneratedReport.subtipo == subtipo)
+    if status:
+        query = query.filter(GeneratedReport.status == status)
+
+    # Total count
+    total = query.count()
+
+    # Paginação e ordenação
+    reports = query.order_by(GeneratedReport.gerado_em.desc()).offset(skip).limit(limit).all()
+
+    # Estatísticas
+    stats = {
+        "total": db.query(GeneratedReport).filter(GeneratedReport.gerado_por_id == current_user.id).count(),
+        "concluidos": db.query(GeneratedReport).filter(
+            GeneratedReport.gerado_por_id == current_user.id,
+            GeneratedReport.status == ReportStatus.CONCLUIDO
+        ).count(),
+        "erros": db.query(GeneratedReport).filter(
+            GeneratedReport.gerado_por_id == current_user.id,
+            GeneratedReport.status == ReportStatus.ERRO
+        ).count(),
+    }
+
+    return {
+        "reports": reports,
+        "total": total,
+        "stats": stats,
+        "skip": skip,
+        "limit": limit
+    }
+
+
+@router.get("/schedules")
+async def list_report_schedules(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    ativo: Optional[bool] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Listar agendamentos de relatórios
+
+    Retorna lista paginada de agendamentos configurados
+    """
+    from app.models.report import ReportSchedule, ScheduleExecution, ExecutionStatus
+
+    query = db.query(ReportSchedule).filter(
+        ReportSchedule.criado_por_id == current_user.id
+    )
+
+    if ativo is not None:
+        query = query.filter(ReportSchedule.ativo == ativo)
+
+    total = query.count()
+    schedules = query.order_by(ReportSchedule.criado_em.desc()).offset(skip).limit(limit).all()
+
+    # Estatísticas de execuções
+    stats = {
+        "total": total,
+        "ativos": db.query(ReportSchedule).filter(
+            ReportSchedule.criado_por_id == current_user.id,
+            ReportSchedule.ativo == True
+        ).count(),
+        "execucoes_sucesso": db.query(ScheduleExecution).join(ReportSchedule).filter(
+            ReportSchedule.criado_por_id == current_user.id,
+            ScheduleExecution.status == ExecutionStatus.SUCESSO
+        ).count(),
+        "execucoes_erro": db.query(ScheduleExecution).join(ReportSchedule).filter(
+            ReportSchedule.criado_por_id == current_user.id,
+            ScheduleExecution.status == ExecutionStatus.ERRO
+        ).count(),
+    }
+
+    return {
+        "schedules": schedules,
+        "total": total,
+        "stats": stats,
+        "skip": skip,
+        "limit": limit
+    }
+
+
+@router.get("/templates")
+async def list_report_templates(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Listar templates de relatórios disponíveis
+
+    Retorna lista de templates pré-configurados
+    """
+    # Templates mockados por enquanto - implementar persistência depois
+    templates = [
+        {
+            "id": "template-dre",
+            "nome": "DRE Mensal Padrão",
+            "descricao": "Demonstrativo de Resultados mensal com comparativo",
+            "tipo": "financeiro",
+            "subtipo": "dre",
+            "usoCount": 0,
+            "ultimoUso": None,
+        },
+        {
+            "id": "template-fluxo",
+            "nome": "Fluxo de Caixa Detalhado",
+            "descricao": "Análise completa de entradas e saídas",
+            "tipo": "financeiro",
+            "subtipo": "fluxo-caixa",
+            "usoCount": 0,
+            "ultimoUso": None,
+        }
+    ]
+
+    return {
+        "templates": templates,
+        "total": len(templates)
+    }

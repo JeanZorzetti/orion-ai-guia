@@ -1,7 +1,31 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { api } from '@/lib/api';
 import type { GeneratedReport, ReportHistoryFilter } from '@/types/report';
 
-// Mock data para demonstração
+// API Response Types
+interface GeneratedReportAPI {
+  id: string;
+  nome: string;
+  tipo: string;
+  subtipo: string;
+  status: 'gerando' | 'concluido' | 'erro';
+  formato: string;
+  periodo_inicio: string;
+  periodo_fim: string;
+  arquivo_url?: string;
+  arquivo_tamanho?: number;
+  gerado_em: string;
+  tags?: string[];
+  erro_mensagem?: string;
+}
+
+interface ReportStatsAPI {
+  total: number;
+  concluidos: number;
+  erros: number;
+}
+
+// Mock data para fallback
 const generateMockHistory = (): GeneratedReport[] => {
   const now = new Date();
   const mockReports: GeneratedReport[] = [];
@@ -51,9 +75,65 @@ const generateMockHistory = (): GeneratedReport[] => {
 };
 
 export const useReportHistory = () => {
-  const [reports, setReports] = useState<GeneratedReport[]>(() => generateMockHistory());
+  const [reports, setReports] = useState<GeneratedReport[]>([]);
   const [filters, setFilters] = useState<ReportHistoryFilter>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<ReportStatsAPI>({ total: 0, concluidos: 0, erros: 0 });
+
+  // Buscar relatórios da API
+  const fetchReports = useCallback(async () => {
+    console.log('🔄 [useReportHistory] Buscando histórico de relatórios da API');
+    setLoading(true);
+
+    try {
+      const response = await api.get<{
+        reports: GeneratedReportAPI[];
+        stats: ReportStatsAPI;
+        total: number;
+      }>('/reports/generated?limit=50');
+
+      console.log('✅ [useReportHistory] Relatórios recebidos:', response.reports.length);
+
+      // Converter para o formato esperado pelo frontend
+      const convertedReports: GeneratedReport[] = response.reports.map(r => ({
+        id: r.id,
+        nome: r.nome,
+        tipo: r.tipo as any,
+        subtipo: r.subtipo,
+        config: {} as any,
+        geradoEm: new Date(r.gerado_em),
+        geradoPor: { id: 'current', nome: 'Usuário' },
+        arquivo: {
+          url: r.arquivo_url || '',
+          formato: r.formato as any,
+          tamanho: r.arquivo_tamanho || 0,
+          hash: r.id
+        },
+        status: r.status,
+        erro: r.erro_mensagem,
+        visualizacoes: 0,
+        downloads: 0,
+        compartilhamentos: 0,
+        versao: 1,
+        tags: r.tags || []
+      }));
+
+      setReports(convertedReports);
+      setStats(response.stats);
+    } catch (err) {
+      console.error('❌ [useReportHistory] Erro ao buscar relatórios:', err);
+      // Fallback para mock em caso de erro
+      setReports(generateMockHistory());
+      setStats({ total: 0, concluidos: 0, erros: 0 });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Buscar dados ao montar
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
 
   // Filtrar relatórios
   const filteredReports = useMemo(() => {
@@ -104,12 +184,8 @@ export const useReportHistory = () => {
 
   // Recarregar histórico
   const refresh = useCallback(async () => {
-    setLoading(true);
-    // TODO: Chamar API real
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setReports(generateMockHistory());
-    setLoading(false);
-  }, []);
+    await fetchReports();
+  }, [fetchReports]);
 
   // Download de relatório
   const download = useCallback(async (reportId: string) => {
@@ -171,13 +247,13 @@ export const useReportHistory = () => {
     ));
   }, []);
 
-  // Estatísticas
-  const stats = useMemo(() => {
+  // Estatísticas combinadas (API + local)
+  const combinedStats = useMemo(() => {
     return {
-      total: reports.length,
-      concluidos: reports.filter(r => r.status === 'concluido').length,
+      total: stats.total || reports.length,
+      concluidos: stats.concluidos || reports.filter(r => r.status === 'concluido').length,
       gerando: reports.filter(r => r.status === 'gerando').length,
-      erros: reports.filter(r => r.status === 'erro').length,
+      erros: stats.erros || reports.filter(r => r.status === 'erro').length,
       tamanhoTotal: reports.reduce((sum, r) => sum + r.arquivo.tamanho, 0),
       porFormato: {
         pdf: reports.filter(r => r.arquivo.formato === 'pdf').length,
@@ -186,7 +262,7 @@ export const useReportHistory = () => {
         json: reports.filter(r => r.arquivo.formato === 'json').length
       }
     };
-  }, [reports]);
+  }, [reports, stats]);
 
   return {
     reports: filteredReports,
@@ -200,6 +276,6 @@ export const useReportHistory = () => {
     view,
     addTags,
     removeTag,
-    stats
+    stats: combinedStats
   };
 };

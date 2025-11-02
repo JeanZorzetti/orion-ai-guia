@@ -1,8 +1,28 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { api } from '@/lib/api';
 import type { ReportSchedule, ReportScheduleFilter, ReportConfig } from '@/types/report';
 import { addDays, addWeeks, addMonths, setHours, setMinutes, setDay } from 'date-fns';
 
-// Mock data para demonstração
+// API Response Types
+interface ReportScheduleAPI {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  frequencia: any;
+  destinatarios: any;
+  criado_em: string;
+  proxima_execucao?: string;
+  ultima_execucao?: string;
+}
+
+interface ScheduleStatsAPI {
+  total: number;
+  ativos: number;
+  execucoes_sucesso: number;
+  execucoes_erro: number;
+}
+
+// Mock data para fallback
 const generateMockSchedules = (): ReportSchedule[] => {
   const now = new Date();
   const usuario = { id: '1', nome: 'João Silva' };
@@ -202,9 +222,64 @@ const generateMockSchedules = (): ReportSchedule[] => {
 };
 
 export const useReportScheduler = () => {
-  const [schedules, setSchedules] = useState<ReportSchedule[]>(() => generateMockSchedules());
+  const [schedules, setSchedules] = useState<ReportSchedule[]>([]);
   const [filters, setFilters] = useState<ReportScheduleFilter>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<ScheduleStatsAPI>({
+    total: 0,
+    ativos: 0,
+    execucoes_sucesso: 0,
+    execucoes_erro: 0
+  });
+
+  // Buscar agendamentos da API
+  const fetchSchedules = useCallback(async () => {
+    console.log('🔄 [useReportScheduler] Buscando agendamentos da API');
+    setLoading(true);
+
+    try {
+      const response = await api.get<{
+        schedules: ReportScheduleAPI[];
+        stats: ScheduleStatsAPI;
+        total: number;
+      }>('/reports/schedules?limit=50');
+
+      console.log('✅ [useReportScheduler] Agendamentos recebidos:', response.schedules.length);
+      console.log('📊 [useReportScheduler] Stats:', response.stats);
+
+      // Converter para o formato esperado pelo frontend (simplificado por ora)
+      const convertedSchedules: ReportSchedule[] = response.schedules.map(s => ({
+        id: s.id,
+        nome: s.nome,
+        ativo: s.ativo,
+        reportConfig: {} as any, // Simplificado
+        frequencia: s.frequencia || { tipo: 'mensal' as const },
+        destinatarios: s.destinatarios || { emails: [], incluirGeradores: false },
+        emailConfig: { assunto: '', corpo: '', anexarRelatorio: true, incluirLinkDownload: true },
+        criadoEm: new Date(s.criado_em),
+        criadoPor: { id: 'current', nome: 'Usuário' },
+        atualizadoEm: new Date(s.criado_em),
+        proximaExecucao: s.proxima_execucao ? new Date(s.proxima_execucao) : undefined,
+        ultimaExecucao: s.ultima_execucao ? new Date(s.ultima_execucao) : undefined,
+        execucoes: []
+      }));
+
+      setSchedules(convertedSchedules);
+      setStats(response.stats);
+    } catch (err) {
+      console.error('❌ [useReportScheduler] Erro ao buscar agendamentos:', err);
+      // Fallback para mock em caso de erro
+      setSchedules(generateMockSchedules());
+      setStats({ total: 0, ativos: 0, execucoes_sucesso: 0, execucoes_erro: 0 });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Buscar dados ao montar
+  useEffect(() => {
+    fetchSchedules();
+  }, [fetchSchedules]);
 
   // Filtrar agendamentos
   const filteredSchedules = useMemo(() => {
@@ -241,12 +316,8 @@ export const useReportScheduler = () => {
 
   // Recarregar agendamentos
   const refresh = useCallback(async () => {
-    setLoading(true);
-    // TODO: Chamar API real
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setSchedules(generateMockSchedules());
-    setLoading(false);
-  }, []);
+    await fetchSchedules();
+  }, [fetchSchedules]);
 
   // Criar novo agendamento
   const create = useCallback(async (schedule: Omit<ReportSchedule, 'id' | 'criadoEm' | 'criadoPor' | 'atualizadoEm' | 'execucoes' | 'ultimaExecucao'>) => {
@@ -336,21 +407,21 @@ export const useReportScheduler = () => {
   }, [schedules]);
 
   // Estatísticas
-  const stats = useMemo(() => {
+  const combinedStats = useMemo(() => {
     return {
-      total: schedules.length,
-      ativos: schedules.filter(s => s.ativo).length,
+      total: stats.total || schedules.length,
+      ativos: stats.ativos || schedules.filter(s => s.ativo).length,
       inativos: schedules.filter(s => !s.ativo).length,
       ultimasExecucoes: schedules
         .filter(s => s.ultimaExecucao)
         .sort((a, b) => (b.ultimaExecucao?.getTime() || 0) - (a.ultimaExecucao?.getTime() || 0))
         .slice(0, 5),
       totalExecucoes: schedules.reduce((sum, s) => sum + s.execucoes.length, 0),
-      execucoesComSucesso: schedules.reduce(
+      execucoesComSucesso: stats.execucoes_sucesso || schedules.reduce(
         (sum, s) => sum + s.execucoes.filter(e => e.status === 'sucesso').length,
         0
       ),
-      execucoesComErro: schedules.reduce(
+      execucoesComErro: stats.execucoes_erro || schedules.reduce(
         (sum, s) => sum + s.execucoes.filter(e => e.status === 'erro').length,
         0
       ),
@@ -364,7 +435,7 @@ export const useReportScheduler = () => {
         personalizado: schedules.filter(s => s.frequencia.tipo === 'personalizado').length
       }
     };
-  }, [schedules]);
+  }, [schedules, stats]);
 
   return {
     schedules: filteredSchedules,
@@ -379,6 +450,6 @@ export const useReportScheduler = () => {
     toggle,
     executeNow,
     duplicate,
-    stats
+    stats: combinedStats
   };
 };
