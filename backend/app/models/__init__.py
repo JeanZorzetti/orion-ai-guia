@@ -12,6 +12,14 @@ from app.models.product import Product
 from app.models.sale import Sale
 from app.models.accounts_receivable import AccountsReceivable
 from app.models.cash_flow import BankAccount, CashFlowTransaction
+from app.models.batch import ProductBatch, BatchMovement
+from app.models.warehouse import Warehouse, WarehouseArea, StockTransfer
+from app.models.automation import (
+    StockOptimization,
+    PurchaseSuggestion,
+    StockAlert,
+    AlertRule
+)
 
 __all__ = [
     "Base",
@@ -24,4 +32,13 @@ __all__ = [
     "AccountsReceivable",
     "BankAccount",
     "CashFlowTransaction",
+    "ProductBatch",
+    "BatchMovement",
+    "Warehouse",
+    "WarehouseArea",
+    "StockTransfer",
+    "StockOptimization",
+    "PurchaseSuggestion",
+    "StockAlert",
+    "AlertRule",
 ]
