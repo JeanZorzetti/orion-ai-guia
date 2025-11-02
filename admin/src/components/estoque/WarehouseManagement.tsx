@@ -143,7 +143,7 @@ export const WarehouseManagement: React.FC = () => {
               <div className="flex items-center justify-between text-sm">
                 <span>{stats.occupationPercentage.toFixed(1)}%</span>
                 <span className="text-gray-500">
-                  {stats.currentOccupation.toFixed(0)} / {stats.totalCapacity.toFixed(0)} m³
+                  {stats.totalOccupation.toFixed(0)} / {stats.totalCapacity.toFixed(0)} m³
                 </span>
               </div>
               <Progress value={stats.occupationPercentage} className="h-2" />
@@ -413,7 +413,7 @@ export const WarehouseManagement: React.FC = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => approveTransfer(transfer.id, 'user-1')}
+                                onClick={() => approveTransfer(transfer.id)}
                               >
                                 Aprovar
                               </Button>
@@ -430,7 +430,7 @@ export const WarehouseManagement: React.FC = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => shipTransfer(transfer.id, 'user-1')}
+                              onClick={() => shipTransfer(transfer.id)}
                             >
                               Expedir
                             </Button>
@@ -439,7 +439,7 @@ export const WarehouseManagement: React.FC = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => receiveTransfer(transfer.id, 'user-1')}
+                              onClick={() => receiveTransfer(transfer.id)}
                             >
                               Receber
                             </Button>
