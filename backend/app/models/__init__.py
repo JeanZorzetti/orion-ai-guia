@@ -47,6 +47,10 @@ from app.models.analytics import (
     CustomReport,
     ReportExecution
 )
+from app.models.inventory import (
+    InventoryCycleCount,
+    InventoryCountItem
+)
 
 __all__ = [
     "Base",
@@ -91,4 +95,6 @@ __all__ = [
     "RecommendedAction",
     "CustomReport",
     "ReportExecution",
+    "InventoryCycleCount",
+    "InventoryCountItem",
 ]
