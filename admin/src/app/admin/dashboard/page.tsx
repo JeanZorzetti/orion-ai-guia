@@ -5,9 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import InvoiceUploadModal from '@/components/invoice/InvoiceUploadModal';
 import {
-  Upload,
   AlertTriangle,
   Calendar,
   TrendingUp,
@@ -494,28 +492,7 @@ const Dashboard: React.FC = () => {
       <InsightCard insights={insights} maxDisplay={5} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Card 1: Ações Rápidas */}
-        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5 text-primary" />
-              Comece por aqui
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              Automatize seu fluxo financeiro em segundos
-            </p>
-            <InvoiceUploadModal>
-              <Button size="lg" className="w-full" data-tour="import-button">
-                <FileText className="mr-2 h-4 w-4" />
-                Importar Fatura
-              </Button>
-            </InvoiceUploadModal>
-          </CardContent>
-        </Card>
-
-        {/* Card 2: Contas a Vencer (Próximos 7 dias) */}
+        {/* Card 1: Contas a Vencer (Próximos 7 dias) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="flex items-center gap-2">
@@ -556,7 +533,7 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Card 3: Faturas Vencidas */}
+        {/* Card 2: Faturas Vencidas */}
         {overdueInvoices.length > 0 && (
           <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -590,7 +567,7 @@ const Dashboard: React.FC = () => {
           </Card>
         )}
 
-        {/* Card 4: Alerta de Estoque */}
+        {/* Card 3: Alerta de Estoque */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="flex items-center gap-2">
@@ -633,7 +610,7 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Card 5: Visão Rápida de Vendas */}
+        {/* Card 4: Visão Rápida de Vendas */}
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
