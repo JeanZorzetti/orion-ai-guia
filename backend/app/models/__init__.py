@@ -51,6 +51,7 @@ from app.models.inventory import (
     InventoryCycleCount,
     InventoryCountItem
 )
+from app.models.notification import Notification
 
 __all__ = [
     "Base",
@@ -97,4 +98,5 @@ __all__ = [
     "ReportExecution",
     "InventoryCycleCount",
     "InventoryCountItem",
+    "Notification",
 ]

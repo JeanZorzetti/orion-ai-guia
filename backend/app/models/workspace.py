@@ -129,5 +129,8 @@ class Workspace(Base):
     # Inventory relationships
     inventory_cycle_counts = relationship("InventoryCycleCount", back_populates="workspace", cascade="all, delete-orphan")
 
+    # Notification relationships
+    notifications = relationship("Notification", back_populates="workspace", cascade="all, delete-orphan")
+
     def __repr__(self):
         return f"<Workspace(id={self.id}, name='{self.name}', slug='{self.slug}')>"

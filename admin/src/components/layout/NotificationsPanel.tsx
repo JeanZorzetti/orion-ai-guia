@@ -11,6 +11,7 @@ import {
   Package,
   TrendingUp,
   X,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,99 +22,98 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useNotifications, Notification, NotificationType } from '@/hooks/useNotifications';
 
-interface Notification {
-  id: string;
-  type: 'alert' | 'info' | 'success' | 'warning';
-  title: string;
-  message: string;
-  timestamp: Date;
-  read: boolean;
-  icon?: React.ComponentType<{ className?: string }>;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-}
+// Icon mapping based on notification icon string or type
+const getNotificationIcon = (notification: Notification) => {
+  // Use icon field if provided
+  if (notification.icon) {
+    switch (notification.icon) {
+      case 'DollarSign':
+        return DollarSign;
+      case 'Package':
+        return Package;
+      case 'TrendingUp':
+        return TrendingUp;
+      case 'Check':
+        return Check;
+      case 'AlertCircle':
+        return AlertCircle;
+    }
+  }
 
-// Mock data - substituir por dados reais da API
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'alert',
-    title: 'Conta a Pagar Vencendo',
-    message: 'Fornecedor XYZ - R$ 1.500,00 vence amanhã',
-    timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 min atrás
-    read: false,
-    icon: DollarSign,
-  },
-  {
-    id: '2',
-    type: 'warning',
-    title: 'Estoque Baixo',
-    message: 'Produto "Notebook Dell" com apenas 3 unidades',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2h atrás
-    read: false,
-    icon: Package,
-  },
-  {
-    id: '3',
-    type: 'success',
-    title: 'Meta Atingida',
-    message: 'Vendas do mês ultrapassaram R$ 50.000!',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5h atrás
-    read: true,
-    icon: TrendingUp,
-  },
-];
+  // Fallback to type-based icons
+  switch (notification.type) {
+    case 'alert':
+    case 'warning':
+      return AlertCircle;
+    case 'success':
+      return Check;
+    case 'info':
+    default:
+      return Bell;
+  }
+};
+
+const getTypeColor = (type: NotificationType) => {
+  switch (type) {
+    case 'alert':
+      return 'text-red-500';
+    case 'warning':
+      return 'text-yellow-500';
+    case 'success':
+      return 'text-green-500';
+    case 'info':
+    default:
+      return 'text-blue-500';
+  }
+};
 
 export const NotificationsPanel: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const {
+    notifications,
+    loading,
+    error,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    refresh
+  } = useNotifications();
+
   const [open, setOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
-
-  const removeNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
-
-  const getTypeColor = (type: Notification['type']) => {
-    switch (type) {
-      case 'alert':
-        return 'text-red-500';
-      case 'warning':
-        return 'text-yellow-500';
-      case 'success':
-        return 'text-green-500';
-      case 'info':
-      default:
-        return 'text-blue-500';
+  const handleMarkAsRead = async (id: number) => {
+    try {
+      setActionLoading(id);
+      await markAsRead(id);
+    } catch (err) {
+      console.error('Failed to mark as read:', err);
+    } finally {
+      setActionLoading(null);
     }
   };
 
-  const getTypeIcon = (notification: Notification) => {
-    if (notification.icon) {
-      return notification.icon;
+  const handleMarkAllAsRead = async () => {
+    try {
+      setActionLoading(-1);
+      await markAllAsRead();
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    } finally {
+      setActionLoading(null);
     }
-    switch (notification.type) {
-      case 'alert':
-      case 'warning':
-        return AlertCircle;
-      case 'success':
-        return Check;
-      case 'info':
-      default:
-        return Bell;
+  };
+
+  const handleRemoveNotification = async (id: number) => {
+    try {
+      setActionLoading(id);
+      await deleteNotification(id);
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -124,7 +124,7 @@ export const NotificationsPanel: React.FC = () => {
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
-              {unreadCount}
+              {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
         </Button>
@@ -143,16 +143,34 @@ export const NotificationsPanel: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={markAllAsRead}
+              onClick={handleMarkAllAsRead}
+              disabled={actionLoading === -1}
               className="h-8 text-xs"
             >
-              Marcar todas como lidas
+              {actionLoading === -1 ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                'Marcar todas como lidas'
+              )}
             </Button>
           )}
         </div>
 
         <ScrollArea className="h-[400px]">
-          {notifications.length === 0 ? (
+          {loading && notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground">Carregando notificações...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+              <p className="text-sm text-muted-foreground mb-2">Erro ao carregar notificações</p>
+              <Button variant="outline" size="sm" onClick={refresh}>
+                Tentar novamente
+              </Button>
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Bell className="h-12 w-12 text-muted-foreground/40 mb-4" />
               <p className="text-sm text-muted-foreground">
@@ -162,7 +180,9 @@ export const NotificationsPanel: React.FC = () => {
           ) : (
             <div className="divide-y">
               {notifications.map((notification) => {
-                const Icon = getTypeIcon(notification);
+                const Icon = getNotificationIcon(notification);
+                const isProcessing = actionLoading === notification.id;
+
                 return (
                   <div
                     key={notification.id}
@@ -188,7 +208,7 @@ export const NotificationsPanel: React.FC = () => {
                           {notification.message}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(notification.timestamp, {
+                          {formatDistanceToNow(new Date(notification.created_at), {
                             addSuffix: true,
                             locale: ptBR,
                           })}
@@ -199,9 +219,14 @@ export const NotificationsPanel: React.FC = () => {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => removeNotification(notification.id)}
+                          onClick={() => handleRemoveNotification(notification.id)}
+                          disabled={isProcessing}
                         >
-                          <X className="h-3 w-3" />
+                          {isProcessing ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <X className="h-3 w-3" />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -210,8 +235,12 @@ export const NotificationsPanel: React.FC = () => {
                         variant="ghost"
                         size="sm"
                         className="mt-2 h-7 text-xs"
-                        onClick={() => markAsRead(notification.id)}
+                        onClick={() => handleMarkAsRead(notification.id)}
+                        disabled={isProcessing}
                       >
+                        {isProcessing ? (
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        ) : null}
                         Marcar como lida
                       </Button>
                     )}
