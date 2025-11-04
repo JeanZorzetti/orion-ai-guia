@@ -85,7 +85,7 @@ const VendasPage: React.FC = () => {
       setError(null);
       const data = await saleService.getAll({
         status_filter: statusFilter === 'all' ? undefined : statusFilter,
-        limit: 100
+        limit: 50000  // Limite aumentado para suportar dados de debug/seed
       });
       // Filtrar por cliente no frontend se houver busca
       const filteredData = searchTerm
