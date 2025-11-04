@@ -115,6 +115,12 @@ STORE_CHANNELS = [
 # ENDPOINTS
 # ============================================================================
 
+@router.options("/seed-beach-fashion")
+async def seed_beach_fashion_options():
+    """Handle CORS preflight for seed-beach-fashion endpoint"""
+    return {"status": "ok"}
+
+
 @router.post("/seed-beach-fashion", status_code=status.HTTP_201_CREATED)
 def seed_beach_fashion_data(
     months: int = 12,  # Padrão: 1 ano de histórico
@@ -380,6 +386,12 @@ def seed_beach_fashion_data(
             for p in products_created[:5]
         ]
     }
+
+
+@router.options("/clear-debug-data")
+async def clear_debug_data_options():
+    """Handle CORS preflight for clear-debug-data endpoint"""
+    return {"status": "ok"}
 
 
 @router.delete("/clear-debug-data", status_code=status.HTTP_200_OK)
