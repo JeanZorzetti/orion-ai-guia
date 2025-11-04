@@ -197,11 +197,12 @@ const Dashboard: React.FC = () => {
     ? ((currentMonthSalesCount - lastMonthSalesCount) / lastMonthSalesCount) * 100
     : 0;
 
-  // Dados para gráfico de receita (últimos 30 dias agrupados por semana)
+  // Dados para gráfico de receita (últimas 4 semanas - SEMPRE, independente dos filtros)
+  const allCompletedSales = sales.filter((sale) => sale.status === 'completed');
   const revenueChartData = Array.from({ length: 4 }, (_, i) => {
     const weekStart = subDays(today, (3 - i) * 7);
     const weekEnd = subDays(today, (3 - i) * 7 - 6);
-    const weekSales = completedSales.filter((sale) => {
+    const weekSales = allCompletedSales.filter((sale) => {
       const saleDate = new Date(sale.sale_date);
       return saleDate >= weekEnd && saleDate <= weekStart;
     });
@@ -213,13 +214,13 @@ const Dashboard: React.FC = () => {
     };
   });
 
-  // Dados para gráfico de vendas por canal (últimos 6 meses)
+  // Dados para gráfico de vendas por canal (últimos 6 meses - SEMPRE, independente dos filtros)
   const salesByChannelData = Array.from({ length: 6 }, (_, i) => {
     const monthDate = subMonths(today, 5 - i);
     const monthStart = startOfMonth(monthDate);
     const monthEnd = endOfMonth(monthDate);
 
-    const monthSales = completedSales.filter((sale) => {
+    const monthSales = allCompletedSales.filter((sale) => {
       const saleDate = new Date(sale.sale_date);
       return saleDate >= monthStart && saleDate <= monthEnd;
     });
