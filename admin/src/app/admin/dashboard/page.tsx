@@ -53,10 +53,15 @@ const Dashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      // Dashboard precisa de todas as vendas dos últimos 6 meses para gráficos
+      const sixMonthsAgo = subMonths(new Date(), 6);
       const [invoicesData, productsData, salesData] = await Promise.all([
         invoiceService.getAll(),
         productService.getAll(),
-        saleService.getAll(),
+        saleService.getAll({
+          start_date: sixMonthsAgo.toISOString().split('T')[0],
+          limit: 5000  // Limite alto para dashboard
+        }),
       ]);
       setInvoices(invoicesData);
       setProducts(productsData);
