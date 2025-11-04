@@ -224,7 +224,7 @@ export function DebugDataPanel() {
         {!showConfirmClear ? (
           <button
             onClick={() => setShowConfirmClear(true)}
-            disabled={isSeeding || isClearing || (status && !status.has_debug_data)}
+            disabled={isSeeding || isClearing || (status ? !status.has_debug_data : false)}
             className="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Trash2 className="w-5 h-5" />
