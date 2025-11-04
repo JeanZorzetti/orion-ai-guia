@@ -204,7 +204,7 @@ def seed_beach_fashion_data(
 
             # Calcula margem (40-60% sobre custo)
             sale_price = item["base_price"]
-            unit_cost = sale_price / random.uniform(1.4, 1.6)
+            cost_price = sale_price / random.uniform(1.4, 1.6)
 
             # Estoque inicial baseado na popularidade do produto
             initial_stock = random.randint(50, 200)
@@ -214,22 +214,19 @@ def seed_beach_fashion_data(
                 name=item["name"],
                 sku=item["sku"],
                 category=category_name,
-                description=f"Produto de moda praia - Coleção Verão 2025. {category_name}.",
-                unit_cost=round(unit_cost, 2),
+                description=f"Produto de moda praia - Coleção Verão 2025. {category_name}. [DEBUG-SEED]",
+                cost_price=round(cost_price, 2),
                 sale_price=sale_price,
-                current_stock=initial_stock,
+                stock_quantity=initial_stock,
                 min_stock_level=20,
-                max_stock_level=300,
-                reorder_point=40,
-                safety_stock=30,
-                weight_kg=item["weight"],
+                unit="un",
                 active=True,
                 # Dados fiscais
-                ncm=item["ncm"],
-                cfop="5102",  # Venda de mercadoria adquirida
-                origem_mercadoria=0,  # Nacional
-                # Tags para filtros
-                tags=f"moda-praia,verao-2025,{category_name.lower().replace(' ', '-')}"
+                ncm_code=item["ncm"],
+                origin=0,  # Nacional
+                icms_csosn="102",  # Simples Nacional - Tributada sem permissão de crédito
+                pis_cst="99",
+                cofins_cst="99"
             )
 
             db.add(product)
@@ -264,11 +261,10 @@ def seed_beach_fashion_data(
         customer = Customer(
             workspace_id=workspace_id,
             name=name,
-            email=f"{name.lower().replace(' ', '.')}@email.com",
+            email=f"{name.lower().replace(' ', '.')}@debug-seed.test",
             phone=f"(11) 9{random.randint(1000, 9999)}-{random.randint(1000, 9999)}",
-            cpf_cnpj=cpf,
-            customer_type="individual",
-            tags="[DEBUG-SEED]"
+            company_document=cpf,
+            custom_fields={"debug_seed": True, "generated_at": datetime.utcnow().isoformat()}
         )
 
         db.add(customer)
@@ -502,7 +498,7 @@ def clear_debug_data(
 
     customers_to_delete = db.query(Customer).filter(
         Customer.workspace_id == workspace_id,
-        Customer.tags.like('%[DEBUG-SEED]%')
+        Customer.email.like('%@debug-seed.test')
     ).all()
 
     stats["customers_deleted"] = len(customers_to_delete)
@@ -516,11 +512,11 @@ def clear_debug_data(
     # PASSO 3: Deletar produtos de debug
     # ========================================================================
 
-    # Identifica produtos pela tag ou SKU pattern
+    # Identifica produtos pela descrição ou SKU pattern
     products_to_delete = db.query(Product).filter(
         Product.workspace_id == workspace_id,
         or_(
-            Product.tags.like('%moda-praia%'),
+            Product.description.like('%[DEBUG-SEED]%'),
             Product.sku.like('BIQ-%'),
             Product.sku.like('MAI-%'),
             Product.sku.like('SUN-%'),
@@ -586,7 +582,7 @@ def get_seed_status(
     products_count = db.query(Product).filter(
         Product.workspace_id == workspace_id,
         or_(
-            Product.tags.like('%moda-praia%'),
+            Product.description.like('%[DEBUG-SEED]%'),
             Product.sku.like('BIQ-%'),
             Product.sku.like('MAI-%'),
             Product.sku.like('SUN-%')
@@ -596,7 +592,7 @@ def get_seed_status(
     # Conta clientes debug
     customers_count = db.query(Customer).filter(
         Customer.workspace_id == workspace_id,
-        Customer.tags.like('%[DEBUG-SEED]%')
+        Customer.email.like('%@debug-seed.test')
     ).count()
 
     # Conta vendas debug
