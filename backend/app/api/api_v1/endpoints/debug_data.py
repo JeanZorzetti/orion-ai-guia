@@ -368,16 +368,16 @@ def seed_beach_fashion_data(
             sale = Sale(
                 workspace_id=workspace_id,
                 product_id=product.id,
-                customer_id=customer.id,
                 customer_name=customer.name,
                 customer_email=customer.email,
+                customer_cpf_cnpj=customer.company_document,
+                customer_phone=customer.phone,
                 quantity=quantity,
                 unit_price=unit_price,
                 total_value=total_value,
                 sale_date=sale_date,
                 status="completed",
-                payment_method=random.choice(["credit_card", "debit_card", "pix", "boleto"]),
-                sale_channel=channel,
+                origin_channel=channel,
                 notes=f"[DEBUG-SEED] Venda sintética - Moda Praia - {product.category}"
             )
 
