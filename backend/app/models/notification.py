@@ -52,7 +52,7 @@ class Notification(Base):
 
     # Metadata
     icon = Column(String(50), nullable=True)  # Icon identifier (e.g., 'DollarSign', 'Package')
-    metadata = Column(Text, nullable=True)  # JSON string for additional data
+    extra_data = Column(Text, nullable=True)  # JSON string for additional data (renamed from metadata to avoid SQLAlchemy conflict)
 
     # Related entity (optional)
     related_entity_type = Column(String(100), nullable=True)  # e.g., 'accounts_payable', 'product'
