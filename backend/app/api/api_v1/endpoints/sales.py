@@ -16,7 +16,7 @@ router = APIRouter()
 @router.get("/", response_model=List[SaleResponse])
 def get_sales(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 50000,  # Limite aumentado para suportar dados de debug/seed
     status_filter: Optional[str] = None,
     product_id: Optional[int] = None,
     start_date: Optional[date] = None,
