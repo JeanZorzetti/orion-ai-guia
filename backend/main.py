@@ -33,6 +33,44 @@ print(f"   CORS Origins: ['*'] (PERMITINDO TODAS AS ORIGENS)")
 print("=" * 60)
 
 # ============================================================================
+# MIDDLEWARE DE LOGGING - Capturar TODAS as requisições
+# ============================================================================
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware para logar todas as requisições recebidas.
+    """
+    async def dispatch(self, request: Request, call_next):
+        import logging
+        logger = logging.getLogger("uvicorn.access")
+
+        # Log da requisição recebida
+        logger.info("=" * 80)
+        logger.info(f"📥 REQUEST: {request.method} {request.url.path}")
+        logger.info(f"   Query Params: {dict(request.query_params)}")
+        logger.info(f"   Headers: {dict(request.headers)}")
+        logger.info(f"   Client: {request.client}")
+        logger.info("=" * 80)
+
+        try:
+            response = await call_next(request)
+
+            # Log da resposta
+            logger.info("=" * 80)
+            logger.info(f"📤 RESPONSE: {request.method} {request.url.path}")
+            logger.info(f"   Status: {response.status_code}")
+            logger.info(f"   Headers: {dict(response.headers)}")
+            logger.info("=" * 80)
+
+            return response
+        except Exception as e:
+            logger.error("=" * 80)
+            logger.error(f"❌ ERRO: {request.method} {request.url.path}")
+            logger.error(f"   Exception: {str(e)}")
+            logger.error("=" * 80)
+            raise
+
+
+# ============================================================================
 # MIDDLEWARE HTTPS ENFORCER - Garantir que NUNCA redirecione para HTTP
 # ============================================================================
 class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
@@ -56,6 +94,9 @@ class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
 
         return response
 
+
+# MIDDLEWARE DE LOGGING - PRIMEIRO DE TODOS (para capturar tudo)
+app.add_middleware(RequestLoggingMiddleware)
 
 # MIDDLEWARE HTTPS - DEVE VIR ANTES DO CORS
 app.add_middleware(HTTPSRedirectMiddleware)

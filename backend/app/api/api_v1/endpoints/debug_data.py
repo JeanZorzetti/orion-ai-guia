@@ -118,6 +118,11 @@ STORE_CHANNELS = [
 @router.options("/seed-beach-fashion")
 async def seed_beach_fashion_options():
     """Handle CORS preflight for seed-beach-fashion endpoint"""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("=" * 80)
+    logger.info("OPTIONS /seed-beach-fashion CHAMADO - CORS PREFLIGHT")
+    logger.info("=" * 80)
     return {"status": "ok"}
 
 
@@ -143,6 +148,15 @@ def seed_beach_fashion_data(
     Returns:
         Resumo dos dados criados
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.info("=" * 80)
+    logger.info("POST /seed-beach-fashion INICIADO")
+    logger.info(f"User ID: {current_user.id}")
+    logger.info(f"Workspace ID: {current_user.workspace_id}")
+    logger.info(f"Months: {months}")
+    logger.info("=" * 80)
 
     workspace_id = current_user.workspace_id
     stats = {
