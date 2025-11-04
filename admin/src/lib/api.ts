@@ -147,32 +147,26 @@ export async function apiClient<T>(
   // GARANTIR HTTPS - camada tripla de proteção
   let url = `${API_URL}${endpoint}`;
 
-  // Debug ANTES das transformações
-  if (typeof window !== 'undefined' && endpoint.includes('suppliers')) {
-    console.log('🔍 URL Debug (ANTES):', {
-      'API_URL': API_URL,
-      'API_URL protocol': API_URL.substring(0, 10),
-      'endpoint': endpoint,
-      'URL concatenada': url,
-      'URL protocol': url.substring(0, 10),
-    });
-  }
-
   // Remover barras duplas que podem aparecer na junção
   url = url.replace(/([^:]\/)\/+/g, '$1');
 
-  // Forçar HTTPS - SEMPRE, mesmo que já seja HTTPS
+  // CAMADA DE PROTEÇÃO MÁXIMA: Forçar HTTPS SEMPRE
+  // Se começar com http:// trocar para https://
   if (url.startsWith('http://')) {
+    console.warn('⚠️ ALERTA: URL estava usando HTTP, forçando HTTPS!', url);
     url = url.replace(/^http:\/\//, 'https://');
   }
 
-  // Debug DEPOIS das transformações
-  if (typeof window !== 'undefined' && endpoint.includes('suppliers')) {
-    console.log('🔍 URL Debug (DEPOIS):', {
-      'URL final': url,
-      'URL protocol': url.substring(0, 10),
-      'É HTTPS?': url.startsWith('https:'),
-    });
+  // Se não tiver protocolo, adicionar https://
+  if (!url.startsWith('https://') && !url.startsWith('http://')) {
+    console.warn('⚠️ ALERTA: URL sem protocolo, adicionando HTTPS!', url);
+    url = `https://${url}`;
+  }
+
+  // Última verificação: se ainda estiver com http://, erro crítico
+  if (url.startsWith('http://')) {
+    console.error('🚨 ERRO CRÍTICO: URL ainda está com HTTP após todas as correções!', url);
+    throw new Error('Mixed Content: Cannot use HTTP in HTTPS context');
   }
 
   try {
