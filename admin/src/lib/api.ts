@@ -147,27 +147,55 @@ export async function apiClient<T>(
   // GARANTIR HTTPS - camada tripla de proteção
   let url = `${API_URL}${endpoint}`;
 
+  // ========================================================================
+  // DEBUG COMPLETO PARA DIAGNÓSTICO
+  // ========================================================================
+  console.log('🔍 [API REQUEST DEBUG]');
+  console.log('  Step 1 - Input:');
+  console.log('    API_URL:', API_URL);
+  console.log('    endpoint:', endpoint);
+  console.log('    URL concatenada:', url);
+  console.log('    URL protocol (primeiros 10 chars):', url.substring(0, 10));
+  console.log('    Começa com https://:', url.startsWith('https://'));
+  console.log('    Começa com http://:', url.startsWith('http://'));
+
   // Remover barras duplas que podem aparecer na junção
+  const urlBeforeClean = url;
   url = url.replace(/([^:]\/)\/+/g, '$1');
+  if (urlBeforeClean !== url) {
+    console.log('  Step 2 - Limpeza de barras duplas:');
+    console.log('    Antes:', urlBeforeClean);
+    console.log('    Depois:', url);
+  }
 
   // CAMADA DE PROTEÇÃO MÁXIMA: Forçar HTTPS SEMPRE
   // Se começar com http:// trocar para https://
   if (url.startsWith('http://')) {
-    console.warn('⚠️ ALERTA: URL estava usando HTTP, forçando HTTPS!', url);
+    console.warn('  ⚠️ Step 3 - URL estava usando HTTP, forçando HTTPS!');
+    console.warn('    Antes:', url);
     url = url.replace(/^http:\/\//, 'https://');
+    console.warn('    Depois:', url);
   }
 
   // Se não tiver protocolo, adicionar https://
   if (!url.startsWith('https://') && !url.startsWith('http://')) {
-    console.warn('⚠️ ALERTA: URL sem protocolo, adicionando HTTPS!', url);
+    console.warn('  ⚠️ Step 4 - URL sem protocolo, adicionando HTTPS!');
+    console.warn('    Antes:', url);
     url = `https://${url}`;
+    console.warn('    Depois:', url);
   }
 
   // Última verificação: se ainda estiver com http://, erro crítico
   if (url.startsWith('http://')) {
-    console.error('🚨 ERRO CRÍTICO: URL ainda está com HTTP após todas as correções!', url);
+    console.error('  🚨 ERRO CRÍTICO: URL ainda está com HTTP após todas as correções!');
+    console.error('    URL final:', url);
     throw new Error('Mixed Content: Cannot use HTTP in HTTPS context');
   }
+
+  console.log('  ✅ Step 5 - URL Final:', url);
+  console.log('  ✅ Protocolo:', url.substring(0, 8));
+  console.log('🔍 [/API REQUEST DEBUG]');
+  console.log('');
 
   try {
     const response = await fetch(url, config);
