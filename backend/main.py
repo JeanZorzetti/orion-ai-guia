@@ -40,33 +40,30 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     Middleware para logar todas as requisições recebidas.
     """
     async def dispatch(self, request: Request, call_next):
-        import logging
-        logger = logging.getLogger("uvicorn.access")
-
-        # Log da requisição recebida
-        logger.info("=" * 80)
-        logger.info(f"📥 REQUEST: {request.method} {request.url.path}")
-        logger.info(f"   Query Params: {dict(request.query_params)}")
-        logger.info(f"   Headers: {dict(request.headers)}")
-        logger.info(f"   Client: {request.client}")
-        logger.info("=" * 80)
+        # Usar print em vez de logger para não quebrar formato do uvicorn
+        print("=" * 80)
+        print(f"📥 REQUEST: {request.method} {request.url.path}")
+        print(f"   Query Params: {dict(request.query_params)}")
+        print(f"   Headers: {dict(request.headers)}")
+        print(f"   Client: {request.client}")
+        print("=" * 80)
 
         try:
             response = await call_next(request)
 
             # Log da resposta
-            logger.info("=" * 80)
-            logger.info(f"📤 RESPONSE: {request.method} {request.url.path}")
-            logger.info(f"   Status: {response.status_code}")
-            logger.info(f"   Headers: {dict(response.headers)}")
-            logger.info("=" * 80)
+            print("=" * 80)
+            print(f"📤 RESPONSE: {request.method} {request.url.path}")
+            print(f"   Status: {response.status_code}")
+            print(f"   Headers: {dict(response.headers)}")
+            print("=" * 80)
 
             return response
         except Exception as e:
-            logger.error("=" * 80)
-            logger.error(f"❌ ERRO: {request.method} {request.url.path}")
-            logger.error(f"   Exception: {str(e)}")
-            logger.error("=" * 80)
+            print("=" * 80)
+            print(f"❌ ERRO: {request.method} {request.url.path}")
+            print(f"   Exception: {str(e)}")
+            print("=" * 80)
             raise
 
 
