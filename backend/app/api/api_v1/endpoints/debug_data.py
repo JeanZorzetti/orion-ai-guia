@@ -115,14 +115,25 @@ STORE_CHANNELS = [
 # ENDPOINTS
 # ============================================================================
 
-@router.options("/seed-beach-fashion")
-@router.options("/seed-beach-fashion/")
+@router.options("/seed-beach-fashion", dependencies=[])
+@router.options("/seed-beach-fashion/", dependencies=[])
 async def seed_beach_fashion_options():
     """Handle CORS preflight for seed-beach-fashion endpoint"""
+    from fastapi.responses import JSONResponse
     print("=" * 80)
     print("OPTIONS /seed-beach-fashion CHAMADO - CORS PREFLIGHT")
     print("=" * 80)
-    return {"status": "ok"}
+
+    # Retornar resposta com headers CORS explícitos
+    return JSONResponse(
+        content={"status": "ok"},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Max-Age": "3600"
+        }
+    )
 
 
 @router.post("/seed-beach-fashion", status_code=status.HTTP_201_CREATED)
@@ -148,12 +159,17 @@ def seed_beach_fashion_data(
     Returns:
         Resumo dos dados criados
     """
-    print("=" * 80)
-    print("POST /seed-beach-fashion INICIADO")
-    print(f"User ID: {current_user.id}")
-    print(f"Workspace ID: {current_user.workspace_id}")
-    print(f"Months: {months}")
-    print("=" * 80)
+    try:
+        print("=" * 80)
+        print("POST /seed-beach-fashion INICIADO")
+        print(f"User ID: {current_user.id}")
+        print(f"Workspace ID: {current_user.workspace_id}")
+        print(f"Months: {months}")
+        print("=" * 80)
+    except Exception as e:
+        print(f"ERRO AO LOGAR INÍCIO: {e}")
+        import traceback
+        traceback.print_exc()
 
     workspace_id = current_user.workspace_id
     stats = {
@@ -399,14 +415,25 @@ def seed_beach_fashion_data(
     }
 
 
-@router.options("/clear-debug-data")
-@router.options("/clear-debug-data/")
+@router.options("/clear-debug-data", dependencies=[])
+@router.options("/clear-debug-data/", dependencies=[])
 async def clear_debug_data_options():
     """Handle CORS preflight for clear-debug-data endpoint"""
+    from fastapi.responses import JSONResponse
     print("=" * 80)
     print("OPTIONS /clear-debug-data CHAMADO - CORS PREFLIGHT")
     print("=" * 80)
-    return {"status": "ok"}
+
+    # Retornar resposta com headers CORS explícitos
+    return JSONResponse(
+        content={"status": "ok"},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Max-Age": "3600"
+        }
+    )
 
 
 @router.delete("/clear-debug-data", status_code=status.HTTP_200_OK)
