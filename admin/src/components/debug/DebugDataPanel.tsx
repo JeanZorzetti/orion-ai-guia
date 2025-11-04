@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { AlertTriangle, Database, Trash2, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { api } from '@/lib/api'
 
 interface SeedStats {
   products_created: number
@@ -48,18 +49,7 @@ export function DebugDataPanel() {
     setError(null)
 
     try {
-      const token = localStorage.getItem('access_token')
-      const response = await fetch('/api/v1/debug/seed-status', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Erro ao buscar status')
-      }
-
-      const data = await response.json()
+      const data = await api.get<SeedStatus>('/debug/seed-status')
       setStatus(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
@@ -75,20 +65,7 @@ export function DebugDataPanel() {
     setSeedResult(null)
 
     try {
-      const token = localStorage.getItem('access_token')
-      const response = await fetch('/api/v1/debug/seed-beach-fashion?months=12', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Erro ao popular dados')
-      }
-
-      const data = await response.json()
+      const data = await api.post<{ stats: SeedStats }>('/debug/seed-beach-fashion?months=12')
       setSeedResult(data.stats)
 
       // Atualiza status
@@ -107,20 +84,7 @@ export function DebugDataPanel() {
     setClearResult(null)
 
     try {
-      const token = localStorage.getItem('access_token')
-      const response = await fetch('/api/v1/debug/clear-debug-data?confirm=true', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Erro ao limpar dados')
-      }
-
-      const data = await response.json()
+      const data = await api.delete<{ stats: ClearStats }>('/debug/clear-debug-data?confirm=true')
       setClearResult(data.stats)
       setSeedResult(null)
 
