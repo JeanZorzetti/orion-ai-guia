@@ -116,17 +116,17 @@ STORE_CHANNELS = [
 # ============================================================================
 
 @router.options("/seed-beach-fashion")
+@router.options("/seed-beach-fashion/")
 async def seed_beach_fashion_options():
     """Handle CORS preflight for seed-beach-fashion endpoint"""
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info("=" * 80)
-    logger.info("OPTIONS /seed-beach-fashion CHAMADO - CORS PREFLIGHT")
-    logger.info("=" * 80)
+    print("=" * 80)
+    print("OPTIONS /seed-beach-fashion CHAMADO - CORS PREFLIGHT")
+    print("=" * 80)
     return {"status": "ok"}
 
 
 @router.post("/seed-beach-fashion", status_code=status.HTTP_201_CREATED)
+@router.post("/seed-beach-fashion/", status_code=status.HTTP_201_CREATED)
 def seed_beach_fashion_data(
     months: int = 12,  # Padrão: 1 ano de histórico
     db: Session = Depends(get_db),
@@ -148,15 +148,12 @@ def seed_beach_fashion_data(
     Returns:
         Resumo dos dados criados
     """
-    import logging
-    logger = logging.getLogger(__name__)
-
-    logger.info("=" * 80)
-    logger.info("POST /seed-beach-fashion INICIADO")
-    logger.info(f"User ID: {current_user.id}")
-    logger.info(f"Workspace ID: {current_user.workspace_id}")
-    logger.info(f"Months: {months}")
-    logger.info("=" * 80)
+    print("=" * 80)
+    print("POST /seed-beach-fashion INICIADO")
+    print(f"User ID: {current_user.id}")
+    print(f"Workspace ID: {current_user.workspace_id}")
+    print(f"Months: {months}")
+    print("=" * 80)
 
     workspace_id = current_user.workspace_id
     stats = {
@@ -403,12 +400,17 @@ def seed_beach_fashion_data(
 
 
 @router.options("/clear-debug-data")
+@router.options("/clear-debug-data/")
 async def clear_debug_data_options():
     """Handle CORS preflight for clear-debug-data endpoint"""
+    print("=" * 80)
+    print("OPTIONS /clear-debug-data CHAMADO - CORS PREFLIGHT")
+    print("=" * 80)
     return {"status": "ok"}
 
 
 @router.delete("/clear-debug-data", status_code=status.HTTP_200_OK)
+@router.delete("/clear-debug-data/", status_code=status.HTTP_200_OK)
 def clear_debug_data(
     confirm: bool = False,
     db: Session = Depends(get_db),
