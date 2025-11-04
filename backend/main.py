@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from app.core.database import init_db, engine
 from app.core.config import settings
 from app.api.api_v1.api import api_router
@@ -7,6 +8,7 @@ from app.models import Base
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+from starlette.middleware.base import BaseHTTPMiddleware
 
 # Load environment variables
 load_dotenv()
@@ -29,6 +31,34 @@ print("CORS Configuration [v3.0 - WILDCARD TOTAL]")
 print(f"   Environment: {os.getenv('ENVIRONMENT', 'development')}")
 print(f"   CORS Origins: ['*'] (PERMITINDO TODAS AS ORIGENS)")
 print("=" * 60)
+
+# ============================================================================
+# MIDDLEWARE HTTPS ENFORCER - Garantir que NUNCA redirecione para HTTP
+# ============================================================================
+class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware para garantir que todos os redirects mantenham HTTPS.
+    Previne que o FastAPI/Starlette faça redirects HTTP em ambiente HTTPS.
+    """
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+
+        # Se é um redirect (3xx)
+        if 300 <= response.status_code < 400:
+            location = response.headers.get("location")
+            if location:
+                # Se o redirect for para HTTP, forçar HTTPS
+                if location.startswith("http://"):
+                    print(f"⚠️ REDIRECT HTTP DETECTADO E BLOQUEADO: {location}")
+                    https_location = location.replace("http://", "https://", 1)
+                    response.headers["location"] = https_location
+                    print(f"✅ REDIRECT CORRIGIDO PARA HTTPS: {https_location}")
+
+        return response
+
+
+# MIDDLEWARE HTTPS - DEVE VIR ANTES DO CORS
+app.add_middleware(HTTPSRedirectMiddleware)
 
 # MIDDLEWARE CORS - DEVE VIR ANTES DE QUALQUER ROTA
 app.add_middleware(
