@@ -69,6 +69,11 @@ const VendasPage: React.FC = () => {
     return new Date().toISOString().split('T')[0];
   });
 
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [totalSales, setTotalSales] = useState(0);
+
   // Estados dos menus colapsáveis
   const [modulesOpen, setModulesOpen] = useState(true);
   const [syncOpen, setSyncOpen] = useState(false);
@@ -88,23 +93,28 @@ const VendasPage: React.FC = () => {
 
   useEffect(() => {
     loadSales();
-  }, [statusFilter, startDate, endDate]);
+  }, [statusFilter, startDate, endDate, currentPage, itemsPerPage]);
 
   const loadSales = async () => {
     try {
       setLoading(true);
       setError(null);
+      const skip = (currentPage - 1) * itemsPerPage;
       const data = await saleService.getAll({
         status_filter: statusFilter === 'all' ? undefined : statusFilter,
         start_date: startDate,
         end_date: endDate,
-        limit: 1000  // Limite razoável com filtros de data
+        skip: skip,
+        limit: itemsPerPage
       });
+
       // Filtrar por cliente no frontend se houver busca
       const filteredData = searchTerm
         ? data.filter(s => s.customer_name.toLowerCase().includes(searchTerm.toLowerCase()))
         : data;
+
       setSales(filteredData);
+      setTotalSales(filteredData.length);
     } catch (err) {
       const error = err as Error;
       setError(error.message || 'Erro ao carregar vendas');
@@ -112,6 +122,11 @@ const VendasPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Reset página ao mudar filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, startDate, endDate, itemsPerPage]);
 
   const handleSearch = () => {
     loadSales();
@@ -867,6 +882,46 @@ const VendasPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Controles de Paginação */}
+            {!loading && sales.length > 0 && (
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Itens por página:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    className="border rounded px-2 py-1 text-sm"
+                  >
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <span className="text-sm text-muted-foreground ml-4">
+                    Página {currentPage} • {sales.length} vendas
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    disabled={sales.length < itemsPerPage}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
