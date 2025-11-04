@@ -25,7 +25,8 @@ import {
   Store,
   BarChart3,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 import { saleService } from '@/services/sale';
@@ -58,6 +59,16 @@ const VendasPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
+  // Filtros de data - padrão últimos 30 dias
+  const [startDate, setStartDate] = useState<string>(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return date.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState<string>(() => {
+    return new Date().toISOString().split('T')[0];
+  });
+
   // Estados dos menus colapsáveis
   const [modulesOpen, setModulesOpen] = useState(true);
   const [syncOpen, setSyncOpen] = useState(false);
@@ -77,7 +88,7 @@ const VendasPage: React.FC = () => {
 
   useEffect(() => {
     loadSales();
-  }, [statusFilter]);
+  }, [statusFilter, startDate, endDate]);
 
   const loadSales = async () => {
     try {
@@ -85,7 +96,9 @@ const VendasPage: React.FC = () => {
       setError(null);
       const data = await saleService.getAll({
         status_filter: statusFilter === 'all' ? undefined : statusFilter,
-        limit: 50000  // Limite aumentado para suportar dados de debug/seed
+        start_date: startDate,
+        end_date: endDate,
+        limit: 1000  // Limite razoável com filtros de data
       });
       // Filtrar por cliente no frontend se houver busca
       const filteredData = searchTerm
@@ -632,33 +645,101 @@ const VendasPage: React.FC = () => {
       <NoPrint>
         <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Buscar por cliente..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-            <Button variant="outline" onClick={handleSearch}>
-              <Search className="mr-2 h-4 w-4" />
-              Buscar
-            </Button>
-            <div className="flex gap-2">
-              {filters.map((filter) => (
+          <div className="space-y-3">
+            {/* Filtros de Data */}
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex items-center gap-2 flex-1">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1 flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground mb-1 block">Data Inicial</label>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground mb-1 block">Data Final</label>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
                 <Button
-                  key={filter.key}
-                  variant={statusFilter === filter.key ? 'default' : 'outline'}
+                  variant="outline"
                   size="sm"
-                  onClick={() => setStatusFilter(filter.key as StatusFilter)}
+                  onClick={() => {
+                    const date = new Date();
+                    date.setDate(date.getDate() - 7);
+                    setStartDate(date.toISOString().split('T')[0]);
+                    setEndDate(new Date().toISOString().split('T')[0]);
+                  }}
                 >
-                  {filter.label}
+                  7 dias
                 </Button>
-              ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const date = new Date();
+                    date.setDate(date.getDate() - 30);
+                    setStartDate(date.toISOString().split('T')[0]);
+                    setEndDate(new Date().toISOString().split('T')[0]);
+                  }}
+                >
+                  30 dias
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const date = new Date();
+                    date.setDate(date.getDate() - 90);
+                    setStartDate(date.toISOString().split('T')[0]);
+                    setEndDate(new Date().toISOString().split('T')[0]);
+                  }}
+                >
+                  90 dias
+                </Button>
+              </div>
+            </div>
+
+            {/* Busca e Filtros de Status */}
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Buscar por cliente..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+              <Button variant="outline" onClick={handleSearch}>
+                <Search className="mr-2 h-4 w-4" />
+                Buscar
+              </Button>
+              <div className="flex gap-2">
+                {filters.map((filter) => (
+                  <Button
+                    key={filter.key}
+                    variant={statusFilter === filter.key ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStatusFilter(filter.key as StatusFilter)}
+                  >
+                    {filter.label}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         </CardContent>
