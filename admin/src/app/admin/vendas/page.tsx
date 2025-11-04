@@ -72,7 +72,6 @@ const VendasPage: React.FC = () => {
   // Paginação
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
-  const [totalSales, setTotalSales] = useState(0);
 
   // Estados dos menus colapsáveis
   const [modulesOpen, setModulesOpen] = useState(true);
@@ -114,7 +113,6 @@ const VendasPage: React.FC = () => {
         : data;
 
       setSales(filteredData);
-      setTotalSales(filteredData.length);
     } catch (err) {
       const error = err as Error;
       setError(error.message || 'Erro ao carregar vendas');
