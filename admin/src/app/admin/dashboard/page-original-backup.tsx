@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,17 +9,18 @@ import {
   AlertTriangle,
   Calendar,
   TrendingUp,
+  FileText,
   DollarSign,
   Package,
   ShoppingCart,
+  TrendingDown,
   CheckCircle,
-  RefreshCw,
 } from 'lucide-react';
 import { invoiceService } from '@/services/invoice';
 import { productService } from '@/services/product';
-import { dashboardService, DashboardStatsResponse } from '@/services/dashboard';
-import { Invoice, Product } from '@/types';
-import { format, isAfter, isBefore, addDays, startOfDay } from 'date-fns';
+import { saleService } from '@/services/sale';
+import { Invoice, Product, Sale } from '@/types';
+import { format, isAfter, isBefore, addDays, startOfDay, subDays, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Sparkline } from '@/components/ui/sparkline';
 import { TrendBadge } from '@/components/ui/trend-badge';
@@ -27,96 +28,52 @@ import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { SalesByChannelChart } from '@/components/dashboard/SalesByChannelChart';
 import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { ChannelFilter } from '@/components/dashboard/ChannelFilter';
+import { InsightCard } from '@/components/dashboard/InsightCard';
+import { generateInsights } from '@/lib/insights-generator';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { DateRange } from 'react-day-picker';
 
-/**
- * Dashboard Otimizado
- *
- * MUDANÇAS:
- * - Usa endpoint agregado GET /dashboard/stats (50-100ms)
- * - Dados de vendas vêm pré-calculados do backend
- * - Gráficos SEMPRE fixos (não afetados por filtros)
- * - Cards principais usam dados do mês atual (fixos)
- * - Performance 20-30x melhor
- */
 const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Dados que ainda precisam vir de endpoints separados
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
 
-  // Dados agregados do novo endpoint
-  const [dashboardStats, setDashboardStats] = useState<DashboardStatsResponse | null>(null);
-
-  // Filtros (afetam apenas KPIs, não gráficos)
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  // Filter states
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 29),
+    to: new Date()
+  });
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
 
   useEffect(() => {
     loadDashboardData();
   }, []);
 
-  // Recarregar quando filtros mudam
-  useEffect(() => {
-    if (!loading) {
-      loadDashboardStats();
-    }
-  }, [dateRange, selectedChannels]);
-
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const startTime = performance.now();
-
-      // Carregar dados em paralelo
-      const [invoicesData, productsData, statsData] = await Promise.all([
+      // Dashboard precisa de todas as vendas dos últimos 6 meses para gráficos
+      const sixMonthsAgo = subMonths(new Date(), 6);
+      const [invoicesData, productsData, salesData] = await Promise.all([
         invoiceService.getAll(),
         productService.getAll(),
-        loadDashboardStats(),
+        saleService.getAll({
+          start_date: sixMonthsAgo.toISOString().split('T')[0],
+          limit: 5000  // Limite alto para dashboard
+        }),
       ]);
-
       setInvoices(invoicesData);
       setProducts(productsData);
-
-      const loadTime = performance.now() - startTime;
-      console.log(`📊 Dashboard carregado em ${loadTime.toFixed(2)}ms`);
+      setSales(salesData);
     } catch (error) {
-      console.error('❌ Erro ao carregar dados do dashboard:', error);
+      console.error('Erro ao carregar dados do dashboard:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadDashboardStats = async () => {
-    try {
-      const params = {
-        start_date: dateRange?.from?.toISOString().split('T')[0],
-        end_date: dateRange?.to?.toISOString().split('T')[0],
-        channels: selectedChannels.length > 0 ? selectedChannels : undefined,
-      };
-
-      const stats = await dashboardService.getStats(params);
-      setDashboardStats(stats);
-      return stats;
-    } catch (error) {
-      console.error('❌ Erro ao carregar estatísticas:', error);
-      throw error;
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await loadDashboardData();
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  // Estatísticas Financeiras (mantidas do código original)
+  // Estatísticas Financeiras
   const today = startOfDay(new Date());
   const next7Days = addDays(today, 7);
 
@@ -137,7 +94,7 @@ const Dashboard: React.FC = () => {
     .filter((inv) => inv.status === 'paid')
     .reduce((sum, inv) => sum + inv.total_value, 0);
 
-  // Estatísticas de Estoque (mantidas do código original)
+  // Estatísticas de Estoque
   const lowStockProducts = products.filter(
     (prod) => prod.stock_quantity <= prod.min_stock_level && prod.active
   );
@@ -145,21 +102,149 @@ const Dashboard: React.FC = () => {
     .filter((prod) => prod.active)
     .reduce((sum, prod) => sum + prod.stock_quantity * prod.sale_price, 0);
 
-  // Dados para gráficos (vêm do backend - SEMPRE FIXOS)
-  const revenueChartData = useMemo(() => {
-    if (!dashboardStats) return [];
-    return dashboardService.formatWeeklyChartData(dashboardStats.weekly_revenue);
-  }, [dashboardStats]);
+  // Estatísticas de Vendas - com filtros aplicados
+  let filteredSales = sales.filter((sale) => sale.status === 'completed');
 
-  const salesByChannelData = useMemo(() => {
-    if (!dashboardStats) return [];
-    return dashboardService.formatChannelChartData(dashboardStats.channel_monthly);
-  }, [dashboardStats]);
+  // Aplicar filtro de data
+  if (dateRange?.from || dateRange?.to) {
+    filteredSales = filteredSales.filter((sale) => {
+      const saleDate = new Date(sale.sale_date);
+      if (dateRange.from && dateRange.to) {
+        return saleDate >= dateRange.from && saleDate <= dateRange.to;
+      }
+      if (dateRange.from) {
+        return saleDate >= dateRange.from;
+      }
+      if (dateRange.to) {
+        return saleDate <= dateRange.to;
+      }
+      return true;
+    });
+  }
 
-  const sparklineData = useMemo(() => {
-    if (!dashboardStats) return [];
-    return dashboardService.formatSparklineData(dashboardStats.daily_revenue_30d);
-  }, [dashboardStats]);
+  // Aplicar filtro de canal
+  if (selectedChannels.length > 0) {
+    filteredSales = filteredSales.filter((sale) => {
+      const channel = sale.origin_channel || 'manual';
+      return selectedChannels.includes(channel);
+    });
+  }
+
+  const completedSales = filteredSales;
+  const totalRevenue = completedSales.reduce((sum, sale) => sum + sale.total_value, 0);
+  const averageTicket = completedSales.length > 0 ? totalRevenue / completedSales.length : 0;
+
+  // Vendas dos últimos 7 dias
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(today, -6 + i);
+    return {
+      date,
+      day: format(date, 'EEE', { locale: ptBR }),
+      sales: completedSales.filter((sale) => {
+        const saleDate = startOfDay(new Date(sale.sale_date));
+        return saleDate.getTime() === date.getTime();
+      }),
+    };
+  });
+
+  const salesByDay = last7Days.map((day) => ({
+    dia: day.day,
+    valor: day.sales.reduce((sum, sale) => sum + sale.total_value, 0),
+  }));
+
+  const maxDailySale = Math.max(...salesByDay.map((s) => s.valor), 1);
+
+  // Comparações temporais (mês atual vs. mês anterior)
+  const currentMonthStart = startOfMonth(today);
+  const currentMonthEnd = endOfMonth(today);
+  const lastMonthStart = startOfMonth(subMonths(today, 1));
+  const lastMonthEnd = endOfMonth(subMonths(today, 1));
+
+  // Vendas do mês atual
+  const currentMonthSales = completedSales.filter((sale) => {
+    const saleDate = new Date(sale.sale_date);
+    return saleDate >= currentMonthStart && saleDate <= currentMonthEnd;
+  });
+  const currentMonthRevenue = currentMonthSales.reduce((sum, sale) => sum + sale.total_value, 0);
+
+  // Vendas do mês anterior
+  const lastMonthSales = completedSales.filter((sale) => {
+    const saleDate = new Date(sale.sale_date);
+    return saleDate >= lastMonthStart && saleDate <= lastMonthEnd;
+  });
+  const lastMonthRevenue = lastMonthSales.reduce((sum, sale) => sum + sale.total_value, 0);
+
+  // Calcular tendência de receita (%)
+  const revenueTrend = lastMonthRevenue > 0
+    ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+    : 0;
+
+  // Dados para sparkline (últimos 30 dias)
+  const last30Days = Array.from({ length: 30 }, (_, i) => {
+    const date = subDays(today, 29 - i);
+    const dailySales = completedSales.filter((sale) => {
+      const saleDate = startOfDay(new Date(sale.sale_date));
+      return saleDate.getTime() === date.getTime();
+    });
+    return dailySales.reduce((sum, sale) => sum + sale.total_value, 0);
+  });
+
+
+  // Tendência de vendas (número de vendas)
+  const currentMonthSalesCount = currentMonthSales.length;
+  const lastMonthSalesCount = lastMonthSales.length;
+  const salesCountTrend = lastMonthSalesCount > 0
+    ? ((currentMonthSalesCount - lastMonthSalesCount) / lastMonthSalesCount) * 100
+    : 0;
+
+  // Dados para gráfico de receita (últimas 4 semanas - SEMPRE, independente dos filtros)
+  const allCompletedSales = sales.filter((sale) => sale.status === 'completed');
+  const revenueChartData = Array.from({ length: 4 }, (_, i) => {
+    const weekStart = subDays(today, (3 - i) * 7);
+    const weekEnd = subDays(today, (3 - i) * 7 - 6);
+    const weekSales = allCompletedSales.filter((sale) => {
+      const saleDate = new Date(sale.sale_date);
+      return saleDate >= weekEnd && saleDate <= weekStart;
+    });
+    const weekRevenue = weekSales.reduce((sum, sale) => sum + sale.total_value, 0);
+
+    return {
+      date: `Sem ${4 - i}`,
+      receita: weekRevenue,
+    };
+  });
+
+  // Dados para gráfico de vendas por canal (últimos 6 meses - SEMPRE, independente dos filtros)
+  const salesByChannelData = Array.from({ length: 6 }, (_, i) => {
+    const monthDate = subMonths(today, 5 - i);
+    const monthStart = startOfMonth(monthDate);
+    const monthEnd = endOfMonth(monthDate);
+
+    const monthSales = allCompletedSales.filter((sale) => {
+      const saleDate = new Date(sale.sale_date);
+      return saleDate >= monthStart && saleDate <= monthEnd;
+    });
+
+    // Agrupar vendas por canal
+    const channelTotals: Record<string, number> = {};
+    monthSales.forEach((sale) => {
+      const channel = sale.origin_channel || 'manual';
+      channelTotals[channel] = (channelTotals[channel] || 0) + sale.total_value;
+    });
+
+    return {
+      period: format(monthDate, 'MMM', { locale: ptBR }),
+      ...channelTotals
+    };
+  });
+
+  // Gerar insights AI
+  const insights = generateInsights({
+    sales,
+    invoices,
+    products,
+    dateRange
+  });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -180,35 +265,11 @@ const Dashboard: React.FC = () => {
     return <DashboardSkeleton />;
   }
 
-  if (!dashboardStats) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <AlertTriangle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Erro ao carregar dashboard</h2>
-          <p className="text-muted-foreground mb-4">Não foi possível carregar os dados</p>
-          <Button onClick={handleRefresh}>Tentar Novamente</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Visão geral do seu negócio</p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={refreshing}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground">Visão geral do seu negócio</p>
       </div>
 
       {/* Filtros */}
@@ -217,7 +278,7 @@ const Dashboard: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">
-                Período (KPIs)
+                Período
               </label>
               <DateRangePicker
                 value={dateRange}
@@ -226,7 +287,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">
-                Canais de Venda (KPIs)
+                Canais de Venda
               </label>
               <ChannelFilter
                 selected={selectedChannels}
@@ -237,88 +298,78 @@ const Dashboard: React.FC = () => {
           {(dateRange || selectedChannels.length > 0) && (
             <div className="mt-4 flex items-center gap-2">
               <Badge variant="secondary" className="text-xs">
-                {dashboardStats.filters_applied ? 'Filtros ativos nos KPIs' : 'Sem filtros'}
+                Filtros ativos: {[
+                  dateRange && 'Período',
+                  selectedChannels.length > 0 && `${selectedChannels.length} canal(is)`
+                ].filter(Boolean).join(', ')}
               </Badge>
-              {dashboardStats.filters_applied && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => {
-                    setDateRange(undefined);
-                    setSelectedChannels([]);
-                  }}
-                >
-                  Limpar filtros
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  setDateRange({ from: subDays(new Date(), 29), to: new Date() });
+                  setSelectedChannels([]);
+                }}
+              >
+                Limpar filtros
+              </Button>
             </div>
           )}
-          <p className="text-xs text-muted-foreground mt-2">
-            ℹ️ Filtros afetam apenas os KPIs principais. Gráficos mostram períodos fixos.
-          </p>
         </CardContent>
       </Card>
 
       {/* Cards de Estatísticas Principais - Layout Hierárquico */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Card Principal - Receita Total (Mês Atual - FIXO) */}
+        {/* Card Principal - Receita Total (2 colunas) */}
         <Card className="md:col-span-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div>
-              <CardTitle className="text-lg font-semibold">
-                Receita Total (Mês Atual)
-              </CardTitle>
+              <CardTitle className="text-lg font-semibold">Receita Total (Mês)</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                {dashboardStats.month_comparison.current_month_sales} venda(s) completada(s)
+                {currentMonthSales.length} venda(s) completada(s)
               </p>
             </div>
             <ShoppingCart className="h-6 w-6 text-primary" />
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-4xl font-bold">
-              {formatCurrency(dashboardStats.month_comparison.current_month_revenue)}
-            </div>
+            <div className="text-4xl font-bold">{formatCurrency(currentMonthRevenue)}</div>
 
-            {/* Sparkline - últimos 30 dias */}
+            {/* Sparkline */}
             <Sparkline
-              data={sparklineData}
+              data={last30Days}
               color="#7C3AED"
               height={48}
               className="mt-2"
             />
 
-            {/* Trend Badge - mês atual vs. anterior */}
+            {/* Trend Badge */}
             <TrendBadge
-              value={dashboardStats.month_comparison.revenue_trend}
+              value={revenueTrend}
               label="vs. mês anterior"
               size="md"
             />
           </CardContent>
         </Card>
 
-        {/* Card Secundário - Vendas Totais (Filtráveis) */}
+        {/* Card Secundário - Vendas Totais */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {dashboardStats.filters_applied ? 'Vendas (Filtradas)' : 'Vendas Totais'}
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Vendas Totais</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-2xl font-bold">{dashboardStats.total_sales}</div>
-            {!dashboardStats.filters_applied && (
-              <TrendBadge
-                value={dashboardStats.month_comparison.sales_trend}
-                label="vendas/mês"
-                size="sm"
-              />
-            )}
-            {dashboardStats.filters_applied && (
-              <Badge variant="secondary" className="text-xs">
-                Com filtros ativos
-              </Badge>
-            )}
+            <div className="text-2xl font-bold">{completedSales.length}</div>
+            <Sparkline
+              data={last30Days.map((v) => (v > 0 ? 1 : 0))}
+              color="#22C55E"
+              height={32}
+            />
+            <TrendBadge
+              value={salesCountTrend}
+              label="vendas/mês"
+              size="sm"
+            />
           </CardContent>
         </Card>
 
@@ -330,6 +381,18 @@ const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="text-2xl font-bold">{formatCurrency(totalStockValue)}</div>
+            <div className="h-8 flex items-end justify-between gap-1">
+              {last30Days.slice(0, 20).map((_, index) => (
+                <div
+                  key={index}
+                  className="flex-1 bg-blue-500/20 rounded-t-sm"
+                  style={{
+                    height: `${Math.random() * 60 + 40}%`,
+                    minHeight: '20%',
+                  }}
+                />
+              ))}
+            </div>
             <p className="text-xs text-muted-foreground">
               {products.filter((p) => p.active).length} produto(s) ativo(s)
             </p>
@@ -370,13 +433,11 @@ const Dashboard: React.FC = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {dashboardStats.filters_applied ? 'Ticket Médio (Filtrado)' : 'Ticket Médio'}
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="text-2xl font-bold">{formatCurrency(dashboardStats.average_ticket)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(averageTicket)}</div>
             <p className="text-xs text-muted-foreground">Por venda</p>
           </CardContent>
         </Card>
@@ -398,9 +459,9 @@ const Dashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Gráficos Avançados - SEMPRE FIXOS */}
+      {/* Gráficos Avançados */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Gráfico de Receita - Últimas 4 Semanas */}
+        {/* Gráfico de Receita */}
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -408,7 +469,7 @@ const Dashboard: React.FC = () => {
               Receita nas Últimas 4 Semanas
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Evolução semanal da receita (sempre fixo)
+              Evolução semanal da receita
             </p>
           </CardHeader>
           <CardContent>
@@ -416,7 +477,7 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Gráfico de Vendas por Canal - Últimos 6 Meses */}
+        {/* Gráfico de Vendas por Canal */}
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -424,7 +485,7 @@ const Dashboard: React.FC = () => {
               Vendas por Canal (6 Meses)
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Distribuição de receita por origem (sempre fixo)
+              Distribuição de receita por origem
             </p>
           </CardHeader>
           <CardContent>
@@ -433,7 +494,9 @@ const Dashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Cards de Alertas e Informações */}
+      {/* AI Insights */}
+      <InsightCard insights={insights} maxDisplay={5} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card 1: Contas a Vencer (Próximos 7 dias) */}
         <Card>
@@ -476,7 +539,41 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Card 2: Alerta de Estoque */}
+        {/* Card 2: Faturas Vencidas */}
+        {overdueInvoices.length > 0 && (
+          <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                <TrendingDown className="h-5 w-5" />
+                Faturas Vencidas
+              </CardTitle>
+              <Badge variant="destructive">{overdueInvoices.length}</Badge>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {overdueInvoices.slice(0, 3).map((invoice) => (
+                <div
+                  key={invoice.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-gray-900"
+                >
+                  <div>
+                    <p className="font-medium text-sm">
+                      {invoice.supplier?.name || `Fatura #${invoice.invoice_number}`}
+                    </p>
+                    <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Venceu em {invoice.due_date ? formatDate(invoice.due_date) : 'Sem data'}
+                    </p>
+                  </div>
+                  <p className="font-semibold text-sm text-red-700 dark:text-red-400">
+                    {formatCurrency(invoice.total_value)}
+                  </p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Card 3: Alerta de Estoque */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="flex items-center gap-2">
@@ -518,11 +615,53 @@ const Dashboard: React.FC = () => {
             )}
           </CardContent>
         </Card>
-      </div>
 
-      {/* Timestamp do último carregamento */}
-      <div className="text-center text-xs text-muted-foreground">
-        Última atualização: {new Date(dashboardStats.data_timestamp).toLocaleString('pt-BR')}
+        {/* Card 4: Visão Rápida de Vendas */}
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-green-500" />
+              Vendas dos Últimos 7 Dias
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {salesByDay.map((venda, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground min-w-[40px]">
+                    {venda.dia}
+                  </span>
+                  <div className="flex items-center gap-2 flex-1">
+                    <div
+                      className="h-2 bg-primary rounded-full transition-all"
+                      style={{
+                        width: `${venda.valor > 0 ? (venda.valor / maxDailySale) * 60 : 0}%`,
+                        minWidth: venda.valor > 0 ? '2px' : '0',
+                      }}
+                    />
+                    <span className="text-sm font-medium min-w-[100px] text-right">
+                      {formatCurrency(venda.valor)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total:</span>
+                <span className="font-semibold text-foreground">
+                  {formatCurrency(salesByDay.reduce((sum, v) => sum + v.valor, 0))}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Ticket Médio:</span>
+                <span className="font-semibold text-foreground">
+                  {formatCurrency(averageTicket)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
