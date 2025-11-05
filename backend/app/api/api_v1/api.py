@@ -25,7 +25,8 @@ from app.api.api_v1.endpoints import (
     inventory,
     stock_reports,
     notifications,
-    debug_data
+    debug_data,
+    jobs
 )
 
 api_router = APIRouter()
@@ -55,3 +56,4 @@ api_router.include_router(notifications.router, prefix="/notifications", tags=["
 api_router.include_router(super_admin.router, prefix="/super-admin", tags=["super-admin"])
 api_router.include_router(admin_reset.router, prefix="/admin-utils", tags=["admin-utils"])
 api_router.include_router(debug_data.router, prefix="/debug", tags=["debug"])
+api_router.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
