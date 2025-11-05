@@ -253,7 +253,7 @@ def create_transaction(
 
     # Atualizar saldo da conta
     if transaction.account_id:
-        _update_account_balance(db, transaction.account_id, transaction.value, transaction.type.value, add=True)
+        _update_account_balance(db, transaction.account_id, transaction.value, transaction.type.value)
 
     return db_transaction
 
@@ -389,11 +389,11 @@ def update_transaction(
     if value_changed or type_changed or account_changed:
         # Reverter impacto da transação antiga
         if old_account_id:
-            _update_account_balance(db, old_account_id, old_value, old_type, add=False)
+            _revert_account_balance(db, old_account_id, old_value, old_type)
 
         # Aplicar impacto da transação nova
         if db_transaction.account_id:
-            _update_account_balance(db, db_transaction.account_id, db_transaction.value, db_transaction.type, add=True)
+            _update_account_balance(db, db_transaction.account_id, db_transaction.value, db_transaction.type)
 
     db.commit()
     db.refresh(db_transaction)
@@ -427,12 +427,11 @@ def delete_transaction(
 
     # Reverter impacto no saldo
     if db_transaction.account_id:
-        _update_account_balance(
+        _revert_account_balance(
             db,
             db_transaction.account_id,
             db_transaction.value,
-            db_transaction.type,
-            add=False
+            db_transaction.type
         )
 
     db.delete(db_transaction)
@@ -524,8 +523,8 @@ def create_transfer(
     db.commit()
 
     # Atualizar saldos
-    _update_account_balance(db, transfer.from_account_id, transfer.value, TransactionType.SAIDA.value, add=True)
-    _update_account_balance(db, transfer.to_account_id, transfer.value, TransactionType.ENTRADA.value, add=True)
+    _update_account_balance(db, transfer.from_account_id, transfer.value, TransactionType.SAIDA.value)
+    _update_account_balance(db, transfer.to_account_id, transfer.value, TransactionType.ENTRADA.value)
 
     db.refresh(exit_transaction)
     db.refresh(entry_transaction)
@@ -540,20 +539,56 @@ def create_transfer(
 # HELPER FUNCTIONS
 # ============================================
 
-def _update_account_balance(db: Session, account_id: int, value: float, transaction_type: str, add: bool = True):
-    """Atualiza o saldo de uma conta bancária"""
+def _update_account_balance(db: Session, account_id: int, value: float, transaction_type: str):
+    """
+    Atualiza o saldo de uma conta bancária.
+
+    Args:
+        account_id: ID da conta bancária
+        value: Valor da transação (sempre positivo)
+        transaction_type: "entrada" (adiciona) ou "saida" (subtrai)
+    """
     account = db.query(BankAccount).filter(BankAccount.id == account_id).first()
 
     if not account:
         return
 
     # Calcular impacto no saldo
-    impact = value if transaction_type == TransactionType.ENTRADA.value else -value
+    # ENTRADA: adiciona ao saldo
+    # SAÍDA: subtrai do saldo
+    if transaction_type == TransactionType.ENTRADA.value:
+        account.current_balance += value
+    else:  # SAIDA
+        account.current_balance -= value
 
-    if not add:
-        impact = -impact
+    account.updated_at = datetime.utcnow()
 
-    account.current_balance += impact
+    db.commit()
+
+
+def _revert_account_balance(db: Session, account_id: int, value: float, transaction_type: str):
+    """
+    Reverte o impacto de uma transação no saldo da conta.
+    Usado quando uma transação é editada ou excluída.
+
+    Args:
+        account_id: ID da conta bancária
+        value: Valor da transação que será revertida (sempre positivo)
+        transaction_type: Tipo da transação ORIGINAL ("entrada" ou "saida")
+    """
+    account = db.query(BankAccount).filter(BankAccount.id == account_id).first()
+
+    if not account:
+        return
+
+    # Reverter o impacto:
+    # Se era ENTRADA, subtrair (desfazer a adição)
+    # Se era SAÍDA, adicionar (desfazer a subtração)
+    if transaction_type == TransactionType.ENTRADA.value:
+        account.current_balance -= value
+    else:  # SAIDA
+        account.current_balance += value
+
     account.updated_at = datetime.utcnow()
 
     db.commit()
