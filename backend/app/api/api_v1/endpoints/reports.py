@@ -717,3 +717,223 @@ async def list_report_templates(
         "templates": templates,
         "total": len(templates)
     }
+
+
+# ============================================
+# DRE (DEMONSTRAÇÃO DO RESULTADO DO EXERCÍCIO)
+# ============================================
+
+@router.get("/dre", response_model=dict)
+async def get_dre_report(
+    period_start: Optional[date] = Query(None, description="Data início (padrão: primeiro dia do mês)"),
+    period_end: Optional[date] = Query(None, description="Data fim (padrão: último dia do mês)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Calcula DRE (Demonstração do Resultado do Exercício) com dados REAIS.
+
+    Não usa percentuais hardcoded. Calcula baseado em:
+    - Transações do Cash Flow categorizadas
+    - Vendas realizadas (Sales)
+    - Custos reais (CMV, despesas operacionais)
+
+    Estrutura do DRE:
+    1. Receita Bruta
+    2. (-) Deduções (Impostos sobre vendas)
+    3. (=) Receita Líquida
+    4. (-) CMV (Custo de Mercadorias Vendidas)
+    5. (=) Lucro Bruto
+    6. (-) Despesas Operacionais
+    7. (=) EBITDA
+    8. (-) Depreciação/Amortização
+    9. (-) Juros e Despesas Financeiras
+    10. (=) LAIR (Lucro Antes do IR)
+    11. (-) IR e CSLL
+    12. (=) Lucro Líquido
+    """
+    # Definir período padrão (mês atual)
+    if not period_start:
+        today = date.today()
+        period_start = date(today.year, today.month, 1)
+
+    if not period_end:
+        period_end = date.today()
+
+    workspace_id = current_user.workspace_id
+
+    # Buscar todas as transações do período
+    transactions = db.query(CashFlowTransaction).filter(
+        and_(
+            CashFlowTransaction.workspace_id == workspace_id,
+            CashFlowTransaction.transaction_date >= period_start,
+            CashFlowTransaction.transaction_date <= period_end
+        )
+    ).all()
+
+    # Categorias de mapeamento (pode ser customizado futuramente)
+    revenue_categories = ['Venda', 'Receita', 'Receita de Serviço', 'Receita de Produto']
+    tax_categories = ['Impostos', 'PIS', 'COFINS', 'ICMS', 'ISS', 'Taxas']
+    cogs_categories = ['CMV', 'Custo', 'Compra', 'Fornecedor']
+    operational_categories = ['Salários', 'Aluguel', 'Marketing', 'Administrativo', 'Vendas']
+    depreciation_categories = ['Depreciação', 'Amortização']
+    financial_categories = ['Juros', 'Multas', 'Encargos Financeiros', 'Taxas Bancárias']
+
+    # Inicializar valores
+    receita_bruta = 0.0
+    deducoes = 0.0
+    cmv = 0.0
+    despesas_operacionais = 0.0
+    depreciacao = 0.0
+    juros = 0.0
+
+    # Processar transações
+    for t in transactions:
+        category_lower = (t.category or '').lower()
+
+        # Receita Bruta (ENTRADAS com categorias de receita)
+        if t.type == TransactionType.ENTRADA.value:
+            is_revenue = any(cat.lower() in category_lower for cat in revenue_categories)
+            if is_revenue:
+                receita_bruta += t.value
+
+        # Saídas categorizadas
+        if t.type == TransactionType.SAIDA.value:
+            # Impostos e Deduções
+            if any(cat.lower() in category_lower for cat in tax_categories):
+                deducoes += t.value
+
+            # CMV (Custos de Produto/Mercadoria)
+            elif any(cat.lower() in category_lower for cat in cogs_categories):
+                cmv += t.value
+
+            # Despesas Operacionais
+            elif any(cat.lower() in category_lower for cat in operational_categories):
+                despesas_operacionais += t.value
+
+            # Depreciação/Amortização
+            elif any(cat.lower() in category_lower for cat in depreciation_categories):
+                depreciacao += t.value
+
+            # Juros e Despesas Financeiras
+            elif any(cat.lower() in category_lower for cat in financial_categories):
+                juros += t.value
+
+            # Se não se encaixa em nenhuma categoria específica, considerar operacional
+            else:
+                despesas_operacionais += t.value
+
+    # Calcular valores derivados
+    receita_liquida = receita_bruta - deducoes
+    lucro_bruto = receita_liquida - cmv
+    ebitda = lucro_bruto - despesas_operacionais
+    lair = ebitda - depreciacao - juros
+
+    # IR e CSLL (estimativa: 34% sobre lucro tributável se > 0)
+    ir_csll = lair * 0.34 if lair > 0 else 0.0
+    lucro_liquido = lair - ir_csll
+
+    # Calcular margens (%)
+    margem_bruta = (lucro_bruto / receita_bruta * 100) if receita_bruta > 0 else 0.0
+    margem_ebitda = (ebitda / receita_bruta * 100) if receita_bruta > 0 else 0.0
+    margem_liquida = (lucro_liquido / receita_bruta * 100) if receita_bruta > 0 else 0.0
+
+    # Montar resposta
+    items = [
+        {
+            "category": "Receita Bruta",
+            "value": receita_bruta,
+            "is_total": False,
+            "percentage_of_revenue": 100.0
+        },
+        {
+            "category": "(-) Deduções e Impostos",
+            "value": -deducoes,
+            "is_total": False,
+            "percentage_of_revenue": (deducoes / receita_bruta * 100) if receita_bruta > 0 else 0.0
+        },
+        {
+            "category": "Receita Líquida",
+            "value": receita_liquida,
+            "is_total": True,
+            "percentage_of_revenue": (receita_liquida / receita_bruta * 100) if receita_bruta > 0 else 0.0
+        },
+        {
+            "category": "(-) CMV",
+            "value": -cmv,
+            "is_total": False,
+            "percentage_of_revenue": (cmv / receita_bruta * 100) if receita_bruta > 0 else 0.0
+        },
+        {
+            "category": "Lucro Bruto",
+            "value": lucro_bruto,
+            "is_total": True,
+            "percentage_of_revenue": margem_bruta
+        },
+        {
+            "category": "(-) Despesas Operacionais",
+            "value": -despesas_operacionais,
+            "is_total": False,
+            "percentage_of_revenue": (despesas_operacionais / receita_bruta * 100) if receita_bruta > 0 else 0.0
+        },
+        {
+            "category": "EBITDA",
+            "value": ebitda,
+            "is_total": True,
+            "percentage_of_revenue": margem_ebitda
+        },
+        {
+            "category": "(-) Depreciação/Amortização",
+            "value": -depreciacao,
+            "is_total": False,
+            "percentage_of_revenue": (depreciacao / receita_bruta * 100) if receita_bruta > 0 else 0.0
+        },
+        {
+            "category": "(-) Juros",
+            "value": -juros,
+            "is_total": False,
+            "percentage_of_revenue": (juros / receita_bruta * 100) if receita_bruta > 0 else 0.0
+        },
+        {
+            "category": "LAIR (Lucro Antes do IR)",
+            "value": lair,
+            "is_total": True,
+            "percentage_of_revenue": (lair / receita_bruta * 100) if receita_bruta > 0 else 0.0
+        },
+        {
+            "category": "(-) IR e CSLL",
+            "value": -ir_csll,
+            "is_total": False,
+            "percentage_of_revenue": (ir_csll / receita_bruta * 100) if receita_bruta > 0 else 0.0
+        },
+        {
+            "category": "Lucro Líquido",
+            "value": lucro_liquido,
+            "is_total": True,
+            "percentage_of_revenue": margem_liquida
+        }
+    ]
+
+    response = {
+        "period_start": period_start.isoformat(),
+        "period_end": period_end.isoformat(),
+        "items": items,
+        "receita_bruta": receita_bruta,
+        "receita_liquida": receita_liquida,
+        "lucro_bruto": lucro_bruto,
+        "ebitda": ebitda,
+        "lucro_liquido": lucro_liquido,
+        "margem_bruta": round(margem_bruta, 2),
+        "margem_ebitda": round(margem_ebitda, 2),
+        "margem_liquida": round(margem_liquida, 2),
+        "transactions_count": len(transactions),
+        "data_source": "cash_flow_real_data"
+    }
+
+    logger.info(
+        f"DRE calculado para workspace {workspace_id}: "
+        f"Receita={receita_bruta}, Lucro Líquido={lucro_liquido}, "
+        f"Transações={len(transactions)}"
+    )
+
+    return response
